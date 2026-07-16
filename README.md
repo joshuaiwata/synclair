@@ -22,10 +22,15 @@ react-native-web) a React Native app.
 ## Quick start
 
 ```
-git clone https://github.com/joshuaiwata/synclair my-project
+npx synclair new my-project
 cd my-project
 npm install && npm run dev    # hub at http://localhost:4100/synclair
 ```
+
+(The [`synclair` package](https://www.npmjs.com/package/synclair) is only the
+front door — it git-clones this repo and wires it as your `upstream` remote.
+`git clone https://github.com/joshuaiwata/synclair my-project` works just as
+well; the source is yours either way.)
 
 A fresh clone is **blank on purpose** — the seed (brand, domain knowledge,
 project identity) is stripped, ready to reseed. Two setup paths:
