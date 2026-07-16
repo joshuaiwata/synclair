@@ -13,11 +13,13 @@ spine it follows.
 ## 1. Clone the foundation (keep its history)
 
 ```bash
-git clone https://github.com/joshuaiwata/synclair.git <new-project>
+npx synclair new <new-project>           # clones + wires the mother repo as `upstream`
 cd <new-project>
-git remote rename origin upstream        # the foundation stays reachable for syncs
 git remote add origin <the-project's-own-repo-url>   # when it exists; push here
 ```
+
+(`npx synclair new` is shorthand for `git clone https://github.com/joshuaiwata/synclair.git`
+followed by `git remote rename origin upstream` — same result either way.)
 
 The project's history begins on top of the foundation's — deliberate: shared
 ancestry is what makes pulling future foundation updates an ordinary 3-way
