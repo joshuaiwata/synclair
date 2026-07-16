@@ -37,15 +37,6 @@ reports), **knowledge** (distilled specs, the system map, the component
 catalog), and **guardrails** (machine checks that keep the output honest). The
 hub renders whatever the agents produce, so humans can read it and steer.
 
-```mermaid
-flowchart LR
-    You(["You<br/>(and your team)"]) -->|"talk: 'intake this repo',<br/>'build the orders view'"| Agent["Your AI agent<br/>(Claude Code, Cursor, …)"]
-    Agent -->|runs skills &<br/>digger agents| Repo[("The repo<br/>tokens · registry · knowledge<br/>· UX docs · reports")]
-    Repo -->|renders live| Hub["The hub<br/>/synclair"]
-    Hub -->|"read the library,<br/>reports & maps"| You
-    Repo -->|same bytes,<br/>machine-readable| Agent
-```
-
 It's a flywheel: **diggers** explore first — they read the code, the PRDs and
 the Figma files and seed the hub so it starts full, not blank. From then on,
 whatever you build documents itself into the shared surface as it's built, so
