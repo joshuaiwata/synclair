@@ -22,11 +22,13 @@ Synclair lives at **`localhost:4100/synclair`**, always.
 
 ```bash
 cd <parent-of-your-project>
-git clone https://github.com/joshuaiwata/synclair.git <project>-synclair
+npx synclair new <project>-synclair      # clones + wires the mother repo as `upstream`
 cd <project>-synclair
-git remote rename origin upstream        # the foundation stays reachable for syncs
 git remote add origin <the-hub's-own-repo-url>   # optional, for backup
 ```
+
+(`npx synclair new` is shorthand for `git clone https://github.com/joshuaiwata/synclair.git`
+followed by `git remote rename origin upstream` — same result either way.)
 
 A sibling keeps the two git histories, lockfiles, and `node_modules` apart —
 nesting a second repo inside the host confuses agents and tooling. Keeping the
