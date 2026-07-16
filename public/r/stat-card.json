@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "stat-card",
+  "title": "Stat Card",
+  "description": "Compact metric card with optional icon, big value, and label. Use in dashboard summary strips.",
+  "registryDependencies": [
+    "card"
+  ],
+  "files": [
+    {
+      "path": "components/stat-card.tsx",
+      "content": "import type { LucideIcon } from \"lucide-react\"\n\nimport { Card, CardContent } from \"@/components/ui/card\"\nimport { cn } from \"@/lib/utils\"\n\nexport interface StatCardProps {\n  value: string\n  label: string\n  icon?: LucideIcon\n  className?: string\n}\n\nexport function StatCard({ value, label, icon: Icon, className }: StatCardProps) {\n  return (\n    <Card className={cn(\"py-4\", className)}>\n      <CardContent className=\"flex items-center gap-3 px-4\">\n        {Icon && (\n          <div className=\"bg-secondary text-secondary-foreground flex size-9 shrink-0 items-center justify-center rounded-md\">\n            <Icon className=\"size-4\" />\n          </div>\n        )}\n        <div className=\"flex min-w-0 flex-col\">\n          <span className=\"text-xl leading-tight font-semibold tracking-tight\">{value}</span>\n          <span className=\"text-muted-foreground truncate text-xs\">{label}</span>\n        </div>\n      </CardContent>\n    </Card>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "status": "stable",
+    "layer": "foundation"
+  },
+  "docs": "components/stat-card.docs.tsx",
+  "categories": [
+    "data-display"
+  ],
+  "type": "registry:component"
+}

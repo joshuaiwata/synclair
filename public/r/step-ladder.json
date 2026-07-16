@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "step-ladder",
+  "title": "Step Ladder",
+  "description": "Numbered ordered-step list, vertical or horizontal. Use for workflows, priority orders, and any 'do these in order' explanation.",
+  "files": [
+    {
+      "path": "components/step-ladder.tsx",
+      "content": "import { cva, type VariantProps } from \"class-variance-authority\"\n\nimport { cn } from \"@/lib/utils\"\n\nconst stepLadderVariants = cva(\"\", {\n  variants: {\n    orientation: {\n      vertical: \"flex flex-col divide-y rounded-lg border\",\n      horizontal: \"grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-flow-col sm:auto-cols-fr\",\n    },\n  },\n  defaultVariants: {\n    orientation: \"vertical\",\n  },\n})\n\nexport interface StepLadderProps extends VariantProps<typeof stepLadderVariants> {\n  items: { title: string; detail: string }[]\n  className?: string\n}\n\nexport function StepLadder({ items, orientation, className }: StepLadderProps) {\n  const horizontal = orientation === \"horizontal\"\n  return (\n    <ol className={cn(stepLadderVariants({ orientation }), className)}>\n      {items.map((item, i) => (\n        <li\n          key={item.title}\n          className={cn(\n            horizontal ? \"bg-card flex flex-col gap-1 p-4\" : \"flex items-baseline gap-4 px-4 py-3\"\n          )}\n        >\n          <span\n            className={cn(\n              \"bg-secondary text-secondary-foreground flex size-5.5 shrink-0 items-center justify-center rounded-md font-mono text-xs font-medium\",\n              !horizontal && \"translate-y-0.5\"\n            )}\n          >\n            {i + 1}\n          </span>\n          <span className={cn(\"text-sm font-medium\", !horizontal && \"min-w-28\")}>{item.title}</span>\n          <span className=\"text-muted-foreground text-sm\">{item.detail}</span>\n        </li>\n      ))}\n    </ol>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "status": "stable",
+    "layer": "foundation"
+  },
+  "docs": "components/step-ladder.docs.tsx",
+  "categories": [
+    "data-display"
+  ],
+  "type": "registry:component"
+}

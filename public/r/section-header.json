@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "section-header",
+  "title": "Section Header",
+  "description": "Section heading with optional mono hint text and a right-aligned action slot. Use above tables and content sections inside a page.",
+  "files": [
+    {
+      "path": "components/section-header.tsx",
+      "content": "import { cn } from \"@/lib/utils\"\n\nexport interface SectionHeaderProps {\n  title: string\n  hint?: string\n  className?: string\n  children?: React.ReactNode\n}\n\nexport function SectionHeader({ title, hint, className, children }: SectionHeaderProps) {\n  return (\n    <div className={cn(\"flex items-center justify-between gap-4\", className)}>\n      <h2 className=\"text-sm font-medium\">\n        {title}\n        {hint && (\n          <span className=\"text-muted-foreground ml-2 font-mono text-xs font-normal\">{hint}</span>\n        )}\n      </h2>\n      {children}\n    </div>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "status": "stable",
+    "layer": "foundation"
+  },
+  "docs": "components/section-header.docs.tsx",
+  "categories": [
+    "layout"
+  ],
+  "type": "registry:component"
+}

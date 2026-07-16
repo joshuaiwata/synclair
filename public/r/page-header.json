@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "page-header",
+  "title": "Page Header",
+  "description": "The sticky top bar for a page: sidebar trigger, separator, page title, and a right-aligned slot for path text, status, or actions. Use once at the top of every route.",
+  "registryDependencies": [
+    "sidebar",
+    "separator"
+  ],
+  "files": [
+    {
+      "path": "components/page-header.tsx",
+      "content": "import { Separator } from \"@/components/ui/separator\"\nimport { SidebarTrigger } from \"@/components/ui/sidebar\"\nimport { cn } from \"@/lib/utils\"\n\nexport interface PageHeaderProps {\n  title: string\n  className?: string\n  /** Right-aligned slot for path text, status, or actions. */\n  children?: React.ReactNode\n}\n\nexport function PageHeader({ title, className, children }: PageHeaderProps) {\n  return (\n    <header\n      className={cn(\"flex h-14 shrink-0 items-center gap-2 border-b px-4\", className)}\n    >\n      <SidebarTrigger className=\"-ml-1\" />\n      <Separator orientation=\"vertical\" className=\"mr-1 !h-4\" />\n      <h1 className=\"text-sm font-semibold\">{title}</h1>\n      {children && <div className=\"ml-auto flex items-center gap-3\">{children}</div>}\n    </header>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "status": "stable",
+    "layer": "foundation"
+  },
+  "docs": "components/page-header.docs.tsx",
+  "categories": [
+    "layout",
+    "navigation"
+  ],
+  "type": "registry:component"
+}

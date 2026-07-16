@@ -1,0 +1,119 @@
+{
+  "anchors": [
+    {
+      "name": "app-sidebar",
+      "sourceHash": "b231091e4c791df7442e260c2eab839e912c30dc5cd939509706ea7b1d5e175e",
+      "anchoredAt": "2026-07-16T17:28:21.560Z"
+    },
+    {
+      "name": "command-palette",
+      "sourceHash": "1263a7a3e329f96b44e712cd3ff859d1b791c68191f15210ed25a47313638be5",
+      "anchoredAt": "2026-07-16T17:28:21.561Z"
+    },
+    {
+      "name": "component-doc-view",
+      "sourceHash": "cf853a4418f580d7ee89159cea83c1d0f09de426208afdfc4f44438e03f15c1a",
+      "anchoredAt": "2026-07-16T19:36:34.089Z"
+    },
+    {
+      "name": "data-model-diagram",
+      "sourceHash": "9b4de06c04f20202cb2fe4bde20aa84db051dde2629dc6b08b1ef2d3f5185f19",
+      "anchoredAt": "2026-07-16T05:08:51.586Z"
+    },
+    {
+      "name": "definition-list",
+      "sourceHash": "44c049e34c0671efa58d2b72de1f6070c378e010845076ed6d4e209f9df08c63",
+      "anchoredAt": "2026-07-14T19:51:20.495Z"
+    },
+    {
+      "name": "filter-bar",
+      "sourceHash": "112f839ded4133468c05dd9fb236aa6583643bcc7b7779ce3aaede9896d92b26",
+      "anchoredAt": "2026-07-16T05:08:51.467Z"
+    },
+    {
+      "name": "foundations-sections",
+      "sourceHash": "4c81fabaaf150dd0b6f995d311aa5333c8a2cd359e67abf47dde317a8fc99f20",
+      "anchoredAt": "2026-07-16T17:24:48.649Z"
+    },
+    {
+      "name": "hub-page",
+      "sourceHash": "e128e120024b6fc93cbb67538d38fc0a0f496229509d27b8e142490474a64489",
+      "anchoredAt": "2026-07-14T19:51:20.494Z"
+    },
+    {
+      "name": "library-explorer",
+      "sourceHash": "086463168e212950fadf3aa38ba937f3a36b5804dd0305afc56e271e0def7d7d",
+      "anchoredAt": "2026-07-16T17:24:48.649Z"
+    },
+    {
+      "name": "library-tier-page",
+      "sourceHash": "6efef7f9ce5b8127da095f28bd21717ba71991a3361ad021ae8889ba06180110",
+      "anchoredAt": "2026-07-16T21:43:19.672Z"
+    },
+    {
+      "name": "markdown",
+      "sourceHash": "5235f41dbba4bb781b84af3b7994baa44ea0bbf811948e0f7fa77e0f11493281",
+      "anchoredAt": "2026-07-16T05:08:51.230Z"
+    },
+    {
+      "name": "page-header",
+      "sourceHash": "ed3da5028bbd3458590344675d02a7c97573e52f9041c914c0cea081acc6b335",
+      "anchoredAt": "2026-07-16T00:26:02.518Z"
+    },
+    {
+      "name": "pill-toggle",
+      "sourceHash": "583a90d33f3d2fd07a54baa312a90865ad6ab407fc23cf040c33de54e943f9c6",
+      "anchoredAt": "2026-07-14T19:51:20.494Z"
+    },
+    {
+      "name": "section-header",
+      "sourceHash": "ddd2341ff5bd43c2412fe557bddfe3bdc52efc7509f94f8977096f555762a094",
+      "anchoredAt": "2026-07-12T08:30:54.046Z"
+    },
+    {
+      "name": "source-editor",
+      "sourceHash": "461684d87815afe5b16b82ec56824e94ef682788c46c067cc60793bc036dd4e9",
+      "anchoredAt": "2026-07-16T17:24:48.649Z"
+    },
+    {
+      "name": "stat-card",
+      "sourceHash": "d8910e0ade76199c03971f82c98a1d6fb206e5a21a0033df96b7573beb5b1c2b",
+      "anchoredAt": "2026-07-12T08:30:54.046Z"
+    },
+    {
+      "name": "stat-grid",
+      "sourceHash": "c22c371ca77459e91d40055141f0576c144266da9fa17f625d5127e444468d4f",
+      "anchoredAt": "2026-07-14T19:51:20.495Z"
+    },
+    {
+      "name": "status-badge",
+      "sourceHash": "9efe653f191855a9aaf1a08582532849f89378cac9d0599a42a9338cccc55d44",
+      "anchoredAt": "2026-07-12T08:30:54.045Z"
+    },
+    {
+      "name": "step-ladder",
+      "sourceHash": "a1ac3c70ef659c06ccf972021ac3a80c18ca224b831e26e6d6a8b8c7bce11709",
+      "anchoredAt": "2026-07-12T08:30:54.046Z"
+    },
+    {
+      "name": "summary-shell",
+      "sourceHash": "aaf536e617e4db0edeaa65134b293565c4accaf6ecdfc0b6a8c5c0391bfa75ef",
+      "anchoredAt": "2026-07-16T05:08:51.348Z"
+    },
+    {
+      "name": "tier-gallery",
+      "sourceHash": "9cc714813e7008f4cd2e727436f0e84ad31f4dad3d6a52009ab74d0c431f348e",
+      "anchoredAt": "2026-07-16T21:29:20.582Z"
+    },
+    {
+      "name": "viewport-frame",
+      "sourceHash": "fd5e2a5bc322ccc0a4cd48eab3623574daf1029dbc5493df8b0310c1f23eee50",
+      "anchoredAt": "2026-07-16T17:44:32.397Z"
+    },
+    {
+      "name": "wireframe-kit",
+      "sourceHash": "3520cf59d39a66691a06dbdb43f7f7bdd1fba27e6d4b196a74306d6cb8cb6920",
+      "anchoredAt": "2026-07-12T08:30:54.047Z"
+    }
+  ]
+}

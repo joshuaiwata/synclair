@@ -1,0 +1,263 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "synclair",
+  "homepage": "https://github.com/joshuaiwata/synclair",
+  "items": [
+    {
+      "name": "status-badge",
+      "type": "registry:component",
+      "title": "Status Badge",
+      "description": "Outline badge with a semantic status dot (success / info / warning / neutral). Use for connection states, lifecycle states, and any tabular status column.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/status-badge.tsx", "type": "registry:component" }],
+      "registryDependencies": ["badge"],
+      "docs": "components/status-badge.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "step-ladder",
+      "type": "registry:component",
+      "title": "Step Ladder",
+      "description": "Numbered ordered-step list, vertical or horizontal. Use for workflows, priority orders, and any 'do these in order' explanation.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/step-ladder.tsx", "type": "registry:component" }],
+      "docs": "components/step-ladder.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "stat-card",
+      "type": "registry:component",
+      "title": "Stat Card",
+      "description": "Compact metric card with optional icon, big value, and label. Use in dashboard summary strips.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/stat-card.tsx", "type": "registry:component" }],
+      "registryDependencies": ["card"],
+      "docs": "components/stat-card.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "section-header",
+      "type": "registry:component",
+      "title": "Section Header",
+      "description": "Section heading with optional mono hint text and a right-aligned action slot. Use above tables and content sections inside a page.",
+      "categories": ["layout"],
+      "files": [{ "path": "components/section-header.tsx", "type": "registry:component" }],
+      "docs": "components/section-header.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "page-header",
+      "type": "registry:component",
+      "title": "Page Header",
+      "description": "The sticky top bar for a page: sidebar trigger, separator, page title, and a right-aligned slot for path text, status, or actions. Use once at the top of every route.",
+      "categories": ["layout", "navigation"],
+      "files": [{ "path": "components/page-header.tsx", "type": "registry:component" }],
+      "registryDependencies": ["sidebar", "separator"],
+      "docs": "components/page-header.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "hub-page",
+      "type": "registry:component",
+      "title": "Hub Page",
+      "description": "The one page scaffold every hub route composes from: the sticky PageHeader, a centered max-w-6xl main, and a single muted intro lead. Ends the per-page copy-paste of layout. Exports HubPage plus PageBody and PageLead for pages that wrap main in a provider.",
+      "categories": ["layout"],
+      "files": [{ "path": "components/hub-page.tsx", "type": "registry:component" }],
+      "registryDependencies": ["page-header"],
+      "docs": "components/hub-page.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "pill-toggle",
+      "type": "registry:component",
+      "title": "Pill Toggle",
+      "description": "A rounded-pill segmented toggle for a single facet (Origin, Surface, a Project/Synclair view). Renders as URL links (with href) for server components or as buttons (with onValueChange) for client ones, with optional trailing counts.",
+      "categories": ["navigation"],
+      "files": [{ "path": "components/pill-toggle.tsx", "type": "registry:component" }],
+      "docs": "components/pill-toggle.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "definition-list",
+      "type": "registry:component",
+      "title": "Definition List",
+      "description": "Key/value facts as a real <dl> — the standard, accessible way to render settings and about facts, instead of forcing them into a headerless two-column table.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/definition-list.tsx", "type": "registry:component" }],
+      "docs": "components/definition-list.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "stat-grid",
+      "type": "registry:component",
+      "title": "Stat Grid",
+      "description": "An at-a-glance panel of labeled facts (a spec sheet): uppercase label, value, and optional note per item on a responsive grid. Supersedes the bordered gap-px cell grid that read as a block table.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/stat-grid.tsx", "type": "registry:component" }],
+      "docs": "components/stat-grid.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "viewport-frame",
+      "type": "registry:component",
+      "title": "Viewport Frame",
+      "description": "Device-width switcher for documentation previews: desktop / tablet (768px) / mobile (375px) / fullscreen segmented toggle above a width-constrained frame. The standard responsive-preview wrapper on doc pages — not for product UI.",
+      "categories": ["documentation"],
+      "files": [{ "path": "components/viewport-frame.tsx", "type": "registry:component" }],
+      "registryDependencies": ["button"],
+      "docs": "components/viewport-frame.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "wireframe-kit",
+      "type": "registry:component",
+      "title": "Wireframe Kit",
+      "description": "Primitives for anatomy wireframes in documentation — WireframeFrame (dashed = placeholder, solid = chrome, focal = primary tint), WireframeBlock, SkeletonBar/SkeletonRow. Wireframes are built live from these, never from Figma image exports. Not for product UI.",
+      "categories": ["documentation"],
+      "files": [{ "path": "components/wireframe-kit.tsx", "type": "registry:component" }],
+      "docs": "components/wireframe-kit.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "app-sidebar",
+      "type": "registry:block",
+      "title": "App Sidebar",
+      "description": "The prototype's app-shell navigation sidebar: brand header, global ⌘K search trigger, Synclair / System / Library nav groups with active states, external reference links, snapshot footer.",
+      "categories": ["navigation"],
+      "files": [{ "path": "components/blocks/app-sidebar.tsx", "type": "registry:block" }],
+      "registryDependencies": ["sidebar", "badge", "command-palette"],
+      "docs": "components/blocks/app-sidebar.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation", "previewImage": "/previews/app-sidebar.png" }
+    },
+    {
+      "name": "source-editor",
+      "type": "registry:block",
+      "title": "Source Editor",
+      "description": "Single page-level slide-over that reads and edits one markdown source file at a time: SourceEditorProvider owns the sheet, SourceRow opens it. Preview (rendered markdown) / Edit (mono textarea) tabs with a confirm-to-save step, lazy-loaded and saved via server actions. Used to edit skill/agent .md files from AI Setup.",
+      "categories": ["editors", "overlays"],
+      "files": [{ "path": "components/blocks/source-editor.tsx", "type": "registry:block" }],
+      "registryDependencies": ["sheet", "tabs", "textarea", "button", "table", "badge", "dropdown-menu", "markdown"],
+      "docs": "components/blocks/source-editor.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation", "previewImage": "/previews/source-editor.png" }
+    },
+    {
+      "name": "command-palette",
+      "type": "registry:block",
+      "title": "Command Palette",
+      "description": "Global ⌘K / Ctrl-K search dialog over the whole system: components, blocks, templates, skills, agents, and routes. Grouped results; navigates on select. Mounted once in the app shell.",
+      "categories": ["navigation", "overlays"],
+      "files": [{ "path": "components/blocks/command-palette.tsx", "type": "registry:block" }],
+      "registryDependencies": ["command", "dialog"],
+      "docs": "components/blocks/command-palette.docs.tsx",
+      "meta": { "status": "beta", "layer": "foundation", "previewImage": "/previews/command-palette.png" }
+    },
+    {
+      "name": "markdown",
+      "type": "registry:component",
+      "title": "Markdown",
+      "description": "Renders markdown in the app's neutral, dense voice (GFM, styled headings/lists/tables/code, no typography plugin). Optional html mode renders repo-committed inline SVG that inherits theme tokens — never enable for external input. The one prose renderer; every summary, doc note, and digest goes through it.",
+      "categories": ["data-display"],
+      "files": [{ "path": "components/markdown.tsx", "type": "registry:component" }],
+      "docs": "components/markdown.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "summary-shell",
+      "type": "registry:component",
+      "title": "Summary Shell",
+      "description": "The one shell every distilled summary renders through (Knowledge briefs, the System Map overview): a bordered card that normalizes the title treatment — leading # stripped from the markdown and rendered consistently, optional mono meta line — then the Markdown body.",
+      "categories": ["layout", "documentation"],
+      "files": [{ "path": "components/summary-shell.tsx", "type": "registry:component" }],
+      "registryDependencies": ["markdown"],
+      "docs": "components/summary-shell.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "filter-bar",
+      "type": "registry:component",
+      "title": "Filter Bar",
+      "description": "URL-driven facet chip rows for galleries (origin, usage): each chip is a link that toggles its query param while preserving the others, so filtered views are shareable with zero client state. Composes PillToggle in URL mode, one group per facet.",
+      "categories": ["navigation"],
+      "files": [{ "path": "components/library/filter-bar.tsx", "type": "registry:component" }],
+      "registryDependencies": ["pill-toggle"],
+      "docs": "components/library/filter-bar.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "data-model-diagram",
+      "type": "registry:component",
+      "title": "Data Model Diagram",
+      "description": "Deterministic, token-themed ER diagram for a digested data model: FK edges parsed from field notes, crow's-foot at the many side and arrowhead at the one side, entities laid out in reference layers, capped at the ~10 most-connected entities for orientation. Pure server-rendered SVG.",
+      "categories": ["documentation", "data-display"],
+      "files": [{ "path": "components/library/data-model-diagram.tsx", "type": "registry:component" }],
+      "docs": "components/library/data-model-diagram.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation" }
+    },
+    {
+      "name": "library-explorer",
+      "type": "registry:block",
+      "title": "Library Explorer",
+      "description": "The two-pane shell every library route renders in: a floating sidebar with surface + tier selectors over a grouped, filterable item list ('/' focuses the filter), the routed page beside it under a breadcrumb PageHeader. Scope and tier live in the URL path; single-surface projects render the same shell minus the surface level.",
+      "categories": ["navigation", "layout"],
+      "files": [{ "path": "components/library/library-explorer.tsx", "type": "registry:block" }],
+      "registryDependencies": ["badge", "breadcrumb", "input", "scroll-area", "select", "sidebar", "page-header"],
+      "docs": "components/library/library-explorer.docs.tsx",
+      "meta": { "status": "beta", "layer": "foundation", "previewImage": "/previews/library-explorer.png" }
+    },
+    {
+      "name": "tier-gallery",
+      "type": "registry:block",
+      "title": "Tier Gallery",
+      "description": "The card gallery a library tier page renders: origin/usage filter chips, category-grouped ComponentCards with live zoom-to-fit preview thumbnails and status/origin badges, host-coverage strip in companion mode, concept grouping with availability chips on multi-surface projects, and educating empty states.",
+      "categories": ["data-display", "navigation"],
+      "files": [
+        { "path": "components/library/tier-gallery.tsx", "type": "registry:block" },
+        { "path": "components/library/component-card.tsx", "type": "registry:block" },
+        { "path": "components/library/card-thumb.tsx", "type": "registry:block" }
+      ],
+      "registryDependencies": ["badge", "card", "empty", "status-badge", "filter-bar"],
+      "docs": "components/library/tier-gallery.docs.tsx",
+      "meta": { "status": "beta", "layer": "foundation", "previewImage": "/previews/tier-gallery.png" }
+    },
+    {
+      "name": "component-doc-view",
+      "type": "registry:block",
+      "title": "Component Doc View",
+      "description": "Renders one registered item's documentation page from its ComponentDoc: identity header with tier/origin/status/doc-sync badges, live or host previews, Intent, Anatomy with region table, Examples with viewport framing, Interactions, Responsive, States, Props, and the import-graph 'Used in' section. Resolves concept pages and surface collisions on multi-surface projects.",
+      "categories": ["documentation"],
+      "files": [{ "path": "components/library/component-doc-view.tsx", "type": "registry:block" }],
+      "registryDependencies": ["badge", "table", "empty", "markdown", "section-header", "status-badge", "viewport-frame"],
+      "docs": "components/library/component-doc-view.docs.tsx",
+      "meta": { "status": "beta", "layer": "foundation", "previewImage": "/previews/component-doc-view.png" }
+    },
+    {
+      "name": "foundations-sections",
+      "type": "registry:block",
+      "title": "Foundations Sections",
+      "description": "The live style-guide sections behind /synclair/foundations: color ramps with click-to-copy swatches, typography scale and roles, spacing, radius, opacity, shape/elevation, motion, and iconography — all rendered LIVE from lib/system/tokens.ts and the seed so they cannot drift from globals.css. Companion mode shows only the host project's documented palette.",
+      "categories": ["documentation", "data-display"],
+      "files": [
+        { "path": "components/library/foundations.tsx", "type": "registry:block" },
+        { "path": "components/library/color-swatch.tsx", "type": "registry:block" }
+      ],
+      "registryDependencies": ["markdown"],
+      "docs": "components/library/foundations.docs.tsx",
+      "meta": { "status": "beta", "layer": "foundation", "previewImage": "/previews/foundations-sections.png" }
+    },
+    {
+      "name": "library-tier-page",
+      "type": "registry:page",
+      "title": "Library Tier Page",
+      "description": "The one screen design behind all three library catalog routes — Components, Blocks, and Templates are the same view instantiated with a different catalog slice: title strip with live census, facet filter chips, category-grouped card gallery. The reference implementation for the template tier: a template documents a VIEW, its files are the routes that instantiate it, and its doc page embeds the running route via route().",
+      "categories": ["layout"],
+      "files": [
+        { "path": "app/synclair/(hub)/(library)/components/page.tsx", "type": "registry:page", "target": "app/components/page.tsx" },
+        { "path": "app/synclair/(hub)/(library)/blocks/page.tsx", "type": "registry:page", "target": "app/blocks/page.tsx" },
+        { "path": "app/synclair/(hub)/(library)/templates/page.tsx", "type": "registry:page", "target": "app/templates/page.tsx" }
+      ],
+      "registryDependencies": ["tier-gallery"],
+      "docs": "app/synclair/(hub)/(library)/library-tier-page.docs.tsx",
+      "meta": { "status": "stable", "layer": "foundation", "previewImage": "/previews/library-tier-page.png" }
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-body-content: var(--body-content);
+    /* Brand ramp — utilities like bg-brand-500 */
+    --color-brand-50: var(--brand-50);
+    --color-brand-100: var(--brand-100);
+    --color-brand-200: var(--brand-200);
+    --color-brand-300: var(--brand-300);
+    --color-brand-400: var(--brand-400);
+    --color-brand-500: var(--brand-500);
+    --color-brand-600: var(--brand-600);
+    --color-brand-700: var(--brand-700);
+    --color-brand-800: var(--brand-800);
+    --color-brand-900: var(--brand-900);
+    --color-brand-950: var(--brand-950);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    /* Border radius scale */
+    --radius-xs: 0.125rem;   /* 2px */
+    --radius-sm: 0.25rem;    /* 4px */
+    --radius-md: 0.5rem;     /* 8px */
+    --radius-lg: var(--radius); /* 12px */
+    --radius-xl: 1rem;       /* 16px */
+    --radius-2xl: 1.5rem;    /* 24px */
+}
+
+/* SEED: named brand palettes (fixed primitives, not mode-themed) go here as
+   additional @theme blocks when the project is branded — e.g.
+   `--color-<ramp>-500: …` giving utilities like bg-<ramp>-500. Mirror each ramp
+   in lib/system/seed/brand-ramps.ts so it shows on the Foundations page.
+   Blank in the upstream foundation by design. */
+
+/* Micro type steps for dense tool UI — one and two steps below Tailwind's xs.
+   Documented in lib/system/tokens.ts TYPE_SCALE. Use text-2xs / text-3xs;
+   arbitrary sizes like text-[11px] are lint-blocked. */
+@theme {
+    --text-2xs: 0.6875rem;
+    --text-2xs--line-height: 1rem;
+    --text-3xs: 0.625rem;
+    --text-3xs--line-height: 0.875rem;
+}
+
+:root {
+    /* Theme — Light. Neutral stone base (SEED: rebrand per project — typically
+       wire the brand color in as --secondary). */
+    --background: #ffffff;
+    --foreground: #0c0a09;          /* stone-950 — high-emphasis text */
+    --body-content: #44403ccc;      /* stone-700 @ 80% — softer body/reading text */
+    --card: #ffffff;                /* white — raised surfaces stay as light as the page; borders/rings give definition */
+    --card-foreground: #0c0a09;
+    --popover: #ffffff;
+    --popover-foreground: #0c0a09;
+    --primary: #1c1917;             /* stone-900 */
+    --primary-foreground: #fafaf9;
+    --secondary: #f5f5f4;           /* stone-100 (SEED: brand color goes here) */
+    --secondary-foreground: #1c1917;
+    --muted: #f5f5f4;               /* stone-100 */
+    --muted-foreground: #78716c;    /* stone-500 */
+    --accent: #f5f5f4;
+    --accent-foreground: #1c1917;
+    --destructive: #dc2626;         /* red-600 */
+    --destructive-foreground: #fef2f2;
+    --border: #e7e5e4;              /* stone-200 */
+    --input: #e7e5e4;               /* = border value */
+    --ring: #a8a29e;                /* stone-400 */
+    --chart-1: #0d9488;             /* teal-600 */
+    --chart-2: #ea580c;             /* orange-600 */
+    --chart-3: #7c3aed;             /* violet-600 */
+    --chart-4: #e11d48;             /* rose-600 */
+    --chart-5: #0284c7;             /* sky-600 */
+    --radius: 0.75rem;              /* 12px = radius-lg (anchor) */
+    --sidebar: #fafaf9;
+    --sidebar-foreground: #44403c;  /* stone-700 */
+    --sidebar-primary: #1c1917;
+    --sidebar-primary-foreground: #fafaf9;
+    --sidebar-accent: #f5f5f4;
+    --sidebar-accent-foreground: #1c1917;
+    --sidebar-border: #e7e5e4;
+    --sidebar-ring: #292524;        /* stone-800 */
+    /* Status tokens */
+    --success: #16a34a;             /* green-600 */
+    --success-foreground: #f0fdf4;
+    --warning: #d97706;             /* amber-600 */
+    --warning-foreground: #fffdf5;
+    --info: #0284c7;                /* sky-600 */
+    --info-foreground: #ecfeff;
+    /* Brand ramp (SEED: neutral stone placeholder — replace with the project's
+       brand ramp when reseeding; keep all 11 steps so bg-brand-* stays valid) */
+    --brand-50: #fafaf9;
+    --brand-100: #f5f5f4;
+    --brand-200: #e7e5e4;
+    --brand-300: #d6d3d1;
+    --brand-400: #a8a29e;
+    --brand-500: #78716c;
+    --brand-600: #57534e;
+    --brand-700: #44403c;
+    --brand-800: #292524;
+    --brand-900: #1c1917;
+    --brand-950: #0c0a09;
+    /* Density: base spacing unit. Every p-*, gap-*, m-*, size-* step is
+       n × this value. Bump to ~0.28rem for a roomier feel — it rescales every
+       spacing utility at once. */
+    --spacing: 0.28rem;
+}
+
+.dark {
+    /* Theme — Dark. Stone-dark neutrals, accents brightened to the 500-level,
+       solid stone borders. (SEED: rebrand per project.) */
+    --background: #0c0a09;          /* stone-950 */
+    --foreground: #fafaf9;          /* stone-50 — high-emphasis text */
+    --body-content: #d6d3d1cc;      /* stone-300 @ 80% — softer body/reading text */
+    --card: #1c1917;                /* stone-900 */
+    --card-foreground: #fafaf9;
+    --popover: #0c0a09;             /* = background */
+    --popover-foreground: #fafaf9;
+    --primary: #fafaf9;             /* stone-50 (inverts light) */
+    --primary-foreground: #0c0a09;  /* stone-950 */
+    --secondary: #292524;           /* stone-800 (SEED: brand color goes here) */
+    --secondary-foreground: #fafaf9;
+    --muted: #292524;               /* stone-800 */
+    --muted-foreground: #d6d3d1;    /* stone-300 */
+    --accent: #292524;
+    --accent-foreground: #fafaf9;
+    --destructive: #ef4444;         /* red-500 */
+    --destructive-foreground: #fef2f2;
+    --border: #292524;              /* stone-800 (solid, not alpha) */
+    --input: #292524;               /* = border value */
+    --ring: #78716c;                /* stone-500 */
+    --chart-1: #14b8a6;             /* teal-500 */
+    --chart-2: #f97316;             /* orange-500 */
+    --chart-3: #8b5cf6;             /* violet-500 */
+    --chart-4: #f43f5e;             /* rose-500 */
+    --chart-5: #0ea5e9;             /* sky-500 */
+    --sidebar: #1c1917;             /* stone-900 */
+    --sidebar-foreground: #fafaf9;
+    --sidebar-primary: #fafaf9;
+    --sidebar-primary-foreground: #0c0a09;
+    --sidebar-accent: #292524;
+    --sidebar-accent-foreground: #fafaf9;
+    --sidebar-border: #44403c;      /* stone-700 */
+    --sidebar-ring: #57534e;        /* stone-600 */
+    --success: #22c55e;             /* green-500 */
+    --success-foreground: #f0fdf4;
+    --warning: #f59e0b;             /* amber-500 */
+    --warning-foreground: #fffdf5;
+    --info: #0ea5e9;                /* sky-500 */
+    --info-foreground: #ecfeff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}

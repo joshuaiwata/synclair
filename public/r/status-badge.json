@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "status-badge",
+  "title": "Status Badge",
+  "description": "Outline badge with a semantic status dot (success / info / warning / neutral). Use for connection states, lifecycle states, and any tabular status column.",
+  "registryDependencies": [
+    "badge"
+  ],
+  "files": [
+    {
+      "path": "components/status-badge.tsx",
+      "content": "import { cva, type VariantProps } from \"class-variance-authority\"\n\nimport { Badge } from \"@/components/ui/badge\"\nimport { cn } from \"@/lib/utils\"\n\nconst statusDotVariants = cva(\"size-1.5 shrink-0 rounded-full\", {\n  variants: {\n    status: {\n      success: \"bg-success\",\n      info: \"bg-info\",\n      warning: \"bg-warning\",\n      neutral: \"bg-muted-foreground/40\",\n    },\n  },\n  defaultVariants: {\n    status: \"neutral\",\n  },\n})\n\nexport interface StatusBadgeProps\n  extends React.ComponentProps<typeof Badge>,\n    VariantProps<typeof statusDotVariants> {}\n\nexport function StatusBadge({ status, className, children, ...props }: StatusBadgeProps) {\n  return (\n    <Badge variant=\"outline\" className={cn(\"gap-1.5 font-normal\", className)} {...props}>\n      <span className={statusDotVariants({ status })} />\n      {children}\n    </Badge>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "status": "stable",
+    "layer": "foundation"
+  },
+  "docs": "components/status-badge.docs.tsx",
+  "categories": [
+    "data-display"
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "command-palette",
+  "title": "Command Palette",
+  "description": "Global ⌘K / Ctrl-K search dialog over the whole system: components, blocks, templates, skills, agents, and routes. Grouped results; navigates on select. Mounted once in the app shell.",
+  "registryDependencies": [
+    "command",
+    "dialog"
+  ],
+  "files": [
+    {
+      "path": "components/blocks/command-palette.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { useRouter } from \"next/navigation\"\n\nimport {\n  Command,\n  CommandDialog,\n  CommandEmpty,\n  CommandGroup,\n  CommandInput,\n  CommandItem,\n  CommandList,\n} from \"@/components/ui/command\"\nimport type { SearchEntry, SearchGroup } from \"@/lib/system/search-index\"\n\n/** Fired by the sidebar \"Search\" button (or anywhere) to open the palette. */\nexport const OPEN_COMMAND_EVENT = \"synclair:open-command\"\n\nconst GROUP_ORDER: SearchGroup[] = [\n  \"Components\",\n  \"Blocks\",\n  \"Templates\",\n  \"Skills\",\n  \"Agents\",\n  \"Pages\",\n]\n\nexport function CommandPalette({ items }: { items: SearchEntry[] }) {\n  const router = useRouter()\n  const [open, setOpen] = React.useState(false)\n\n  React.useEffect(() => {\n    function onKey(e: KeyboardEvent) {\n      if (e.key === \"k\" && (e.metaKey || e.ctrlKey)) {\n        e.preventDefault()\n        setOpen((o) => !o)\n      }\n    }\n    function onOpen() {\n      setOpen(true)\n    }\n    document.addEventListener(\"keydown\", onKey)\n    window.addEventListener(OPEN_COMMAND_EVENT, onOpen)\n    return () => {\n      document.removeEventListener(\"keydown\", onKey)\n      window.removeEventListener(OPEN_COMMAND_EVENT, onOpen)\n    }\n  }, [])\n\n  const grouped = React.useMemo(() => {\n    const map = new Map<SearchGroup, SearchEntry[]>()\n    for (const item of items) {\n      const list = map.get(item.group) ?? []\n      list.push(item)\n      map.set(item.group, list)\n    }\n    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ group: g, entries: map.get(g)! }))\n  }, [items])\n\n  function go(href: string) {\n    setOpen(false)\n    router.push(href)\n  }\n\n  return (\n    <CommandDialog\n      open={open}\n      onOpenChange={setOpen}\n      title=\"Search\"\n      description=\"Search components, blocks, templates, skills, agents, and pages.\"\n    >\n      <Command\n        // Fold keywords into cmdk's matcher so a search hits categories/deps too.\n        filter={(value, search, keywords) => {\n          const haystack = `${value} ${(keywords ?? []).join(\" \")}`.toLowerCase()\n          return haystack.includes(search.toLowerCase()) ? 1 : 0\n        }}\n      >\n        <CommandInput placeholder=\"Search the system…\" />\n        <CommandList>\n          <CommandEmpty>No matches.</CommandEmpty>\n          {grouped.map(({ group, entries }) => (\n            <CommandGroup key={group} heading={group}>\n              {entries.map((item) => (\n                <CommandItem\n                  key={item.id}\n                  value={`${item.label} ${item.id}`}\n                  keywords={item.keywords}\n                  onSelect={() => go(item.href)}\n                  className=\"flex flex-col items-start gap-0.5\"\n                >\n                  <span className=\"text-sm\">{item.label}</span>\n                  {item.sublabel && (\n                    <span className=\"text-muted-foreground line-clamp-1 text-xs\">\n                      {item.sublabel}\n                    </span>\n                  )}\n                </CommandItem>\n              ))}\n            </CommandGroup>\n          ))}\n        </CommandList>\n      </Command>\n    </CommandDialog>\n  )\n}\n",
+      "type": "registry:block"
+    }
+  ],
+  "meta": {
+    "status": "beta",
+    "layer": "foundation"
+  },
+  "docs": "components/blocks/command-palette.docs.tsx",
+  "categories": [
+    "navigation",
+    "overlays"
+  ],
+  "type": "registry:block"
+}

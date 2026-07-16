@@ -1,0 +1,22 @@
+# The machine-enforced foundation gate (see AGENTS.md → Rules → "Verify before done").
+# Same command agents run locally: typecheck + lint guardrails + registry drift check.
+# Deliberately no `next build` — this repo's dev workflow forbids production builds
+# in the working dir, and the gate is about foundation compliance, not deployability.
+name: verify-ui
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify-ui
