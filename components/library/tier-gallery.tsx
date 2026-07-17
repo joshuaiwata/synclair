@@ -2,6 +2,7 @@ import Link from "next/link"
 import { LayoutTemplate } from "lucide-react"
 
 import { ComponentCard } from "@/components/library/component-card"
+import { getHostPreview } from "@/components/host-previews/registry"
 import { FilterBar, type FilterGroup } from "@/components/library/filter-bar"
 import {
   Empty,
@@ -287,6 +288,18 @@ export async function TierGallery({
   const coverage = hasHost && kind === "component" ? await getHostCoverage() : []
   const uncatalogedCount = coverage.reduce((n, c) => n + c.uncataloged.length, 0)
   const unusedCount = coverage.reduce((n, c) => n + c.unusedCataloged.length, 0)
+  // Documented but NOT RENDERED — cataloged host items with neither a live
+  // preview scene (host-previews/registry) nor a screenshot example degrade to
+  // a bare `<name />` placeholder card. Cataloging alone doesn't make an item
+  // render; this count keeps that follow-up step (port-host-component Path A,
+  // or a screenshot when the compat gate blocks importing) from being missed.
+  // Every tier: blocks/templates get previews too, unlike the file scan above.
+  const unrenderedCount = hasHost
+    ? items.filter(
+        (c) =>
+          c.origin === "external" && !getHostPreview(c.name, c.surface) && !c.previewImage
+      ).length
+    : 0
 
   return (
     <main className="flex max-w-6xl flex-col gap-8 p-6">
@@ -310,7 +323,7 @@ export async function TierGallery({
           </span>
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm">{t.description}</p>
-        {(uncatalogedCount > 0 || unusedCount > 0) && (
+        {(uncatalogedCount > 0 || unusedCount > 0 || unrenderedCount > 0) && (
           <p className="text-muted-foreground/80 max-w-2xl text-xs">
             Live host scan:
             {uncatalogedCount > 0 && (
@@ -319,7 +332,7 @@ export async function TierGallery({
                 <span className="text-foreground font-medium">{uncatalogedCount}</span>{" "}
                 component file{uncatalogedCount === 1 ? "" : "s"} in the app{" "}
                 {uncatalogedCount === 1 ? "isn't" : "aren't"} cataloged yet
-                {unusedCount > 0 && " ·"}
+                {(unusedCount > 0 || unrenderedCount > 0) && " ·"}
               </>
             )}
             {unusedCount > 0 && (
@@ -327,6 +340,14 @@ export async function TierGallery({
                 {" "}
                 <span className="text-foreground font-medium">{unusedCount}</span> cataloged
                 but unused in the host
+                {unrenderedCount > 0 && " ·"}
+              </>
+            )}
+            {unrenderedCount > 0 && (
+              <>
+                {" "}
+                <span className="text-foreground font-medium">{unrenderedCount}</span>{" "}
+                documented but not rendered (no preview scene or screenshot)
               </>
             )}{" "}
             — triage with <code className="font-mono">npm run check:coverage</code>.
