@@ -18,8 +18,9 @@
     "check:coverage": "node scripts/check-host-coverage.mjs",
     "scan:hygiene": "node scripts/scan-host-hygiene.mjs",
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
+    "check:pages": "node scripts/check-pages.mjs",
     "call-home": "node scripts/call-home.mjs",
-    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs",
+    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:pages",
     "postinstall": "patch-package"
   },
   "dependencies": {
