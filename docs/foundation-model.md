@@ -113,21 +113,21 @@ Grounded in the current `lib/system` + `components` tree.
 - Full checklist in §8.
 
 ### Synclair skin — same everywhere
-- Synclair is mounted under **`/synclair`** (`app/synclair/*`), alongside the **product
-  app** at the root (`app/(product)/*`). Its routes live in the `app/synclair/(hub)/`
-  route group — `{page,foundations,components,blocks,templates,ai-setup,environment,
+- Synclair is a **hub-only** app, mounted under **`/synclair`** (`app/synclair/*`).
+  Its routes live in the `app/synclair/(hub)/` route group —
+  `{page,foundations,components,blocks,templates,ai-setup,environment,
   knowledge,references,figma-manifest,…}` — wrapped by `app/synclair/(hub)/layout.tsx`
   (the sidebar + ⌘K shell). `app/synclair/preview/[name]` sits OUTSIDE the group on
   purpose: the chrome-free stage where self-referential blocks render their real
   composition (`components/library/preview-scenes.tsx`), embedded on doc pages via
   the `scene()` preview helper.
-- `app/layout.tsx` is the bare shared shell (html/body/fonts/theme only) — it
-  assumes neither app, so the product app gets its own chrome.
+- `app/layout.tsx` is the bare shared shell (html/body/fonts/theme only); the root
+  `app/page.tsx` simply redirects `/` to the hub. There is no co-located product
+  app — the product lives elsewhere (its own repo/app on its own server) and this
+  app only catalogs it.
 - The product name is the one seed constant `project` (`lib/system/seed/project.ts`),
-  read by both UIs; the mount point is the constant `SYNCLAIR_BASE` (`lib/system/routes.ts`),
-  and every Synclair link goes through the `synclair()` helper.
-- `app/(product)/*` is the product app: its own slim shell + an empty **Views**
-  index — the blank canvas a new project starts building on.
+  read by the hub header; the mount point is the constant `SYNCLAIR_BASE`
+  (`lib/system/routes.ts`), and every Synclair link goes through the `synclair()` helper.
 - `components/blocks/app-sidebar`, `command-palette`, `source-editor`.
 - These *render the brain data*. They stay Next + shadcn regardless of target.
 
@@ -270,11 +270,11 @@ ordinary git merge (principle 3).
   This tiered default is why `Preview` is a union (§4a), not a boolean. Open
   sub-question: where the fallback image/embed comes from (Storybook vs. Expo
   Snack vs. captured screenshot vs. Figma frame).
-- **Where the Synclair routes live** — *resolved.* Synclair is mounted at a sub-route
-  (`/synclair`) inside the same app, beside the product app at the root — two app UIs,
-  one codebase, sharing only the bare root layout. The mount point is a single
-  swappable constant (`SYNCLAIR_BASE`), so "separate app in a monorepo" remains open
-  as a later move without touching links.
+- **Where the Synclair routes live** — *resolved.* Synclair is a hub-only app
+  mounted at `/synclair`; the root `/` redirects there and no product app is
+  co-located (the product lives elsewhere, on its own server). The mount point is a
+  single swappable constant (`SYNCLAIR_BASE`), so relocating the hub remains a
+  no-touch-links move.
 - **Multi-frontend products (monorepo web + mobile)** — *resolved.* Surfaces
   (§5b): the seed declares one entry per frontend, catalogs/system-map/knowledge
   carry optional surface tags, adapters resolve per item, and Synclair shows a
@@ -291,7 +291,7 @@ keeps the rest. Extraction is now a file/dir operation (no untangling):
 
 | Seed artifact | Location | Reseed action |
 |---|---|---|
-| Product identity (name + tagline) | `lib/system/seed/project.ts` | Rename to the product being built (re-labels the product app + Synclair header) |
+| Product identity (name + tagline) | `lib/system/seed/project.ts` | Rename to the product being cataloged (re-labels the Synclair header) |
 | App surfaces (multi-frontend projects, §5b) | `lib/system/seed/surfaces.ts` | Leave empty (single frontend) or declare one entry per frontend at intake |
 | Brand color ramps | `lib/system/seed/brand-ramps.ts` | Replace with new brand ramps |
 | Theme values | `app/globals.css` | Retheme (shadcn base + brand) |

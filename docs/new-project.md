@@ -48,7 +48,7 @@ Synclair itself stays Next + shadcn regardless (foundation-model.md §2).
 
 | # | Reseed | Where |
 |---|---|---|
-| 1 | Identity | `lib/system/seed/project.ts` — `name` + `tagline` re-label the product app AND Synclair's sidebar (metadata derives from it) · then `package.json` name · `registry.json` homepage |
+| 1 | Identity | `lib/system/seed/project.ts` — `name` + `tagline` re-label Synclair's header (metadata derives from it) · then `package.json` name · `registry.json` homepage |
 | 2 | Theme | `app/globals.css` semantic/brand tokens; add ramps to `lib/system/seed/brand-ramps.ts` |
 | 3 | Domain | if domain-heavy, author `<domain>-domain` skill + `<domain>-advisor` agent; else skip |
 | 4 | Knowledge | add real spec/PRD/Figma/deck sources to `lib/system/knowledge/sources.ts`; fill `/AGENTS.md` router pointers |
@@ -61,10 +61,10 @@ Synclair itself stays Next + shadcn regardless (foundation-model.md §2).
   `webapp-testing`, and Figma skills as needed.
 - Connect MCP servers (Drive/Notion/Figma) so diggers can fetch — `claude mcp` /
   `/mcp` interactively, or claude.ai connector settings.
-- `npm install && npm run dev` (port 4100). Load `/` (the product app — empty
-  Views index under the project's name) and Synclair: `/synclair`,
-  `/synclair/components`, `/synclair/knowledge`, `/synclair/foundations`; confirm they
-  render and the registry/knowledge lists are the new project's.
+- `npm install && npm run dev` (port 4100). Load `/` (redirects to the hub) and
+  Synclair: `/synclair`, `/synclair/components`, `/synclair/knowledge`,
+  `/synclair/foundations`; confirm they render and the registry/knowledge lists are
+  the new project's.
 
 ## What carries over vs. what's fresh
 

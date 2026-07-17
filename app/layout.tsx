@@ -19,10 +19,9 @@ export const metadata: Metadata = {
 }
 
 /**
- * Root shell — the bare providers shared by both app UIs in this repo:
- * the **product app** (`/`) and the **Synclair hub** (`/synclair`). Each mounts its
- * own chrome in its own nested layout; this file owns only <html>/<body>, fonts,
- * and theming so nothing here assumes one app or the other.
+ * Root shell — the bare providers for the Synclair app: <html>/<body>, fonts,
+ * and theming. The hub mounts its own chrome under `/synclair` (nested layout);
+ * the root `/` redirects there. Nothing here assumes a co-located product app.
  */
 export default function RootLayout({
   children,

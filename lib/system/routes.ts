@@ -1,11 +1,11 @@
 /**
  * Where the Synclair hub is mounted.
  *
- * A Synclair project is two app UIs in one repo: the **product app** you're
- * building lives at the root (`/`), and the **Synclair hub** — which catalogs the
- * components and views that product produces — is mounted under this base. Keeping
- * the mount point in one constant means the hub can be relocated (or unmounted)
- * without hunting links.
+ * Synclair is a hub-only app: it catalogs the components and views a product
+ * produces, and runs on its own server. The product itself lives elsewhere (a
+ * separate repo/app on its own server). The hub mounts under this base and the
+ * root `/` redirects to it; keeping the mount point in one constant means the
+ * hub can be relocated without hunting links.
  *
  * Brain/foundation: this is portable. A clone can change where its hub lives.
  */
