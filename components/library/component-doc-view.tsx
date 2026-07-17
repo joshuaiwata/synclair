@@ -45,6 +45,7 @@ import { itemHref } from "@/lib/system/tiers"
 import { getUsageMap, routeLabel } from "@/lib/system/usage"
 import { getUxDocSync } from "@/lib/system/ux-docs"
 import { ViewportFrame } from "@/components/viewport-frame"
+import { cn } from "@/lib/utils"
 
 const STATUS_TONE: Record<ComponentStatus, "success" | "info" | "warning"> = {
   stable: "success",
@@ -213,6 +214,12 @@ export async function ComponentDocView({
   // Blocks and templates get the device-width switcher on previews by default;
   // an example can override either way via `viewports`.
   const framedByDefault = component.kind !== "component"
+  // Templates render whole app frames — a max-w-3xl column chokes them. Widen
+  // the page to a max-w-6xl lane so the RENDER areas (Live preview, Examples)
+  // can breathe, while every READING block (prose, tables, code, captions)
+  // stays pinned to the max-w-3xl reading column so type never runs too wide.
+  const isTemplate = component.kind === "template"
+  const readCol = isTemplate ? "max-w-3xl" : undefined
 
   // A live import renders the real thing above — screenshot examples are
   // redundant beside it. Keep their code snippets; drop code-less images.
@@ -230,9 +237,9 @@ export async function ComponentDocView({
 
   return (
     <>
-      <main className="flex max-w-3xl flex-col gap-8 p-6">
+      <main className={cn("flex w-full flex-col gap-8 p-6", isTemplate ? "max-w-6xl" : "max-w-3xl")}>
         {/* Header meta */}
-        <div className="flex flex-col gap-3">
+        <div className={cn("flex flex-col gap-3", readCol)}>
           <h1 className="text-base font-semibold">{component.title}</h1>
           {/* Signal-only pills: status, origin when it says something (host /
               shadcn / extended — "custom" is the default and reads as noise),
@@ -327,7 +334,7 @@ export async function ComponentDocView({
         </div>
 
         {!doc && component.origin === "native" && (
-          <section className="flex flex-col gap-4">
+          <section className={cn("flex flex-col gap-4", readCol)}>
             <SectionHeader title="Preview" />
             {nativePreview ? (
               <PreviewFrame>
@@ -362,7 +369,7 @@ export async function ComponentDocView({
         )}
 
         {!doc && component.origin !== "native" && (
-          <Empty>
+          <Empty className={readCol}>
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <FileText />
@@ -404,7 +411,7 @@ export async function ComponentDocView({
             <SectionHeader title="Examples" />
             {docExamples.map((ex) => (
               <div key={ex.title} className="flex flex-col gap-2">
-                <div className="flex items-baseline gap-2">
+                <div className={cn("flex items-baseline gap-2", readCol)}>
                   <h3 className="text-sm font-medium">{ex.title}</h3>
                   {ex.description && (
                     <span className="text-xs text-muted-foreground">
@@ -425,7 +432,7 @@ export async function ComponentDocView({
                     </PreviewFrame>
                   ))}
                 {ex.code && (
-                  <pre className="overflow-x-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs">
+                  <pre className={cn("overflow-x-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs", readCol)}>
                     <code>{ex.code}</code>
                   </pre>
                 )}
@@ -434,6 +441,9 @@ export async function ComponentDocView({
           </section>
         ) : null}
 
+        {/* Reading column: everything below the render areas stays pinned to
+            the max-w-3xl reading width even when the page runs wide (templates). */}
+        <div className={cn("flex flex-col gap-8", readCol)}>
         {/* Intent — the job this piece does, for stakeholders and agents */}
         {doc?.intent ? (
           <section className="flex flex-col gap-3">
@@ -689,6 +699,7 @@ export async function ComponentDocView({
             })()}
           </section>
         )}
+        </div>
       </main>
     </>
   )
