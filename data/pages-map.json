@@ -47,17 +47,20 @@
         {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair",
@@ -76,38 +79,79 @@
       "summary": "What the agents build with — this repo's skills, agents, MCP servers, and the foundation-first method, each editable in place.",
       "items": [
         {
-          "name": "page-header",
+          "name": "source-editor",
+          "tier": "block",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "accordion",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "page-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pill-toggle",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "step-ladder",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
-          "name": "source-editor",
-          "tier": "block",
-          "catalogued": true
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/ai-setup",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/ai-setup/page.tsx",
-        "app/synclair/(hub)/ai-setup/capability-tables.tsx"
+        "app/synclair/(hub)/ai-setup/capability-tables.tsx",
+        "app/synclair/(hub)/ai-setup/page.tsx"
       ],
-      "sourceHash": "7fdcd6148f78545fd1880ea358b90c7549f318ba3ccaf03f7270b6168ee1e1af"
+      "sourceHash": "4ea4f7184efa85ff614b774b532d92afdc0454be8307ff4f6e77faa9f5d6bdcd"
     },
     {
       "id": "synclair-environment",
@@ -121,34 +165,46 @@
       ],
       "items": [
         {
+          "name": "definition-list",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "pill-toggle",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "stat-grid",
           "tier": "component",
-          "catalogued": true
-        },
-        {
-          "name": "definition-list",
-          "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/environment",
@@ -167,33 +223,87 @@
       "summary": "The live Figma file manifest — file/project census, changes vs the last snapshot, and snapshot history, with a manual refresh.",
       "items": [
         {
+          "name": "alert",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "button",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "dropdown-menu",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "input",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "stat-card",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/figma-manifest",
       "previewable": true,
       "sourceFiles": [
+        "app/synclair/(hub)/figma-manifest/distill-control.tsx",
+        "app/synclair/(hub)/figma-manifest/files-table.tsx",
         "app/synclair/(hub)/figma-manifest/page.tsx",
-        "app/synclair/(hub)/figma-manifest/files-table.tsx"
+        "app/synclair/(hub)/figma-manifest/star-toggle.tsx"
       ],
-      "sourceHash": "946851f4d021d5f4303aa63b39c3654d6c1556e4e7be02c0d15c614fdd0ccb4d"
+      "sourceHash": "095ab5c2e0e9670d391d25c1e511fd144299e73f51d147267f5392136f3e68c8"
     },
     {
       "id": "synclair-foundations",
@@ -204,28 +314,36 @@
       "summary": "The design-token style guide — color, type, spacing, radius, opacity, shape, motion, iconography — rendered live from the theme so it can't drift.",
       "items": [
         {
-          "name": "hub-page",
-          "tier": "component",
-          "catalogued": true
-        },
-        {
           "name": "foundations-sections",
           "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "markdown",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/foundations",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/foundations/page.tsx",
-        "components/library/foundations.tsx"
+        "app/synclair/(hub)/foundations/page.tsx"
       ],
-      "sourceHash": "21bc79a64ae861f11657ed1ac34f44aaee1d9bc0ca4627732bf87d85dde2431e"
+      "sourceHash": "e612c2e247794aeeac4d982a711c3006d2c8eb70b37320de3af0f3a717aed8f6"
     },
     {
       "id": "synclair-github",
@@ -236,28 +354,56 @@
       "summary": "The repo's recent history read from local git — commits, authors, push state — each opening its message and diff without leaving the hub.",
       "items": [
         {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "scroll-area",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sheet",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/github",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/github/page.tsx",
-        "app/synclair/(hub)/github/commits-table.tsx"
+        "app/synclair/(hub)/github/commit-drawer.tsx",
+        "app/synclair/(hub)/github/commits-table.tsx",
+        "app/synclair/(hub)/github/page.tsx"
       ],
-      "sourceHash": "eff2383acbb69a812408677f1c83c39c3f399e0c00a63e6fda3fb7ca8dfada61"
+      "sourceHash": "69529b33ceac7a9eb36fd5fb379b98d82081d6e285be24d67b04914cc11dcc33"
     },
     {
       "id": "synclair-how-it-works",
@@ -276,18 +422,31 @@
       ],
       "items": [
         {
+          "name": "accordion",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/how-it-works",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/how-it-works/page.tsx",
-        "app/synclair/(hub)/how-it-works/diagrams.tsx"
+        "app/synclair/(hub)/how-it-works/diagrams.tsx",
+        "app/synclair/(hub)/how-it-works/page.tsx"
       ],
-      "sourceHash": "fd0b529b46f0b4b65744223023ac1b32993bc0dff82b81a296f86da6791c7636"
+      "sourceHash": "de229729ab4ba83f3f2d79c7563c48735c007039b422971fd51fb25ef5992954"
     },
     {
       "id": "synclair-hygiene",
@@ -298,9 +457,34 @@
       "summary": "Where the host codebase steps outside its own design foundation — inline styles, raw colors, arbitrary values, bypassed primitives — as an advisory readout.",
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "card",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/hygiene",
@@ -319,19 +503,105 @@
       "summary": "The project's sources of truth — specs, PRDs, Figma, decks — linked not copied, each with its distilled digest, plus the onboarding Summary tab.",
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "button",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "dropdown-menu",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "input",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "markdown",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pill-toggle",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "scroll-area",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sheet",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "summary-shell",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "textarea",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/knowledge",
       "previewable": true,
       "sourceFiles": [
+        "app/synclair/(hub)/knowledge/doc-drawer.tsx",
         "app/synclair/(hub)/knowledge/page.tsx",
         "app/synclair/(hub)/knowledge/sources-table.tsx",
         "app/synclair/(hub)/knowledge/summary-section.tsx"
       ],
-      "sourceHash": "173ae549aa5929977d25c3f73950cba40fdb23fb1c53afee29b3f3bbfe640057"
+      "sourceHash": "c1dfd913bc77a07301c137e562665e2e7298fd9ea343fa0e800409ecb2d345ca"
     },
     {
       "id": "synclair-pages",
@@ -345,40 +615,71 @@
       ],
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 3
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "stat-grid",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
-          "name": "page-thumb",
+          "name": "tabs",
           "tier": "component",
-          "catalogued": false
+          "catalogued": true,
+          "count": 1
         },
         {
-          "name": "sitemap-tree",
+          "name": "viewport-frame",
           "tier": "component",
-          "catalogued": false
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pages-explorer",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
         },
         {
           "name": "sitemap-chart",
           "tier": "component",
-          "catalogued": false
+          "catalogued": false,
+          "count": 1
+        },
+        {
+          "name": "sitemap-tree",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/pages",
       "previewable": true,
       "sourceFiles": [
         "app/synclair/(hub)/pages/page.tsx",
+        "components/embed-frame.tsx",
         "components/pages/page-thumb.tsx",
-        "components/pages/sitemap-tree.tsx",
-        "components/pages/sitemap-chart.tsx"
+        "components/pages/pages-explorer.tsx",
+        "components/pages/sitemap-chart.tsx",
+        "components/pages/sitemap-tree.tsx"
       ],
-      "sourceHash": "6efa3593e38d2c2ea23b4f1b27ab4d156a59a3f38526a0d7cd0c1ca30f4aa228"
+      "sourceHash": "d2376c7bb65526715dff9e7d03ba8352487641203231cd2ae7a612deb36d7a3a"
     },
     {
       "id": "synclair-pages-id",
@@ -390,28 +691,57 @@
       "summary": "One view's detail — the route rendered live in a device viewport, its source and gating facts, the catalog items it composes, and its navigation edges.",
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "breadcrumb",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "page-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "status-badge",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
-          "name": "page-viewport",
+          "name": "viewport-frame",
           "tier": "component",
-          "catalogued": false
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "page-doc-view",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/pages/synclair-system",
       "previewable": true,
       "sourceFiles": [
         "app/synclair/(hub)/pages/[id]/page.tsx",
-        "components/library/page-doc-view.tsx"
+        "components/embed-frame.tsx",
+        "components/library/page-doc-view.tsx",
+        "components/pages/page-viewport.tsx"
       ],
-      "sourceHash": "56f5207d1f291f4ddf6e159bc26b9af325ee24de4e84baf75b76f54062ab29e9"
+      "sourceHash": "46d41e2de896817f3ef8425eb12f74f754e0668cb40264cc5bc6d7db48f3852e"
     },
     {
       "id": "synclair-references",
@@ -426,14 +756,34 @@
       ],
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "hub-page",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/references",
@@ -452,14 +802,34 @@
       "summary": "Build/coverage reports rendered from data/reports/*.json — hero stats, readiness pillars, per-area findings, and recommendations, verified against hub data.",
       "items": [
         {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "card",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
           "name": "page-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "section-header",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/reports",
@@ -478,29 +848,64 @@
       "summary": "What the codebase consists of beyond the UI — a summary read, areas, API surface, a data-model diagram, jobs, and integrations, tabbed.",
       "items": [
         {
-          "name": "hub-page",
+          "name": "accordion",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
-          "name": "stat-grid",
+          "name": "badge",
           "tier": "component",
-          "catalogued": true
-        },
-        {
-          "name": "summary-shell",
-          "tier": "component",
-          "catalogued": true
-        },
-        {
-          "name": "markdown",
-          "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         },
         {
           "name": "data-model-diagram",
           "tier": "component",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "markdown",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "stat-grid",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "summary-shell",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/system",
@@ -525,22 +930,16 @@
         {
           "name": "tier-gallery",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/components",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/components/page.tsx",
-        "components/library/tier-gallery.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/components/page.tsx"
       ],
-      "sourceHash": "722aa3c1a4c38edb09ab1d613f887c5c025f917c1fad609e5c9b5acee97f3c86"
+      "sourceHash": "0ac72ea5baf89579585f294675badcf78352530ba84fb729b9dd836cfa0efc4c"
     },
     {
       "id": "synclair-components-name",
@@ -554,22 +953,16 @@
         {
           "name": "component-doc-view",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/components/status-badge",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/components/[name]/page.tsx",
-        "components/library/component-doc-view.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/components/[name]/page.tsx"
       ],
-      "sourceHash": "0631346fad5a67026287cd802fb54728acabee3de3b19fdbeb93a3128e55529a"
+      "sourceHash": "1029ecad23471ff2db21b753ce51988486b5f35f5a2620867e14a7a132f8e039"
     },
     {
       "id": "synclair-blocks",
@@ -586,22 +979,16 @@
         {
           "name": "tier-gallery",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/blocks",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/blocks/page.tsx",
-        "components/library/tier-gallery.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/blocks/page.tsx"
       ],
-      "sourceHash": "606305e5ff08ff1d924c9532b84e2404e5f369038488ee935bb099f104c939c3"
+      "sourceHash": "b8b05c26b576e81ebed36b0433a8f783381f69ee48bdc8f8f347b13f6ee51806"
     },
     {
       "id": "synclair-blocks-name",
@@ -615,22 +1002,16 @@
         {
           "name": "component-doc-view",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/blocks/app-sidebar",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/blocks/[name]/page.tsx",
-        "components/library/component-doc-view.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/blocks/[name]/page.tsx"
       ],
-      "sourceHash": "76074b85ea588c1c061d12cb55e226a2344a1032d6ea094548b37cf69f982873"
+      "sourceHash": "20ebf99729044aae7637c52c15d1a118d71618b34471166c6e8d270dc3bd7cab"
     },
     {
       "id": "synclair-templates",
@@ -647,22 +1028,16 @@
         {
           "name": "tier-gallery",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/templates",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/templates/page.tsx",
-        "components/library/tier-gallery.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/templates/page.tsx"
       ],
-      "sourceHash": "60f4e6965eb538b329600d6f32b2739336a65ec556ce8682887053d6a04fe8b4"
+      "sourceHash": "f0307f06eabf54a0801cc5ed2b653815d7e13c9a5994f92bb5dbc178ec849541"
     },
     {
       "id": "synclair-templates-name",
@@ -676,22 +1051,16 @@
         {
           "name": "component-doc-view",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/templates/library-tier-page",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/templates/[name]/page.tsx",
-        "components/library/component-doc-view.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/templates/[name]/page.tsx"
       ],
-      "sourceHash": "a3b48d6f12ac9ebfa023a81f6e38472c7de9085995bf571e435dc30d44d5ffda"
+      "sourceHash": "594fc97a67a8c3441513aa8e310974be4a1d7ad388e314b28d2d22fe888df308"
     },
     {
       "id": "synclair-library",
@@ -705,18 +1074,24 @@
       ],
       "items": [
         {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewUrl": "/synclair/library",
       "previewable": true,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/library/page.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/library/page.tsx"
       ],
-      "sourceHash": "2bfe842a1d61332e04b3fd167bf723307379e82aae89825cf873114030cb1314"
+      "sourceHash": "ebbf7f95b1b2fe105a1d7eac93bb7ad65ad37c373fdf13823021bb28cf02c691"
     },
     {
       "id": "synclair-library-surface",
@@ -731,17 +1106,23 @@
       ],
       "items": [
         {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewable": false,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/library/[surface]/page.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/library/[surface]/page.tsx"
       ],
-      "sourceHash": "2a35a89fb48572970e22561fd27a0e3760686f0beb7a03549eb2f199e7fb92e9"
+      "sourceHash": "d6c89ae2287efd7244cfdb9fb4cf468e1e7c31b6331b2d968f4587be6502cdb7"
     },
     {
       "id": "synclair-library-surface-tier",
@@ -758,21 +1139,15 @@
         {
           "name": "tier-gallery",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewable": false,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/library/[surface]/[tier]/page.tsx",
-        "components/library/tier-gallery.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/library/[surface]/[tier]/page.tsx"
       ],
-      "sourceHash": "b9a4758d0f4373ebfadd3de3192ac458dce4e388ad40031e1c27dcb4cb06e8c4"
+      "sourceHash": "9a76bc78cdbdaeeb88838f07c7a1bb6316ef15918bdd674e89bdc364a7644621"
     },
     {
       "id": "synclair-library-surface-tier-name",
@@ -786,21 +1161,15 @@
         {
           "name": "component-doc-view",
           "tier": "block",
-          "catalogued": true
-        },
-        {
-          "name": "library-explorer",
-          "tier": "block",
-          "catalogued": true
+          "catalogued": true,
+          "count": 1
         }
       ],
       "previewable": false,
       "sourceFiles": [
-        "app/synclair/(hub)/(library)/library/[surface]/[tier]/[name]/page.tsx",
-        "components/library/component-doc-view.tsx",
-        "app/synclair/(hub)/(library)/layout.tsx"
+        "app/synclair/(hub)/(library)/library/[surface]/[tier]/[name]/page.tsx"
       ],
-      "sourceHash": "b017e38deb128ef8f6e9d3ae07007f9e64256f8349671cea76d5c9a0518a7552"
+      "sourceHash": "ee9b0bdcb6b648935f50c74b146d997e249a70adece3e69ec7effa9291fa088a"
     },
     {
       "id": "synclair-preview-name",
@@ -810,7 +1179,68 @@
       "kind": "dynamic",
       "dynamic": true,
       "summary": "A chrome-free stage that renders one self-referential block's real composition standalone, so its doc page can embed it. Lives outside the hub group — no sidebar.",
-      "items": [],
+      "items": [
+        {
+          "name": "app-sidebar",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "command-palette",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "foundations-sections",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "library-explorer",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "source-editor",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sidebar",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "preview-scenes",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        }
+      ],
       "previewUrl": "/synclair/preview/app-sidebar",
       "previewable": true,
       "sourceFiles": [

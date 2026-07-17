@@ -43,9 +43,12 @@ export async function PageDocView({ id }: { id: string }) {
   const multiSurface = isMultiSurface()
   const sync = getPageSourceSync(node, map.repo?.root)
 
-  // Group composed items by tier, preserving the component → block → template order.
+  // Library items the page composes (grouped by tier) vs. local components it
+  // uses that aren't in the library yet (a coverage signal, shown apart).
+  const cataloged = node.items.filter((i) => i.catalogued !== false)
+  const uncataloged = node.items.filter((i) => i.catalogued === false)
   const byTier: Record<string, PageItemUse[]> = {}
-  for (const item of node.items) (byTier[item.tier] ??= []).push(item)
+  for (const item of cataloged) (byTier[item.tier] ??= []).push(item)
 
   // Resolve "links to" edges against the map so they navigate to the sibling's
   // detail page when we know it; otherwise show the raw route.
@@ -150,17 +153,19 @@ export async function PageDocView({ id }: { id: string }) {
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold">
           Composes{" "}
-          <span className="text-muted-foreground font-normal tabular-nums">{node.items.length}</span>
+          <span className="text-muted-foreground font-normal tabular-nums">{cataloged.length}</span>
+          <span className="text-muted-foreground/70 ml-1 text-xs font-normal">
+            from the library
+          </span>
         </h2>
-        {node.items.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No catalog items detected for this route.
-          </p>
+        {cataloged.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No library items detected for this route.</p>
         ) : (
           TIER_ORDER.filter((k) => byTier[k]?.length).map((kind) => (
             <div key={kind} className="flex flex-col gap-2">
               <h3 className="text-muted-foreground text-2xs font-medium tracking-wide uppercase">
                 {tierMeta(kind).label}
+                <span className="ml-1.5 tabular-nums">{byTier[kind].length}</span>
               </h3>
               <div className="flex flex-col gap-1.5">
                 {byTier[kind].map((item) => (
@@ -169,6 +174,27 @@ export async function PageDocView({ id }: { id: string }) {
               </div>
             </div>
           ))
+        )}
+        {uncataloged.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <h3 className="text-muted-foreground text-2xs font-medium tracking-wide uppercase">
+              Not in the library yet
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {uncataloged.map((item) => (
+                <span
+                  key={item.name}
+                  title="Used by this route but not registered in the component library"
+                  className="text-muted-foreground border-warning/30 bg-warning/5 inline-flex items-center gap-1 rounded border px-2 py-0.5 font-mono text-xs"
+                >
+                  {item.name}
+                  {typeof item.count === "number" && item.count > 1 && (
+                    <span className="text-muted-foreground/60 text-2xs">×{item.count}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </section>
 

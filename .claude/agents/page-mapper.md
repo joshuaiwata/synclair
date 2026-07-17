@@ -25,16 +25,11 @@ For **other routers** (Next `pages/`, React Router config, a framework's route t
 
 ## Per node — what to dig
 
-- **`file`** — the route-defining source file, repo-relative.
-- **`sourceFiles`** — the files that define this route's OUTPUT: at minimum `file`; add the route's own `layout.*` and any co-located view module it delegates to (e.g. a `*-doc-view.tsx` the page renders). These are what the freshness hash covers, so include what would change the page if edited — but keep it tight (the page + its direct view/layout, not every leaf component). **Do NOT compute the hash** — the skill runs `check:pages --reanchor` to fill `sourceHash` with the loader's own algorithm.
+- **`file`** — the route-defining source file, repo-relative. This is the entry point the deterministic resolver walks, so get it exactly right.
 - **`title`** / **`summary`** — a human name and one line on what the view is for (from the heading, page metadata, or the obvious purpose). Keep summaries to a sentence.
 - **`kind`** — `page` (default), `dynamic`, `layout`, or `api`. **`auth`** — a gating note if the route is obviously guarded (middleware, an auth wrapper): `public` / `authed` / `admin`. Omit if unclear.
-- **`items`** — every catalog **component, block, AND template** the view composes. Resolve identifiers to catalog names:
-  - Registered items: names/paths in `registry.json` (`@/components/...` imports). Tier from the registry `type`.
-  - Host items (existing-project mode): `data/external-catalog.json` items by `hostPath`/`name`.
-  - Cross-check against `lib/system/usage.ts` (`getUsageMap()` derives per-item usage from the import graph) so you don't miss transitive composition.
-  - Each entry: `{ name, tier, surface?, count?, catalogued }`. Set `catalogued: false` for something the view clearly uses but that is **not** in either catalog (a raw local component) — that's a coverage signal the page surfaces, not an error. Use the exact catalog `name` so the library link resolves.
 - **`links`** — routes this page navigates to (`<Link href>`, `router.push`, `redirect`). Real route strings only; these are the "how they tie together" edges.
+- **DO NOT hand-author `items`, `sourceFiles`, or `sourceHash`.** Composition is resolved DETERMINISTICALLY after you return, by `npm run resolve:pages` (`scripts/resolve-page-items.mjs`): it walks each route's own import graph from `file`, records every `@/components/*` it composes, and resolves each against the catalog (`registry.json` + native `components/ui/`). An LLM eyeballing imports under-reports — the static walk does not. Omit these three fields (or leave `items: []`); the resolver overwrites them. In **multi-surface** projects you MAY set `surface` on the node so the resolver preserves it per item.
 - **`previewUrl`** / **`previewable`** — the live-preview target:
   - This repo (`root: null`, same-origin): `previewUrl` = the route itself (for a dynamic route, a **concrete** instantiation, never the `[param]` pattern). `previewable: true`.
   - Host repo: `previewUrl` = `repo.previewBaseUrl` + the route (set `previewBaseUrl` on `repo` to the host dev server, e.g. `http://localhost:3000`).
