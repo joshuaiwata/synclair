@@ -7,7 +7,7 @@ import { live, scene, type ComponentDoc } from "@/lib/system/doc-types"
  */
 const doc: ComponentDoc = {
   intent:
-    "The card gallery a library tier page renders: filter chips, category-grouped cards with live zoom-to-fit preview thumbnails (a registered item may opt into a screenshot thumb via meta.previewImage) and status/origin badges, the host-coverage strip in companion mode, and educating empty states. It exists so all three tiers (and every surface scope) present the catalog identically — one gallery, parameterized by tier.",
+    "The card gallery a library tier page renders: filter chips, category-grouped cards with live zoom-to-fit preview thumbnails (a registered item may opt into a screenshot thumb via meta.previewImage) and status/origin badges, the host-coverage strip in companion mode (uncataloged files, unused entries, and documented-but-not-rendered entries missing a preview scene), and educating empty states. It exists so all three tiers (and every surface scope) present the catalog identically — one gallery, parameterized by tier.",
   examples: [
     {
       title: "Live",

@@ -11,6 +11,11 @@
  *      silent. Counted LIVE against the host source (JSX tag occurrences, web
  *      surfaces — same rule as lib/system/host-usage.ts); the cataloger's
  *      intake-time snapshot is only the fallback for non-web surfaces.
+ *   3. DOCUMENTED-NOT-RENDERED — cataloged entries with neither a live preview
+ *      scene (components/host-previews/registry.tsx) nor a screenshot example:
+ *      their gallery cards degrade to a bare `<name />` code placeholder.
+ *      Cataloging alone doesn't make an item render — the preview scene is a
+ *      separate step (port-host-component, Path A) that nothing else flags.
  *
  * ADVISORY: always exits 0 with counts. Coverage gaps are triage work, not
  * corruption (that's check:host). Same scan the hub runs live (lib/system/host-scan.ts).
@@ -133,6 +138,24 @@ if (hostFlag !== -1) {
   }
 }
 
+// --- preview registry (documented-not-rendered) ------------------------------
+// Which catalog names have a registered live preview scene. A regex over the
+// registration lines is enough here — this is advisory tooling, and the
+// registry's shape (`hostPreviews["name"] = …` / `hostPreviews["surface:name"]`)
+// is part of its documented contract.
+const previewKeys = new Set();
+const registryPath = path.join(root, "components", "host-previews", "registry.tsx");
+const registryPresent = existsSync(registryPath);
+if (registryPresent) {
+  const registrySrc = readFileSync(registryPath, "utf8");
+  for (const line of registrySrc.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue; // commented-out ≠ registered
+    const m = /hostPreviews\[\s*["'`]([^"'`]+)["'`]\s*\]\s*=/.exec(trimmed);
+    if (m) previewKeys.add(m[1]);
+  }
+}
+
 // --- sweep -------------------------------------------------------------------
 const fallbackSurface = hosts[0]?.surface;
 for (const host of hosts) {
@@ -195,6 +218,22 @@ for (const host of hosts) {
     console.log(`\n  ⚠ Cataloged but UNUSED in the host (${unusedCataloged.length}) — fiction risk:`);
     for (const it of unusedCataloged) console.log(`    · ${it.name}  (${it.hostPath})`);
     console.log("  Either dead host code worth flagging to the team, or catalog noise worth pruning.");
+  }
+
+  // Documented but not rendered: no preview scene registered and no screenshot
+  // example — these cards show a bare `<name />` placeholder in the galleries.
+  if (registryPresent) {
+    const surfaceOf = (it) => it.surface ?? host.surface ?? fallbackSurface;
+    const hasPreview = (it) =>
+      previewKeys.has(it.name) || (surfaceOf(it) && previewKeys.has(`${surfaceOf(it)}:${it.name}`));
+    const hasScreenshot = (it) => (it.examples ?? []).some((ex) => ex.image);
+    const unrendered = hostItems.filter((it) => !hasPreview(it) && !hasScreenshot(it));
+    if (unrendered.length > 0) {
+      console.log(`\n  ⚠ Documented but NOT RENDERED (${unrendered.length}) — cards degrade to a code placeholder:`);
+      for (const it of unrendered.slice(0, 40)) console.log(`    · ${it.name}  (${it.hostPath})`);
+      if (unrendered.length > 40) console.log(`    … and ${unrendered.length - 40} more`);
+      console.log("  Port them live via the port-host-component skill (Path A), or add a screenshot example where the compat gate blocks importing.");
+    }
   }
 }
 console.log("\nAdvisory only — exit 0. Freshness of cataloged entries is check:host.");
