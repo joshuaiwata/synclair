@@ -49,7 +49,7 @@ const doc: ComponentDoc = {
   responsive: [
     { viewport: "mobile", behavior: "Single column; tables scroll horizontally in place." },
     { viewport: "tablet", behavior: "Same column, wider preview frames." },
-    { viewport: "desktop", behavior: "Max-width column; templates preview fullscreen in the viewport frame." },
+    { viewport: "desktop", behavior: "Reading column at max-w-3xl; templates widen the page to a max-w-6xl lane so the render areas (Live preview, Examples) breathe while prose, tables, and code stay at the reading width. Template examples also offer fullscreen in the viewport frame." },
   ],
   props: [
     { name: "name", type: "string", description: "The registry item (or concept) to render." },
