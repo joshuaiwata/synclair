@@ -8,8 +8,8 @@ import path from "node:path"
  * component catalog: the catalog answers "what UI exists", the system map
  * answers "what does this system consist of and where does it live".
  *
- * Mode-agnostic: `repo.root === null` means the map describes THIS repo (the
- * product app at the root); a path means it describes the HOST repo
+ * Mode-agnostic: `repo.root === null` means the map describes THIS repo (where
+ * Synclair itself lives); a path means it describes the HOST repo
  * (existing-project mode, same convention as `data/external-catalog.json`).
  *
  * Source of truth is `data/system-map.json` (SEED — written by the

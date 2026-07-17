@@ -26,8 +26,8 @@ re-guessing it.
 embedded (one repo)                 watcher (two repos)
 ┌─────────────────────────┐         ┌──────────────┐   ┌──────────────────┐
 │ product repo            │         │ product repo │   │ synclair clone   │
-│  ├─ app/(product)/…     │         │  └─ app/…    │──▶│  └─ /synclair (:4100)│
-│  └─ /synclair  (+ .claude) │         └──────────────┘   └──────────────────┘
+│  ├─ <the product app>   │         │  └─ app/…    │──▶│  └─ /synclair (:4100)│
+│  └─ synclair/ (+ .claude) │         └──────────────┘   └──────────────────┘
 └─────────────────────────┘          host, untouched     observes the host
    skills travel with code                              (one-way documentation)
 ```

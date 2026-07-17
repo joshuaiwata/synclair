@@ -12,13 +12,14 @@ import { getSetupMode, SETUP_MODE_META } from "@/lib/system/setup"
 export const metadata: Metadata = {
   title: `Synclair — ${project.name}`,
   description:
-    "The Synclair hub — design tokens, the component library, AI setup, and project knowledge. Catalogs everything the product app builds.",
+    "The Synclair hub — design tokens, the component library, AI setup, and project knowledge. Catalogs everything the product produces.",
 }
 
 /**
  * The Synclair shell — the chrome (sidebar + ⌘K palette) that wraps
- * every `/synclair/*` route. This is the hub skin; it lives here (not at the root)
- * so the product app at `/` gets its own chrome instead of inheriting this one.
+ * every `/synclair/*` route. Mounted under `/synclair` (not the root) so the
+ * mount point stays relocatable in one constant (`SYNCLAIR_BASE`); the root `/`
+ * just redirects here.
  */
 export default async function SynclairLayout({
   children,

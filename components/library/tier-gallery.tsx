@@ -289,7 +289,7 @@ export async function TierGallery({
   const unusedCount = coverage.reduce((n, c) => n + c.unusedCataloged.length, 0)
 
   return (
-    <main className="flex flex-col gap-8 p-6">
+    <main className="flex max-w-6xl flex-col gap-8 p-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="text-base font-semibold">{t.label}</h1>

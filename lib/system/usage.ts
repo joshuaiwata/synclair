@@ -9,8 +9,10 @@ import type { RegistryComponent } from "./components"
  *
  * A file "uses" an item when it imports the item's source, directly or
  * transitively through other components (a view that renders `StatCard` is
- * using `card` too). Usage is split by app:
- * - product  — files under `app/` outside Synclair (`app/synclair/`): the real build.
+ * using `card` too). Usage is split by origin:
+ * - product  — non-hub app code (files under `app/` outside `app/synclair/`).
+ *   Mostly relevant to co-located product code; in a companion clone the
+ *   product's real usage comes from the host catalog (`data/external-catalog.json`).
  * - Synclair — its own UI (`app/synclair/`).
  *
  * Colocated `*.docs.tsx` files are excluded — documenting a component in the
@@ -24,7 +26,7 @@ export interface ItemUsage {
   hubFiles: string[]
   /** Catalog items whose own source imports it directly. */
   usedByItems: string[]
-  /** True when the item is reachable from the product app — the filter's "in use". */
+  /** True when the item is reachable from non-hub app code — the filter's "in use". */
   inProduct: boolean
 }
 
@@ -148,7 +150,7 @@ export async function getUsageMap(
   return usage
 }
 
-/** "app/(product)/quotes/page.tsx" -> "/quotes"; non-page files pass through as paths. */
+/** "app/(marketing)/quotes/page.tsx" -> "/quotes"; non-page files pass through as paths. */
 export function routeLabel(file: string): string {
   if (!file.startsWith("app/") || !file.endsWith("/page.tsx")) return file
   const route = file

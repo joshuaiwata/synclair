@@ -118,19 +118,18 @@ TS
 echo "› Resetting the product identity…"
 cat > lib/system/seed/project.ts <<'TS'
 /**
- * Per-project identity — the ONE place a clone names the product it's building.
+ * Per-project identity — the ONE place a clone names the product it catalogs.
  *
  * Seed (§8): reseeded by `project-bootstrap` (or by hand) when this foundation is
- * cloned. The product app (`app/(product)`) and Synclair's sidebar header
- * both read this, so renaming here re-labels both UIs. Everything structural
- * around it (the two-app split, the empty Views index, the layouts) is Brain and
- * stays put.
+ * cloned. Synclair's hub header reads this, so renaming here re-labels the hub.
+ * The product itself lives elsewhere (its own repo/app on its own server) — this
+ * is just the name Synclair shows for it.
  */
 export const project = {
-  /** The product being built on this foundation. Shown at the root and in the hub header. */
+  /** The product this Synclair catalogs. Shown in the hub header. */
   name: "Your Product",
-  /** One-line description of the product, shown on the product home. */
-  tagline: "The app you're building on the Synclair foundation.",
+  /** One-line description of the product, shown in the hub. */
+  tagline: "The product this Synclair foundation catalogs.",
 }
 TS
 
@@ -214,14 +213,14 @@ cat <<'NEXT'
 ✓ Seed blanked. The app still typechecks and runs (brand + knowledge just empty).
 
 Now RESEED (interactive — the project-bootstrap skill guides this):
-  1. Identity   — name + tagline in lib/system/seed/project.ts (re-labels the
-                  product app AND Synclair's header); package.json name; registry.json homepage.
+  1. Identity   — name + tagline in lib/system/seed/project.ts (re-labels
+                  Synclair's header); package.json name; registry.json homepage.
   2. Theme      — app/globals.css semantic/brand tokens; add ramps to
                   lib/system/seed/brand-ramps.ts.
   3. Platform   — pick the adapter in lib/system/adapters/index.ts (web-shadcn default).
   4. Domain     — if domain-heavy, create <domain>-domain skill + <domain>-advisor
                   agent (was construction-*); else skip.
   5. Knowledge  — add real spec/PRD/Figma/deck sources to lib/system/knowledge/sources.ts.
-  6. Verify     — npm install && npm run dev (port 4100); load / (product app) and
-                  /synclair, /synclair/components, /synclair/knowledge (Synclair).
+  6. Verify     — npm install && npm run dev (port 4100); load / (redirects to
+                  the hub), /synclair, /synclair/components, /synclair/knowledge.
 NEXT

@@ -23,20 +23,21 @@ components, and knowledge) for humans and agents. Architecture:
 > capability below). Treat Synclair as the subject **only** when the task is
 > maintaining or syncing the foundation itself (→ the `synclair` capability).
 
-## Two app UIs in one repo
+## The hub and the product it catalogs
 
-This repo hosts **two separate app UIs** (see [`docs/foundation-model.md`](docs/foundation-model.md)):
+This repo IS **Synclair** — a **hub-only** app (see [`docs/foundation-model.md`](docs/foundation-model.md)):
 
-- **Product app** at the root (`/`) — the product itself. The product **views** you
-  build live here (`app/(product)/*`). This is the subject of the project.
-- **Synclair** at **`/synclair`** (`app/synclair/*`) — it catalogs
-  the components and views the product produces. Its mount point is the one
-  constant `SYNCLAIR_BASE` in `lib/system/routes.ts`; link into it via the `synclair()`
-  helper, never a hardcoded `/synclair`.
+- **Synclair** (`app/synclair/*`, mounted at **`/synclair`**) catalogs the
+  components and views a product produces. Its mount point is the one constant
+  `SYNCLAIR_BASE` in `lib/system/routes.ts`; link into it via the `synclair()`
+  helper, never a hardcoded `/synclair`. The root `/` just redirects to the hub.
+- **The product itself lives elsewhere** — its own repo/app on its own server
+  (existing-project/companion mode), never a route in this app. This app catalogs
+  it; it is not the product. The product remains the *subject* of the project.
 
 ## Where things live
 
-Human views below are **Synclair** routes (under `/synclair`). Product views live at the root.
+Everything below is a **Synclair** route (under `/synclair`).
 
 | Need | Source of truth | Human view |
 |---|---|---|
@@ -54,7 +55,6 @@ Human views below are **Synclair** routes (under `/synclair`). Product views liv
 | **Setup mode** (how this clone is wired to the product — `embedded` inside the repo vs `watcher` beside it; topology, not "sync" — [`docs/setup-modes.md`](docs/setup-modes.md)) | `data/setup.json` (schema: `lib/system/setup.ts`) | mode badge in the hub chrome |
 | **Foundation freshness** (opt-in call-home: is this clone behind the mother repo? Baseline sha + GitHub compare API, `npm run call-home`; pulling stays deliberate via `synclair-sync`) | `data/mother.json` (mechanism: `lib/system/mother.ts`) | `/synclair/environment` › Synclair view |
 | Repo activity (recent commits + diffs; git is the shared DB — spec §11) | local git (`lib/system/git-log.ts`) | `/synclair/github` |
-| Product views (the product app) | `app/(product)/*` | `/` |
 | Non-obvious project facts | `memory/MEMORY.md` (index) | — |
 
 ## Capabilities (skills) — how any agent uses them

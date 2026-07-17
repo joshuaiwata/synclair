@@ -1,15 +1,14 @@
 /**
- * Per-project identity — the ONE place a clone names the product it's building.
+ * Per-project identity — the ONE place a clone names the product it catalogs.
  *
  * Seed (§8): reseeded by `project-bootstrap` (or by hand) when this foundation is
- * cloned. The product app (`app/(product)`) and Synclair's sidebar header
- * both read this, so renaming here re-labels both UIs. Everything structural
- * around it (the two-app split, the empty Views index, the layouts) is Brain and
- * stays put.
+ * cloned. Synclair's hub header reads this, so renaming here re-labels the hub.
+ * The product itself lives elsewhere (its own repo/app on its own server) — this
+ * is just the name Synclair shows for it.
  */
 export const project = {
-  /** The product being built on this foundation. Shown at the root and in the hub header. */
+  /** The product this Synclair catalogs. Shown in the hub header. */
   name: "Your Product",
-  /** One-line description of the product, shown on the product home. */
-  tagline: "The app you're building on the Synclair foundation.",
+  /** One-line description of the product, shown in the hub. */
+  tagline: "The product this Synclair foundation catalogs.",
 }
