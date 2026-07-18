@@ -20,6 +20,8 @@
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
     "check:pages": "node scripts/check-pages.mjs",
     "resolve:pages": "node scripts/resolve-page-items.mjs",
+    "host:status": "node scripts/host-servers.mjs status",
+    "host:up": "node scripts/host-servers.mjs up",
     "call-home": "node scripts/call-home.mjs",
     "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:pages",
     "postinstall": "patch-package"

@@ -20,6 +20,7 @@ import { isMultiSurface, surfaceLabel } from "@/lib/system/surfaces"
 import { itemHref, tier as tierMeta } from "@/lib/system/tiers"
 import type { ComponentKind } from "@/lib/system/components"
 import { getPageSourceSync, getPagesMap, type PageItemUse } from "@/lib/system/pages-map"
+import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
 const TIER_ORDER: ComponentKind[] = ["component", "block", "template"]
 
@@ -42,6 +43,15 @@ export async function PageDocView({ id }: { id: string }) {
 
   const multiSurface = isMultiSurface()
   const sync = getPageSourceSync(node, map.repo?.root)
+
+  // Live preview src: same-origin hub route as-is, or the live host base + route
+  // when the host dev server is up (else a fallback that offers to boot it).
+  const [liveBaseUrl, hostServer] = await Promise.all([
+    liveBaseUrlFor(map.repo),
+    hostDevServer(map.repo),
+  ])
+  const previewSrc = resolvePreviewSrc(node, liveBaseUrl)
+  const hostDown = Boolean(hostServer && !liveBaseUrl)
 
   // Library items the page composes (grouped by tier) vs. local components it
   // uses that aren't in the library yet (a coverage signal, shown apart).
@@ -96,22 +106,36 @@ export async function PageDocView({ id }: { id: string }) {
           {node.summary ?? "A view in the app. Below: the live render and what it composes."}
         </PageLead>
 
-        {/* Live preview — the headline. */}
-      {node.previewable && node.previewUrl ? (
-        <PageViewport url={node.previewUrl} route={node.route} />
+        {/* Live preview — the headline. Renders from the host dev server when it's up. */}
+      {previewSrc ? (
+        <PageViewport url={previewSrc} route={node.route} />
       ) : (
         <div className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
-          No live preview for this route
-          {node.kind === "api" ? " (an API route has nothing to render)" : ""}.{" "}
-          {node.previewUrl && (
-            <a
-              href={node.previewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-foreground inline-flex items-center gap-1 underline underline-offset-2"
-            >
-              Open the route <ExternalLink className="size-3" />
-            </a>
+          {hostDown ? (
+            <>
+              Preview paused — the host{" "}
+              <span className="text-foreground font-medium">{hostServer!.label}</span> isn&rsquo;t
+              running at <span className="font-mono">{hostServer!.url}</span>. Boot it with{" "}
+              <code className="bg-muted rounded px-1 py-0.5 font-mono">
+                npm run host:up{hostServer!.id ? ` ${hostServer!.id}` : ""}
+              </code>{" "}
+              and reload.
+            </>
+          ) : (
+            <>
+              No live preview for this route
+              {node.kind === "api" ? " (an API route has nothing to render)" : ""}.{" "}
+              {node.previewUrl && (
+                <a
+                  href={hostServer?.url ? `${hostServer.url}${node.previewUrl}` : node.previewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-foreground inline-flex items-center gap-1 underline underline-offset-2"
+                >
+                  Open the route <ExternalLink className="size-3" />
+                </a>
+              )}
+            </>
           )}
         </div>
       )}

@@ -17,8 +17,8 @@ export interface FlatPage {
   route: string
   dynamic?: boolean
   counts: { component: number; block: number; template: number }
-  previewUrl?: string
-  previewable?: boolean
+  /** Resolved live iframe src (same-origin route, or live host base + route), or undefined when no preview is available. */
+  previewSrc?: string
 }
 
 /**
@@ -187,8 +187,8 @@ function GalleryCard({ p }: { p: FlatPage }) {
       href={synclair(`/pages/${p.id}`)}
       className="hover:border-foreground/20 hover:bg-muted/30 group flex flex-col overflow-hidden rounded-lg border bg-card transition-colors"
     >
-      {p.previewable && p.previewUrl ? (
-        <PageThumb url={p.previewUrl} title={p.route} />
+      {p.previewSrc ? (
+        <PageThumb url={p.previewSrc} title={p.route} />
       ) : (
         <div className="bg-muted/30 text-muted-foreground/50 flex h-40 items-center justify-center border-b">
           <FileWarning className="size-6" />

@@ -651,6 +651,12 @@
           "count": 1
         },
         {
+          "name": "host-status",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        },
+        {
           "name": "pages-explorer",
           "tier": "component",
           "catalogued": false,
@@ -674,12 +680,13 @@
       "sourceFiles": [
         "app/synclair/(hub)/pages/page.tsx",
         "components/embed-frame.tsx",
+        "components/pages/host-status.tsx",
         "components/pages/page-thumb.tsx",
         "components/pages/pages-explorer.tsx",
         "components/pages/sitemap-chart.tsx",
         "components/pages/sitemap-tree.tsx"
       ],
-      "sourceHash": "cfa88112a3168ee4a7ec9d096a7b4c9f480e6f2533dc1f68d04ae0b414a19b6d"
+      "sourceHash": "2990fb5fb5e4f1e1189bf49ef8559f27ace49c099af96d53483124c353d09d87"
     },
     {
       "id": "synclair-pages-id",
@@ -741,7 +748,7 @@
         "components/library/page-doc-view.tsx",
         "components/pages/page-viewport.tsx"
       ],
-      "sourceHash": "46d41e2de896817f3ef8425eb12f74f754e0668cb40264cc5bc6d7db48f3852e"
+      "sourceHash": "0002d664b5a76f17c8fb75847c29210048714067cebf59693b59b336042a80ca"
     },
     {
       "id": "synclair-references",

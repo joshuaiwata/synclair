@@ -13,8 +13,10 @@ import { StatGrid } from "@/components/stat-grid"
 import { PagesExplorer, type FlatPage } from "@/components/pages/pages-explorer"
 import { SitemapChart } from "@/components/pages/sitemap-chart"
 import { type SitemapDatum } from "@/components/pages/sitemap-tree"
+import { HostStatus } from "@/components/pages/host-status"
 import { formatDay } from "@/lib/system/format-date"
 import { getPagesMap, hasPagesMap, type PageNode } from "@/lib/system/pages-map"
+import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
 export const dynamic = "force-dynamic"
 
@@ -88,6 +90,15 @@ export default async function PagesOverview() {
     { label: "Router", value: map.routerKind ?? "—" },
   ]
 
+  // Live host detection: in companion mode, route previews render from the host
+  // dev server when it's running (resolved here), and show a "boot it" banner
+  // when it isn't. Same-origin hub routes ignore all this.
+  const isHost = repo!.root !== null
+  const [liveBaseUrl, hostServer] = await Promise.all([
+    liveBaseUrlFor(repo),
+    hostDevServer(repo),
+  ])
+
   const tree = buildDatumTree(pages)
   const flatPages: FlatPage[] = pages.map((p) => ({
     id: p.id,
@@ -95,8 +106,7 @@ export default async function PagesOverview() {
     route: p.route,
     dynamic: p.dynamic,
     counts: tierCounts(p),
-    previewUrl: p.previewUrl,
-    previewable: p.previewable,
+    previewSrc: resolvePreviewSrc(p, liveBaseUrl),
   }))
 
   return (
@@ -134,6 +144,7 @@ export default async function PagesOverview() {
       }
     >
       <StatGrid items={stats} />
+      <HostStatus isHost={isHost} server={hostServer} liveBaseUrl={liveBaseUrl} />
       <PagesExplorer tree={tree} pages={flatPages} chart={<SitemapChart nodes={tree} />} />
     </HubPage>
   )
