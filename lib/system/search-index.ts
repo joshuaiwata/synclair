@@ -37,6 +37,7 @@ const PAGES: SearchEntry[] = [
   { id: "page:figma", label: "Figma Manifest", group: "Pages", href: synclair("/figma-manifest"), keywords: ["design"] },
   { id: "page:ai-setup", label: "AI Setup", group: "Pages", href: synclair("/ai-setup"), keywords: ["skills", "agents"] },
   { id: "page:knowledge", label: "Knowledge", group: "Pages", href: synclair("/knowledge"), keywords: ["prd", "spec", "docs", "sources", "context", "figma", "decks"] },
+  { id: "page:pages", label: "Pages", group: "Pages", href: synclair("/pages"), keywords: ["sitemap", "views", "routes", "screens", "preview", "app map", "navigation"] },
   { id: "page:system", label: "System Map", group: "Pages", href: synclair("/system"), keywords: ["architecture", "backend", "api", "endpoints", "database", "schema", "data model", "jobs", "services", "integrations", "codebase"] },
   { id: "page:github", label: "GitHub", group: "Pages", href: synclair("/github"), keywords: ["git", "commits", "history", "activity", "changes", "diff"] },
   { id: "page:environment", label: "Environment", group: "Pages", href: synclair("/environment"), keywords: ["stack", "foundation"] },

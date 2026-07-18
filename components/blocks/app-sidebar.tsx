@@ -13,6 +13,7 @@ import {
   GitCommitHorizontal,
   Library,
   LayoutTemplate,
+  Map as MapIcon,
   Palette,
   PanelsTopLeft,
   Search,
@@ -74,6 +75,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     // shows each surface's library); single-surface keeps the flat four items.
     items: isMultiSurface()
       ? [
+          { title: "Pages", icon: MapIcon, href: synclair("/pages") },
           { title: "Foundations", icon: Palette, href: synclair("/foundations") },
           {
             title: "Library",
@@ -83,6 +85,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           },
         ]
       : [
+          { title: "Pages", icon: MapIcon, href: synclair("/pages") },
           { title: "Foundations", icon: Palette, href: synclair("/foundations") },
           { title: "Components", icon: Component, href: synclair("/components") },
           { title: "Blocks", icon: Blocks, href: synclair("/blocks") },

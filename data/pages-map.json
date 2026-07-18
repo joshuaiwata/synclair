@@ -1,0 +1,1260 @@
+{
+  "repo": {
+    "name": "synclair",
+    "root": null,
+    "commit": "e00a96fc5624db89e5a93246a61f210012dccadc",
+    "digestedAt": "2026-07-17T00:00:00.000Z"
+  },
+  "routerKind": "next-app",
+  "pages": [
+    {
+      "id": "home",
+      "route": "/",
+      "title": "Root redirect",
+      "file": "app/page.tsx",
+      "kind": "page",
+      "summary": "The hub-only root — redirects straight to the Synclair hub since the product it catalogs lives elsewhere.",
+      "links": [
+        "/synclair"
+      ],
+      "items": [],
+      "previewUrl": "/synclair",
+      "previewable": true,
+      "sourceFiles": [
+        "app/page.tsx"
+      ],
+      "sourceHash": "67976f942fc6d48b467cd90bd083f1a35fe653d5d058a1f7833177b6609f1809"
+    },
+    {
+      "id": "synclair",
+      "route": "/synclair",
+      "title": "Synclair hub",
+      "file": "app/synclair/(hub)/page.tsx",
+      "kind": "page",
+      "summary": "The hub home — grouped live counts (Project, Library, AI setup), foundation health, recent git activity, and the what's-next queue.",
+      "links": [
+        "/synclair/knowledge",
+        "/synclair/references",
+        "/synclair/foundations",
+        "/synclair/components",
+        "/synclair/blocks",
+        "/synclair/templates",
+        "/synclair/ai-setup",
+        "/synclair/environment",
+        "/synclair/system"
+      ],
+      "items": [
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/page.tsx"
+      ],
+      "sourceHash": "8d1cc8246bb3ae7f3d472dc199e528ba51529a8d28c3d6125fa63199b7fe78b2"
+    },
+    {
+      "id": "synclair-ai-setup",
+      "route": "/synclair/ai-setup",
+      "title": "AI Setup",
+      "file": "app/synclair/(hub)/ai-setup/page.tsx",
+      "kind": "page",
+      "summary": "What the agents build with — this repo's skills, agents, MCP servers, and the foundation-first method, each editable in place.",
+      "items": [
+        {
+          "name": "source-editor",
+          "tier": "block",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "accordion",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "page-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pill-toggle",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "step-ladder",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/ai-setup",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/ai-setup/capability-tables.tsx",
+        "app/synclair/(hub)/ai-setup/page.tsx"
+      ],
+      "sourceHash": "4ea4f7184efa85ff614b774b532d92afdc0454be8307ff4f6e77faa9f5d6bdcd"
+    },
+    {
+      "id": "synclair-environment",
+      "route": "/synclair/environment",
+      "title": "Environment",
+      "file": "app/synclair/(hub)/environment/page.tsx",
+      "kind": "page",
+      "summary": "The environment this runs in — the product's own stack and services from the System Map, and Synclair's runtime beside it, toggled by a Project/Synclair pill.",
+      "links": [
+        "/synclair/system"
+      ],
+      "items": [
+        {
+          "name": "definition-list",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pill-toggle",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "stat-grid",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/environment",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/environment/page.tsx"
+      ],
+      "sourceHash": "c060706643a41f5e07643953dfa4625df22cb94eb44d0c07ffbbf4ff7e82fda8"
+    },
+    {
+      "id": "synclair-figma-manifest",
+      "route": "/synclair/figma-manifest",
+      "title": "Figma Manifest",
+      "file": "app/synclair/(hub)/figma-manifest/page.tsx",
+      "kind": "page",
+      "summary": "The live Figma file manifest — file/project census, changes vs the last snapshot, and snapshot history, with a manual refresh.",
+      "items": [
+        {
+          "name": "alert",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "button",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "dropdown-menu",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "input",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "stat-card",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/figma-manifest",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/figma-manifest/distill-control.tsx",
+        "app/synclair/(hub)/figma-manifest/files-table.tsx",
+        "app/synclair/(hub)/figma-manifest/page.tsx",
+        "app/synclair/(hub)/figma-manifest/star-toggle.tsx"
+      ],
+      "sourceHash": "095ab5c2e0e9670d391d25c1e511fd144299e73f51d147267f5392136f3e68c8"
+    },
+    {
+      "id": "synclair-foundations",
+      "route": "/synclair/foundations",
+      "title": "Foundations",
+      "file": "app/synclair/(hub)/foundations/page.tsx",
+      "kind": "page",
+      "summary": "The design-token style guide — color, type, spacing, radius, opacity, shape, motion, iconography — rendered live from the theme so it can't drift.",
+      "items": [
+        {
+          "name": "foundations-sections",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "markdown",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/foundations",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/foundations/page.tsx"
+      ],
+      "sourceHash": "e612c2e247794aeeac4d982a711c3006d2c8eb70b37320de3af0f3a717aed8f6"
+    },
+    {
+      "id": "synclair-github",
+      "route": "/synclair/github",
+      "title": "GitHub",
+      "file": "app/synclair/(hub)/github/page.tsx",
+      "kind": "page",
+      "summary": "The repo's recent history read from local git — commits, authors, push state — each opening its message and diff without leaving the hub.",
+      "items": [
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "scroll-area",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sheet",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/github",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/github/commit-drawer.tsx",
+        "app/synclair/(hub)/github/commits-table.tsx",
+        "app/synclair/(hub)/github/page.tsx"
+      ],
+      "sourceHash": "69529b33ceac7a9eb36fd5fb379b98d82081d6e285be24d67b04914cc11dcc33"
+    },
+    {
+      "id": "synclair-how-it-works",
+      "route": "/synclair/how-it-works",
+      "title": "How it works",
+      "file": "app/synclair/(hub)/how-it-works/page.tsx",
+      "kind": "page",
+      "summary": "The explainer — what Synclair is: the shared surface, the knowledge flywheel, the agent crew, one-source-two-renderings, and the FAQ.",
+      "links": [
+        "/synclair/knowledge",
+        "/synclair/system",
+        "/synclair/components",
+        "/synclair/foundations",
+        "/synclair/ai-setup",
+        "/synclair/github"
+      ],
+      "items": [
+        {
+          "name": "accordion",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/how-it-works",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/how-it-works/diagrams.tsx",
+        "app/synclair/(hub)/how-it-works/page.tsx"
+      ],
+      "sourceHash": "de229729ab4ba83f3f2d79c7563c48735c007039b422971fd51fb25ef5992954"
+    },
+    {
+      "id": "synclair-hygiene",
+      "route": "/synclair/hygiene",
+      "title": "Foundation hygiene",
+      "file": "app/synclair/(hub)/hygiene/page.tsx",
+      "kind": "page",
+      "summary": "Where the host codebase steps outside its own design foundation — inline styles, raw colors, arbitrary values, bypassed primitives — as an advisory readout.",
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "card",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/hygiene",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/hygiene/page.tsx"
+      ],
+      "sourceHash": "378ea83b53635b76d0b7305c1e1659af4f1ea2847acd411021b6a4b35b60f3de"
+    },
+    {
+      "id": "synclair-knowledge",
+      "route": "/synclair/knowledge",
+      "title": "Knowledge",
+      "file": "app/synclair/(hub)/knowledge/page.tsx",
+      "kind": "page",
+      "summary": "The project's sources of truth — specs, PRDs, Figma, decks — linked not copied, each with its distilled digest, plus the onboarding Summary tab.",
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "button",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "dropdown-menu",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "input",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "markdown",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "pill-toggle",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "scroll-area",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sheet",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "summary-shell",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "textarea",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/knowledge",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/knowledge/doc-drawer.tsx",
+        "app/synclair/(hub)/knowledge/page.tsx",
+        "app/synclair/(hub)/knowledge/sources-table.tsx",
+        "app/synclair/(hub)/knowledge/summary-section.tsx"
+      ],
+      "sourceHash": "c1dfd913bc77a07301c137e562665e2e7298fd9ea343fa0e800409ecb2d345ca"
+    },
+    {
+      "id": "synclair-pages",
+      "route": "/synclair/pages",
+      "title": "Pages",
+      "file": "app/synclair/(hub)/pages/page.tsx",
+      "kind": "page",
+      "summary": "The app sitemap — every view as a route tree and a live-thumbnail gallery, with per-page census of the components each one composes.",
+      "links": [
+        "/synclair/pages/[id]"
+      ],
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 3
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "stat-grid",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "viewport-frame",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "host-status",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        },
+        {
+          "name": "pages-explorer",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        },
+        {
+          "name": "sitemap-chart",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        },
+        {
+          "name": "sitemap-tree",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/pages",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/pages/page.tsx",
+        "components/embed-frame.tsx",
+        "components/pages/host-status.tsx",
+        "components/pages/page-thumb.tsx",
+        "components/pages/pages-explorer.tsx",
+        "components/pages/sitemap-chart.tsx",
+        "components/pages/sitemap-tree.tsx"
+      ],
+      "sourceHash": "2990fb5fb5e4f1e1189bf49ef8559f27ace49c099af96d53483124c353d09d87"
+    },
+    {
+      "id": "synclair-pages-id",
+      "route": "/synclair/pages/[id]",
+      "title": "Page detail",
+      "file": "app/synclair/(hub)/pages/[id]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "One view's detail — the route rendered live in a device viewport, its source and gating facts, the catalog items it composes, and its navigation edges.",
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "breadcrumb",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "page-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "status-badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "viewport-frame",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "page-doc-view",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/pages/synclair-system",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/pages/[id]/page.tsx",
+        "components/embed-frame.tsx",
+        "components/library/page-doc-view.tsx",
+        "components/pages/page-viewport.tsx"
+      ],
+      "sourceHash": "0002d664b5a76f17c8fb75847c29210048714067cebf59693b59b336042a80ca"
+    },
+    {
+      "id": "synclair-references",
+      "route": "/synclair/references",
+      "title": "References",
+      "file": "app/synclair/(hub)/references/page.tsx",
+      "kind": "page",
+      "summary": "A living library of prior art — domain references, comparable products, patterns, findings, and write-ups — grouped by category as the project grows.",
+      "links": [
+        "/synclair/knowledge",
+        "/synclair/environment"
+      ],
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/references",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/references/page.tsx"
+      ],
+      "sourceHash": "b79d373b3aa5605ccfbc9bbd7973f739079b5984711c53e16619123742e0a88c"
+    },
+    {
+      "id": "synclair-reports",
+      "route": "/synclair/reports",
+      "title": "Reports",
+      "file": "app/synclair/(hub)/reports/page.tsx",
+      "kind": "page",
+      "summary": "Build/coverage reports rendered from data/reports/*.json — hero stats, readiness pillars, per-area findings, and recommendations, verified against hub data.",
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "card",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "page-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "section-header",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/reports",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/reports/page.tsx"
+      ],
+      "sourceHash": "d8a1a1f8b5b521377816fed35f7c0b59f7f7f8c69bbe95b76e452d8b5a5aa64c"
+    },
+    {
+      "id": "synclair-system",
+      "route": "/synclair/system",
+      "title": "System Map",
+      "file": "app/synclair/(hub)/system/page.tsx",
+      "kind": "page",
+      "summary": "What the codebase consists of beyond the UI — a summary read, areas, API surface, a data-model diagram, jobs, and integrations, tabbed.",
+      "items": [
+        {
+          "name": "accordion",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "data-model-diagram",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "empty",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "hub-page",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "markdown",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "stat-grid",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "summary-shell",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tabs",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/system",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/system/page.tsx"
+      ],
+      "sourceHash": "754308916cfab8a963f143fbaee25b2b9f4be49af02adde14657b3f69cfb4491"
+    },
+    {
+      "id": "synclair-components",
+      "route": "/synclair/components",
+      "title": "Components",
+      "file": "app/synclair/(hub)/(library)/components/page.tsx",
+      "kind": "page",
+      "summary": "The components tier gallery — filter chips over category-grouped cards with live zoom-to-fit previews; an instance of the library-tier-page template.",
+      "templateName": "library-tier-page",
+      "links": [
+        "/synclair/components/[name]"
+      ],
+      "items": [
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/components",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/components/page.tsx"
+      ],
+      "sourceHash": "0ac72ea5baf89579585f294675badcf78352530ba84fb729b9dd836cfa0efc4c"
+    },
+    {
+      "id": "synclair-components-name",
+      "route": "/synclair/components/[name]",
+      "title": "Component doc",
+      "file": "app/synclair/(hub)/(library)/components/[name]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "One registered component's documentation — identity header, live previews, Intent/Anatomy/Examples/Props, and the import-graph 'Used in' section.",
+      "items": [
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/components/status-badge",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/components/[name]/page.tsx"
+      ],
+      "sourceHash": "1029ecad23471ff2db21b753ce51988486b5f35f5a2620867e14a7a132f8e039"
+    },
+    {
+      "id": "synclair-blocks",
+      "route": "/synclair/blocks",
+      "title": "Blocks",
+      "file": "app/synclair/(hub)/(library)/blocks/page.tsx",
+      "kind": "page",
+      "summary": "The blocks tier gallery — same view as Components on the block slice of the catalog; an instance of the library-tier-page template.",
+      "templateName": "library-tier-page",
+      "links": [
+        "/synclair/blocks/[name]"
+      ],
+      "items": [
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/blocks",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/blocks/page.tsx"
+      ],
+      "sourceHash": "b8b05c26b576e81ebed36b0433a8f783381f69ee48bdc8f8f347b13f6ee51806"
+    },
+    {
+      "id": "synclair-blocks-name",
+      "route": "/synclair/blocks/[name]",
+      "title": "Block doc",
+      "file": "app/synclair/(hub)/(library)/blocks/[name]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "One registered block's documentation page — the same doc view as Components, resolved for the block tier.",
+      "items": [
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/blocks/app-sidebar",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/blocks/[name]/page.tsx"
+      ],
+      "sourceHash": "20ebf99729044aae7637c52c15d1a118d71618b34471166c6e8d270dc3bd7cab"
+    },
+    {
+      "id": "synclair-templates",
+      "route": "/synclair/templates",
+      "title": "Templates",
+      "file": "app/synclair/(hub)/(library)/templates/page.tsx",
+      "kind": "page",
+      "summary": "The templates tier gallery — same view on the template slice of the catalog; itself an instance of the library-tier-page template it lists.",
+      "templateName": "library-tier-page",
+      "links": [
+        "/synclair/templates/[name]"
+      ],
+      "items": [
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/templates",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/templates/page.tsx"
+      ],
+      "sourceHash": "f0307f06eabf54a0801cc5ed2b653815d7e13c9a5994f92bb5dbc178ec849541"
+    },
+    {
+      "id": "synclair-templates-name",
+      "route": "/synclair/templates/[name]",
+      "title": "Template doc",
+      "file": "app/synclair/(hub)/(library)/templates/[name]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "One registered template's documentation — a template documents a VIEW, so its doc page embeds the running route it instantiates.",
+      "items": [
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/templates/library-tier-page",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/templates/[name]/page.tsx"
+      ],
+      "sourceHash": "594fc97a67a8c3441513aa8e310974be4a1d7ad388e314b28d2d22fe888df308"
+    },
+    {
+      "id": "synclair-library",
+      "route": "/synclair/library",
+      "title": "Library home",
+      "file": "app/synclair/(hub)/(library)/library/page.tsx",
+      "kind": "page",
+      "summary": "The multi-surface library 'org page' — one dense row per app surface + shared packages. Single-surface projects (this repo) redirect to the components gallery.",
+      "links": [
+        "/synclair/components"
+      ],
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/library",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/library/page.tsx"
+      ],
+      "sourceHash": "ebbf7f95b1b2fe105a1d7eac93bb7ad65ad37c373fdf13823021bb28cf02c691"
+    },
+    {
+      "id": "synclair-library-surface",
+      "route": "/synclair/library/[surface]",
+      "title": "Surface home",
+      "file": "app/synclair/(hub)/(library)/library/[surface]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "A surface's home inside its scope — the frontend's library summarized per tier. Multi-surface only; this single-surface repo has no valid instance.",
+      "links": [
+        "/synclair/library/[surface]/[tier]"
+      ],
+      "items": [
+        {
+          "name": "badge",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewable": false,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/library/[surface]/page.tsx"
+      ],
+      "sourceHash": "d6c89ae2287efd7244cfdb9fb4cf468e1e7c31b6331b2d968f4587be6502cdb7"
+    },
+    {
+      "id": "synclair-library-surface-tier",
+      "route": "/synclair/library/[surface]/[tier]",
+      "title": "Scoped tier gallery",
+      "file": "app/synclair/(hub)/(library)/library/[surface]/[tier]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "A surface-scoped tier gallery — the same card gallery filtered to one surface's slice. Multi-surface only; no valid instance in this single-surface repo.",
+      "links": [
+        "/synclair/library/[surface]/[tier]/[name]"
+      ],
+      "items": [
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewable": false,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/library/[surface]/[tier]/page.tsx"
+      ],
+      "sourceHash": "9a76bc78cdbdaeeb88838f07c7a1bb6316ef15918bdd674e89bdc364a7644621"
+    },
+    {
+      "id": "synclair-library-surface-tier-name",
+      "route": "/synclair/library/[surface]/[tier]/[name]",
+      "title": "Scoped item doc",
+      "file": "app/synclair/(hub)/(library)/library/[surface]/[tier]/[name]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "A surface-scoped doc page — collision-free by construction since the path carries the surface. Multi-surface only; no valid instance here.",
+      "items": [
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        }
+      ],
+      "previewable": false,
+      "sourceFiles": [
+        "app/synclair/(hub)/(library)/library/[surface]/[tier]/[name]/page.tsx"
+      ],
+      "sourceHash": "ee9b0bdcb6b648935f50c74b146d997e249a70adece3e69ec7effa9291fa088a"
+    },
+    {
+      "id": "synclair-preview-name",
+      "route": "/synclair/preview/[name]",
+      "title": "Preview stage",
+      "file": "app/synclair/preview/[name]/page.tsx",
+      "kind": "dynamic",
+      "dynamic": true,
+      "summary": "A chrome-free stage that renders one self-referential block's real composition standalone, so its doc page can embed it. Lives outside the hub group — no sidebar.",
+      "items": [
+        {
+          "name": "app-sidebar",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "command-palette",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "component-doc-view",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "foundations-sections",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "library-explorer",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "source-editor",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "tier-gallery",
+          "tier": "block",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "sidebar",
+          "tier": "component",
+          "catalogued": true,
+          "count": 2
+        },
+        {
+          "name": "table",
+          "tier": "component",
+          "catalogued": true,
+          "count": 1
+        },
+        {
+          "name": "preview-scenes",
+          "tier": "component",
+          "catalogued": false,
+          "count": 1
+        }
+      ],
+      "previewUrl": "/synclair/preview/app-sidebar",
+      "previewable": true,
+      "sourceFiles": [
+        "app/synclair/preview/[name]/page.tsx",
+        "components/library/preview-scenes.tsx"
+      ],
+      "sourceHash": "c543e06e1b31c37a8ab2a1142818d1f9dcb9aed35fded2f837bf0240fcfb283d"
+    }
+  ]
+}

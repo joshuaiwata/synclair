@@ -52,7 +52,9 @@ Everything below is a **Synclair** route (under `/synclair`).
 | **Foundation hygiene** (where host code steps outside its own foundation — inline styles, raw colors, arbitrary values, bypassed primitives; regenerate via `npm run scan:hygiene`) | `data/host-hygiene.json` (schema: `lib/system/host-hygiene.ts`) | `/synclair/hygiene` |
 | **App surfaces** (multi-frontend projects — e.g. web + React Native sharing a backend; empty seed = single frontend, zero extra chrome; spec §5b) | `lib/system/seed/surfaces.ts` (mechanism: `lib/system/surfaces.ts`) | `/synclair/library` (per-surface drill-in) · `/synclair/library/[surface]/...` scoped explorer |
 | **System map** (what the codebase consists of beyond the UI — areas, API surface, data model, jobs, integrations; regenerate via `codebase-map` skill) | `data/system-map.json` (schema: `lib/system/system-map.ts`) | `/synclair/system` |
+| **App sitemap** (every view/route the app serves — the route tree, a live preview of each, navigation edges, and the components/blocks/templates each composes; regenerate via `pages-map` skill, kept honest by `npm run check:pages`) | `data/pages-map.json` (schema: `lib/system/pages-map.ts`) | `/synclair/pages` |
 | **Setup mode** (how this clone is wired to the product — `embedded` inside the repo vs `watcher` beside it; topology, not "sync" — [`docs/setup-modes.md`](docs/setup-modes.md)) | `data/setup.json` (schema: `lib/system/setup.ts`) | mode badge in the hub chrome |
+| **Local dev servers** (companion mode — the host front-end(s)' local URLs + boot commands, so the hub lights up host route previews when they're running and offers to boot them when not; `npm run host:status` / `npm run host:up`) | `data/dev-servers.json` (mechanism: `lib/system/dev-servers.ts`) | live/boot banner on `/synclair/pages` |
 | **Foundation freshness** (opt-in call-home: is this clone behind the mother repo? Baseline sha + GitHub compare API, `npm run call-home`; pulling stays deliberate via `synclair-sync`) | `data/mother.json` (mechanism: `lib/system/mother.ts`) | `/synclair/environment` › Synclair view |
 | Repo activity (recent commits + diffs; git is the shared DB — spec §11) | local git (`lib/system/git-log.ts`) | `/synclair/github` |
 | Non-obvious project facts | `memory/MEMORY.md` (index) | — |
@@ -97,6 +99,7 @@ Key ones for orientation (browse `.claude/skills/` for the full set):
 | Authoring/reviewing any generated read (summary, System Map, UX doc, reference) so it's scannable + consistent | **`doc-quality`** — medium follows content shape; the shared artifact frame; diagram conventions |
 | Populating Synclair from an existing HOST codebase (companion-clone mode) | **`existing-project-intake`** — survey → system map → knowledge → tokens → component catalog, via the `codebase-surveyor` / `system-mapper` / `knowledge-harvester` / `token-archaeologist` / `component-cataloger` diggers |
 | Visibility into what's IN the repo — backend, APIs, database, jobs ("what is this system made of") | **`codebase-map`** — generates/refreshes `/synclair/system` via the `system-mapper` digger; works on this repo or the host |
+| The app's views — what PAGES exist, what each looks like, and what they compose ("map the routes / build a sitemap") | **`pages-map`** — generates/refreshes `/synclair/pages` via the `page-mapper` digger; kept in sync by `npm run check:pages` |
 | Bringing up the dev/preview server | **`preview-server`** (port 4100) |
 
 ## When to consult what
