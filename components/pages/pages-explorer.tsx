@@ -136,32 +136,72 @@ function Results({ matches, total }: { matches: FlatPage[]; total: number }) {
   )
 }
 
+/**
+ * Gallery grouped by the route hierarchy (same shape as the sitemap tree, not
+ * one flat wall of cards): each section is a parent route, its cards are the
+ * pages directly under it. Sections are sorted; "/" leads as "Top level".
+ */
 function Gallery({ pages }: { pages: FlatPage[] }) {
+  const titleByRoute = new Map(pages.map((p) => [p.route, p.title]))
+  const groups = new Map<string, FlatPage[]>()
+  for (const p of pages) {
+    const segs = p.route.split("/").filter(Boolean)
+    const parent = segs.length <= 1 ? "/" : `/${segs.slice(0, -1).join("/")}`
+    const bucket = groups.get(parent) ?? []
+    bucket.push(p)
+    groups.set(parent, bucket)
+  }
+  const parents = [...groups.keys()].sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)))
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {pages.map((p) => (
-        <Link
-          key={p.id}
-          href={synclair(`/pages/${p.id}`)}
-          className="hover:border-foreground/20 hover:bg-muted/30 group flex flex-col overflow-hidden rounded-lg border bg-card transition-colors"
-        >
-          {p.previewable && p.previewUrl ? (
-            <PageThumb url={p.previewUrl} title={p.route} />
-          ) : (
-            <div className="bg-muted/30 text-muted-foreground/50 flex h-40 items-center justify-center border-b">
-              <FileWarning className="size-6" />
+    <div className="flex flex-col gap-7">
+      {parents.map((parent) => {
+        const items = groups.get(parent)!.sort((a, b) => a.route.localeCompare(b.route))
+        const label = parent === "/" ? "Top level" : (titleByRoute.get(parent) ?? parent.split("/").pop())
+        return (
+          <section key={parent} className="flex flex-col gap-3">
+            <div className="flex items-baseline gap-2 border-b pb-1.5">
+              <h3 className="text-sm font-medium">{label}</h3>
+              {parent !== "/" && (
+                <code className="text-muted-foreground/60 font-mono text-xs">{parent}</code>
+              )}
+              <span className="text-muted-foreground/60 ml-auto text-2xs tabular-nums">
+                {items.length}
+              </span>
             </div>
-          )}
-          <div className="flex flex-col gap-1 p-3">
-            <span className="truncate text-sm font-medium">{p.title ?? p.route}</span>
-            <span className="text-muted-foreground/70 truncate font-mono text-2xs">{p.route}</span>
-            <div className="mt-1">
-              <Counts counts={p.counts} empty="no items" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((p) => (
+                <GalleryCard key={p.id} p={p} />
+              ))}
             </div>
-          </div>
-        </Link>
-      ))}
+          </section>
+        )
+      })}
     </div>
+  )
+}
+
+function GalleryCard({ p }: { p: FlatPage }) {
+  return (
+    <Link
+      href={synclair(`/pages/${p.id}`)}
+      className="hover:border-foreground/20 hover:bg-muted/30 group flex flex-col overflow-hidden rounded-lg border bg-card transition-colors"
+    >
+      {p.previewable && p.previewUrl ? (
+        <PageThumb url={p.previewUrl} title={p.route} />
+      ) : (
+        <div className="bg-muted/30 text-muted-foreground/50 flex h-40 items-center justify-center border-b">
+          <FileWarning className="size-6" />
+        </div>
+      )}
+      <div className="flex flex-col gap-1 p-3">
+        <span className="truncate text-sm font-medium">{p.title ?? p.route}</span>
+        <span className="text-muted-foreground/70 truncate font-mono text-2xs">{p.route}</span>
+        <div className="mt-1">
+          <Counts counts={p.counts} empty="no items" />
+        </div>
+      </div>
+    </Link>
   )
 }
 

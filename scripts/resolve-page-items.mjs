@@ -43,8 +43,22 @@ if (!map.repo || pages.length === 0) {
   process.exit(0);
 }
 
-const repoRoot =
-  typeof map.repo.root === "string" && map.repo.root ? path.resolve(root, map.repo.root) : root;
+// HOST MODE GUARD: this resolver understands Next.js app-router + the hub's OWN
+// catalog (registry.json + native components/ui, `@/components/*` imports). A
+// host (root != null) uses its own router + import conventions and is cataloged
+// in data/external-catalog.json, which this script does NOT read — so running it
+// there would resolve every page to zero items and BLANK the agent's work. Host
+// composition is resolved by the page-mapper agent (it reads the host source and
+// matches external-catalog). Skip, loudly, without touching the file.
+if (typeof map.repo.root === "string" && map.repo.root) {
+  console.log(
+    `Pages map: host mode (repo.root "${map.repo.root}") — items are resolved by the page-mapper ` +
+      "against data/external-catalog.json, not this Next+own-catalog resolver. Skipping (no changes)."
+  );
+  process.exit(0);
+}
+
+const repoRoot = root;
 if (!existsSync(repoRoot)) {
   console.log(`Pages map: target repo not found at ${map.repo.root} — skipping.`);
   process.exit(0);

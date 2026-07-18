@@ -110,6 +110,15 @@ export interface PagesMap {
   repo: PagesMapRepo | null
   /** "next-app" | "next-pages" | "react-router" | ... — how routes are defined. */
   routerKind?: string
+  /**
+   * The source file(s) that DEFINE the router, repo-relative. For routers whose
+   * routes can't be enumerated from the filesystem (react-router, a config
+   * table), `check:pages` can't detect new/removed routes — but it CAN hash
+   * these and flag "the router changed, re-run pages-map" when they drift. Set
+   * by the page-mapper for non-`next-app` routers; unused for `next-app`
+   * (file-scan enumeration works there).
+   */
+  routerSources?: string[]
   /** Markdown, multi-surface projects: how the frontends divide. */
   surfacesNote?: string
   pages: PageNode[]
@@ -234,6 +243,7 @@ export async function getPagesMap(): Promise<PagesMap> {
     return {
       repo: normRepo(parsed.repo),
       routerKind: str(parsed.routerKind),
+      routerSources: strList(parsed.routerSources),
       surfacesNote: str(parsed.surfacesNote),
       pages: entries<PageNode>(parsed.pages, normPage),
     }

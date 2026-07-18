@@ -105,9 +105,17 @@ if (reanchor) {
     p.sourceHash = hash;
     anchored += 1;
   }
+  // Anchor the router-source hash too (non-next routers' new/removed proxy).
+  const routerSources = Array.isArray(map.routerSources)
+    ? map.routerSources.filter((f) => typeof f === "string")
+    : [];
+  const routerHash = routerSources.length ? hashPageSource(routerSources) : null;
+  if (routerHash) map.routerSourcesHash = routerHash;
+  else delete map.routerSourcesHash;
   writeFileSync(mapPath, JSON.stringify(map, null, 2) + "\n");
   console.log(
     `Pages map anchored: ${anchored} page(s) hashed → data/pages-map.json` +
+      (routerHash ? ` + router source (${routerSources.length} file(s))` : "") +
       (skipped ? ` (${skipped} skipped — no readable sourceFiles).` : ".")
   );
   process.exit(0);
@@ -136,6 +144,7 @@ const appDir = ["app", "src/app"].map((d) => path.join(repoRoot, d)).find((d) =>
 let added = [];
 let removed = [];
 let enumerated = false;
+let routerChanged = false;
 
 if ((routerKind === "next-app" || !map.routerKind) && appDir) {
   enumerated = true;
@@ -159,10 +168,27 @@ if ((routerKind === "next-app" || !map.routerKind) && appDir) {
   added = [...current].filter((r) => !mapped.has(r)).sort();
   removed = [...mapped].filter((r) => !current.has(r)).sort();
 } else {
-  console.log(
-    `Pages map: router "${routerKind}" — route enumeration only implemented for next-app, ` +
-      "so NEW/REMOVED are skipped; reporting CHANGED only."
-  );
+  // Non-filesystem routers (react-router, a config table) can't be enumerated
+  // statically. Instead, hash the router source file(s) the page-mapper
+  // recorded: if the router DEFINITION moved, routes were likely added/removed
+  // → tell the reader to re-run pages-map. A reliable proxy for new/removed.
+  const routerSources = Array.isArray(map.routerSources)
+    ? map.routerSources.filter((f) => typeof f === "string")
+    : [];
+  const routerHash = routerSources.length ? hashPageSource(routerSources) : null;
+  if (routerSources.length === 0) {
+    console.log(
+      `Pages map: router "${routerKind}" — no filesystem route enumeration and no routerSources ` +
+        "recorded, so NEW/REMOVED can't be detected; reporting CHANGED only. " +
+        "(Have the page-mapper set repo router source files to enable router-drift detection.)"
+    );
+  } else if (routerHash === null) {
+    console.log(
+      `Pages map: router "${routerKind}" — routerSources not readable here; reporting CHANGED only.`
+    );
+  } else if (map.routerSourcesHash && routerHash !== map.routerSourcesHash) {
+    routerChanged = true;
+  }
 }
 
 /** app-relative page file → served route: strip `page.*`, drop (route groups), keep [dynamic]. */
@@ -177,12 +203,21 @@ function fileToRoute(relFromApp) {
 
 // ---- Report ---------------------------------------------------------------
 
-const drifted = added.length + removed.length + changed.length;
+const drifted = added.length + removed.length + changed.length + (routerChanged ? 1 : 0);
 
 if (drifted === 0 && unanchored.length === 0) {
-  const scope = enumerated ? `${pages.length} route(s)` : `${pages.length} route(s), changed-only`;
+  const scope = enumerated
+    ? `${pages.length} route(s)`
+    : `${pages.length} route(s), changed-only${map.routerSourcesHash ? " + router source" : ""}`;
   console.log(`Pages map fresh: ${scope}, none drifted.`);
   process.exit(0);
+}
+
+if (routerChanged) {
+  console.log(
+    "Router changed — the route definition moved since the sitemap was generated; " +
+      "routes may have been added or removed. Re-run the pages-map skill to re-enumerate."
+  );
 }
 
 if (added.length > 0) {
