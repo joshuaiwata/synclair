@@ -1,108 +1,98 @@
 ---
 title: "Installation"
-description: "Two paths — start a new project on Synclair, or add it beside an app that already exists."
+description: "Two ways to install, by topology: embed Synclair in the product repo, or watch it from a separate one. Either works whether the repo is new or already exists."
 ---
 
-There are two situations, and they install differently. Pick the one that matches
-you.
+The one choice that shapes an install is **topology — one repo or two.** Whether the
+repo is brand new or already exists doesn't change *how* you install; it only changes
+whether you seed the hub from scratch or populate it from code that's already there.
 
 <CardGroup cols={2}>
-  <Card title="New project" icon="sparkles" href="#new-project">
-    The thing you're building *is* the clone. Synclair and your product share one repo.
+  <Card title="Embed — one repo" icon="code-merge">
+    Synclair lives *inside* the product repo, so its hub, skills, and guardrails travel
+    with the code. Start a new project in the clone, or co-locate it into an existing repo.
   </Card>
-  <Card title="Existing app" icon="layer-group" href="#beside-an-existing-app">
-    An app already exists. Synclair sits *beside* it as a companion, documenting it.
+  <Card title="Watch — two repos" icon="eye">
+    Synclair is a *separate* repo beside the product, on its own server, documenting it
+    one-way. The recommended way to adopt it onto existing code you'd rather not touch.
   </Card>
 </CardGroup>
 
 <Note>
-The cleanest way to run either path is to point your AI agent at it and say *"set me
-up with Synclair."* The `project-bootstrap` skill interviews you, clones the
-foundation, blanks the seed, and reseeds it to a working hub. The steps below are
-what it does under the hood.
+"New repo" vs. "existing repo" is **not** a separate install path — embed and watch
+each work on either. The only fork is one repo or two. See [Setup modes](/setup-modes)
+for the trade-offs behind the choice.
 </Note>
 
-## New project
+<Note>
+The cleanest way to run any of this: point your AI agent at it and say *"set me up with
+Synclair."* The `project-bootstrap` skill interviews you, clones the foundation, blanks
+the seed, and reseeds it to a working hub. The steps below are what it does under the hood.
+</Note>
 
-The clone becomes your project's repo. Synclair and your product live together from
-commit one — this is the **embedded** topology.
+## Embed — one repo
+
+Synclair and the product share a repo, so every agent working in it gets the hub,
+skills, and guardrails ambiently. You reach this topology two ways:
+
+- **Starting fresh** — the clone *becomes* your product repo; you build the app in it.
+- **An existing repo** — you **co-locate** Synclair at `./synclair`, isolated so the
+  two apps' builds don't collide.
 
 <Steps>
-  <Step title="Clone the foundation">
+  <Step title="Get the foundation into the repo">
+    Starting fresh:
     ```bash
-    npx synclair new my-product
-    # front-door CLI: clones the foundation into ./my-product
+    npx synclair new my-product   # clones the foundation into ./my-product
     ```
-    You can also `git clone` the foundation repo directly. Either way, the foundation
-    is kept as a git `upstream` remote so you can pull updates later.
+    Existing repo: vendor Synclair at `./synclair` (the `co-locate-synclair` skill does
+    this and sets up the build isolation). Either way the foundation stays a git
+    `upstream` remote so you can pull updates later.
   </Step>
-  <Step title="Reseed the brand & identity">
-    Blank the seed and reseed it: your product name, brand color ramps, theme, and
-    (optionally) a domain skill. The bootstrap flow walks you through this.
+  <Step title="Seed the hub">
+    Starting fresh → reseed your brand: product name, color ramps, theme, optional
+    domain skill. Onto existing code → run `existing-project-intake` so the hub
+    populates from the real app — tokens, components, knowledge — instead of a blank seed.
   </Step>
-  <Step title="Build your product in the repo">
-    From here, the repo is yours. Build your app; Synclair's hub, skills, and
-    guardrails travel with the code and are available to every agent working in it.
+  <Step title="Run the hub">
+    Synclair runs on its **own** server at **port 4100**, mounted at `/synclair` —
+    separate from the product's app even in one repo:
+    ```bash
+    npm install && npm run dev   # http://localhost:4100/synclair
+    ```
   </Step>
 </Steps>
 
-## Beside an existing app
+## Watch — two repos
 
-An app already exists and you don't want to disturb it. Synclair runs as a **sibling
-companion clone** — a *separate* repo next to the product, on its own server. This is
-the **watcher** topology, and it's the recommended way to adopt Synclair onto
-existing code.
+Synclair runs as a **separate sibling clone** beside the product, on its own server,
+and lands nothing in the host repo. This is the recommended way to adopt Synclair onto
+an existing app you'd rather not disturb.
 
 <Steps>
   <Step title="Clone Synclair as a sibling">
     ```bash
-    # your apps live side by side on disk:
-    #   my-app/            ← the existing product, untouched
+    #   my-app/            ← the product, untouched
     #   my-app-synclair/   ← the Synclair companion clone
     ```
+    The foundation stays a git `upstream` remote for pulling updates later.
   </Step>
   <Step title="Run it on its own port">
-    Synclair runs its own dev server on **port 4100** — never inside your app. You
-    browse the hub at `localhost:4100/synclair`. Your app keeps running wherever it
-    already runs.
+    Port **4100**, browsed at `localhost:4100/synclair`. Your app keeps running wherever
+    it already runs.
   </Step>
-  <Step title="Populate the hub from the codebase">
-    Point your agent at the existing repo and run the `existing-project-intake`
-    flow. Its diggers survey the code, harvest the docs, extract the tokens, and
-    catalog the components — so the hub reflects your real app instead of starting
-    empty.
+  <Step title="Populate from the host codebase">
+    Run `existing-project-intake` against the product repo — its diggers survey the code,
+    harvest the docs, extract the tokens, and catalog the components, so the hub reflects
+    the real app instead of starting empty.
   </Step>
 </Steps>
 
 <Warning>
-In watcher mode Synclair is **one-way**: it observes and documents the host app and
-lands nothing in the host repo. Synclair is at `localhost:4100/synclair` — never a
-route inside your app.
+Watcher is **one-way**: Synclair observes and documents the host and lands nothing in
+its repo. The hub is at `localhost:4100/synclair` — never a route inside your app.
 </Warning>
 
-## A third option: inside an existing repo
-
-If you specifically want one repo and one clone — so agents building in the product
-repo get Synclair's skills ambiently — you can **co-locate** Synclair inside the
-existing repo at `./synclair`, isolated so the two apps' builds don't collide. This
-is the embedded topology applied to an existing repo. It's not the default (the
-sibling model is), but it's supported when single-repo ergonomics matter more than
-easy foundation sync.
-
-<Card title="Understand the trade-off" icon="scale-balanced" href="/setup-modes">
-  Embedded vs. watcher — what each one costs and buys.
-</Card>
-
-## Running the hub
-
-However you installed it, the hub runs on **port 4100** (not 3000) and mounts at
-`/synclair`:
-
-```bash
-npm install
-npm run dev     # http://localhost:4100/synclair
-```
-
-<Card title="Next: which setup mode am I in?" icon="diagram-project" href="/setup-modes">
-  The two topologies, when to pick each, and how the choice shapes everything.
+<Card title="Next: which mode am I in, and what does it cost?" icon="diagram-project" href="/setup-modes">
+  Embedded vs. watcher — the trade-offs, and how the choice shapes everything.
 </Card>

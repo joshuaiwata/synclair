@@ -23,13 +23,13 @@ description: "The fast answers to the questions everyone asks first."
   </Accordion>
 
   <Accordion title="Does it turn my app into a monorepo?" icon="folder-tree">
-    Not necessarily. You have three topologies:
-    - **Watcher** (recommended for existing apps) — Synclair is a *separate repo
-      beside* yours. Your repo is untouched; no monorepo.
-    - **New project** — the clone *is* your repo. One repo, one app plus the hub.
-    - **Co-located** — Synclair vendored inside your existing repo at `./synclair`,
-      isolated so builds don't collide. This is the only one that adds a subdirectory
-      to your repo, and it's opt-in, not the default.
+    Not necessarily — it depends on the **topology** you install with, one repo or two:
+    - **Watcher (two repos)** — Synclair is a *separate repo beside* yours. Your repo is
+      untouched; no monorepo. Recommended for existing apps.
+    - **Embedded (one repo)** — Synclair shares the repo. Either the clone *is* your repo
+      (a new project built in it), or Synclair is **co-located** — vendored into your
+      existing repo at `./synclair`, isolated so builds don't collide. Co-locating is the
+      only case that adds a subdirectory to your repo, and it's opt-in, not the default.
   </Accordion>
 
   <Accordion title="Can I modify it to fit my setup?" icon="wrench">
