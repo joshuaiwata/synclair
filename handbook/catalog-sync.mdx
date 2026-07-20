@@ -1,0 +1,112 @@
+---
+title: "Keeping the catalog in sync"
+description: "In existing-project mode the hub documents your real components — here are the two ways to keep that catalog current as the host code changes: run the cataloger yourself, or let the catalog-gate CI do it on every PR."
+---
+
+In **existing-project mode**, Synclair catalogs the components your host app
+already has — props derived from the source, real usage snippets, live previews.
+That catalog is only useful while it matches the code. As the host app grows a
+new component or changes an existing one, the catalog has to keep up.
+
+There are **two ways to keep it in sync**. They're not either/or — the CI is
+just the manual flow, automated.
+
+<Note>
+This is a different axis from **staying current with the foundation** (pulling
+Synclair updates from upstream — that's the `synclair-sync` skill, covered in
+[Customizing](/customizing)). This page is about your **host component
+catalog** vs. your **host code**.
+</Note>
+
+## The two ways
+
+<CardGroup cols={2}>
+  <Card title="Manual — run the cataloger" icon="terminal">
+    You (or an agent) run the cataloger skill on demand, and the drift checks
+    tell you when something's out of date. Full control, zero setup.
+  </Card>
+  <Card title="Automated — catalog-gate CI" icon="robot">
+    A GitHub Actions workflow scans every PR, comments what catalog work it
+    introduces, and — optionally — runs the cataloger on the branch for you.
+    Nothing to remember.
+  </Card>
+</CardGroup>
+
+## Way 1 — run the cataloger yourself
+
+Two skills do the cataloging; the checks tell you when to.
+
+<Steps>
+  <Step title="Catalog new or changed components">
+    Point an agent at the `component-cataloger` skill (or `existing-project-intake`
+    for a first full pass). It reads the host source, derives the props and tier,
+    finds real usage, and writes the entry plus a live preview scene.
+  </Step>
+  <Step title="Check for drift on demand">
+    Two commands, run from the Synclair app root, report where the catalog has
+    fallen behind the code:
+
+    <CodeGroup>
+    ```bash Drift (hashes)
+    # entries whose host source changed since they were cataloged
+    npm run check:host
+    ```
+
+    ```bash Coverage (rendering)
+    # cataloged entries with no live preview or screenshot
+    npm run check:coverage
+    ```
+    </CodeGroup>
+
+    The hub surfaces the same signals visually on `/synclair/components`, so a
+    stale or unrendered entry is visible without running anything.
+  </Step>
+</Steps>
+
+## Way 2 — the catalog-gate CI
+
+The workflow (`.github/workflows/synclair-catalog.yml`) runs on every PR and has
+two halves:
+
+<AccordionGroup>
+  <Accordion title="The gate (always on) — a diff-aware PR comment" icon="comment">
+    A fast, dependency-free scan (`scripts/ci-pr-catalog-check.mjs`) looks only
+    at what **this PR** changes and posts a sticky comment listing:
+
+    - **uncataloged** component files the PR adds,
+    - cataloged entries whose source the PR **touches** (they'd go stale on merge),
+    - entries that are **documented but not rendered**.
+
+    It never nags about the pre-existing backlog, and it exits cleanly (posting
+    nothing) in a repo with no host catalog yet — so it's safe to ship dormant.
+  </Accordion>
+  <Accordion title="The cataloger (opt-in) — auto-commits the catalog" icon="wand-magic-sparkles">
+    When there are gaps **and** you've added an `ANTHROPIC_API_KEY` repository
+    secret, the workflow runs the cataloger agent on the PR branch and pushes a
+    commit with the new entries and preview scenes — so the hub shows the
+    components before the PR merges. Without the secret this half simply skips,
+    and the gate comment still tells a human what to catalog.
+  </Accordion>
+</AccordionGroup>
+
+### Turning it on
+
+<Steps>
+  <Step title="Point the trigger at your host source">
+    In `synclair-catalog.yml`, add your host component path(s) to `paths:` (e.g.
+    `- "src/**"` or `- "packages/ui/**"`) so host changes fire the gate. If
+    Synclair is embedded at `./synclair`, prefix the script and prompt paths with
+    `synclair/` (the script auto-detects the repo root — you only touch the YAML).
+  </Step>
+  <Step title="(Optional) add the API key to enable auto-cataloging">
+    Add `ANTHROPIC_API_KEY` as a repository secret. Leave it off to keep the
+    advisory-comment-only behavior.
+  </Step>
+</Steps>
+
+<Note>
+**Which should I use?** Start with the gate comment — it's free and answers
+"did this PR change the catalog?" on its own. Add the API key once you want the
+catalog to maintain itself. The manual cataloger is always there for a big first
+pass or a one-off.
+</Note>
