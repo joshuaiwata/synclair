@@ -1,0 +1,68 @@
+---
+title: "Environment"
+description: "The running stack, and the opt-in freshness check for whether your clone is behind the upstream Synclair foundation."
+---
+
+`/synclair/environment` is the "where does this clone stand" section — the stack it runs
+on, and whether its foundation is current with the upstream Synclair it was cloned from.
+It's the section you check before a sync, and the one that tells you a foundation update
+is available.
+
+## What it is
+
+Two things in one place:
+
+<CardGroup cols={2}>
+  <Card title="The running stack" icon="server">
+    What this hub is actually running on — Next.js, Tailwind, shadcn/ui, and the rest of
+    the environment.
+  </Card>
+  <Card title="Foundation freshness" icon="arrows-rotate">
+    Whether this clone is behind the mother Synclair repo — the opt-in "call home" check.
+  </Card>
+</CardGroup>
+
+## What's in it
+
+- **The stack view** — the framework, styling, and tooling the clone runs.
+- **The Synclair view** — the foundation freshness state: your clone's **baseline** (the
+  mother sha it last synced to) and, when call-home is on, how many foundation updates
+  are available with their commit titles.
+
+## How it works
+
+Freshness uses an **opt-in "call home"** seam (`data/mother.json`). When enabled, the hub
+compares your recorded baseline against the mother repo via GitHub's public compare API
+and shows "up to date" or "N updates available" — **checking is never pulling**.
+
+<Note>
+It's deliberately minimal: nothing is sent but the baseline sha, there's no telemetry,
+and it's **off by default**. Knowing you're behind and *choosing* to pull are two
+separate, deliberate acts — which is the whole doctrine of "clone, sync deliberately."
+</Note>
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Turn on freshness checks" icon="toggle-on">
+    ```bash
+    npm run call-home -- --enable    # opt in (off by default)
+    npm run call-home                # check: behind-count + incoming titles
+    ```
+    The baseline is stamped automatically on sync (embedded subtree clones stamp it by
+    hand with `--anchor <sha>`).
+  </Accordion>
+  <Accordion title="Pull foundation updates" icon="download">
+    When you're behind and want the updates, use the `synclair-sync` skill — it pulls
+    them as an ordinary git merge, resolving seed vs. brain by the merge contract. Your
+    project's own brand and knowledge never sync.
+  </Accordion>
+  <Accordion title="Promote an improvement upstream" icon="arrow-up">
+    If something you built here is foundation (not seed), the same skill cherry-picks it
+    into the mother repo — the flywheel that improves Synclair for every clone.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Setup modes" icon="diagram-project" href="/setup-modes">
+  Whether updates come in as a subtree pull or a sibling merge depends on your topology.
+</Card>

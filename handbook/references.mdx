@@ -1,0 +1,61 @@
+---
+title: "References"
+description: "The project's growing library of findings — prior art, research, and recommendations that agents accumulate as they work."
+---
+
+`/synclair/references` is the project's **research memory**. Where Knowledge holds the
+*inputs* (the specs and designs you start from), References holds the *findings* — the
+prior art, comparisons, and recommendations that get discovered along the way. It's how
+the answer to *"did we already look into this?"* stops being "ask around."
+
+## What it is
+
+A curated, append-only library of durable findings — the things worth remembering that
+aren't a spec and aren't code:
+
+- Prior art and competitive examples ("how three other apps solve this")
+- Research conclusions and recommendations from a dig
+- Decisions-with-rationale that inform future work
+
+## What's in it
+
+Entries live in `lib/system/references.ts` and render at `/synclair/references`. Each is
+a short, titled finding with its source and takeaway. It **starts empty** on a fresh
+clone and grows over the life of the project — the mechanism ships with Synclair; the
+entries are the project's own.
+
+<Note>
+References is deliberately *distinct* from Knowledge. Knowledge = the canonical source
+material you build from (PRDs, Figma). References = what you've *learned* while building.
+One is the reading list; the other is your notes in the margin.
+</Note>
+
+## How it works
+
+References is a **write-as-you-go** surface, closely tied to the knowledge flywheel.
+When an agent researches something — reads competitors, evaluates a library, investigates
+an approach — the durable conclusion is appended here instead of evaporating when the
+conversation ends. The next person (or agent) facing the same question finds the finding
+already there.
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Append a finding" icon="plus">
+    Add an entry to `lib/system/references.ts` when a piece of research produces
+    something worth keeping — a recommendation, a comparison, a conclusion. Agents do
+    this as part of their work; you can too.
+  </Accordion>
+  <Accordion title="Check before researching" icon="magnifying-glass">
+    Before diving into a question, scan References — the answer may already be there,
+    saving a redundant dig.
+  </Accordion>
+  <Accordion title="Cite it in decisions" icon="quote-left">
+    A recommendation backed by a logged reference is more durable than one from memory —
+    link to the finding when you act on it.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Knowledge" icon="book" href="/knowledge">
+  The inputs side — the specs, PRDs, and designs the project is built from.
+</Card>

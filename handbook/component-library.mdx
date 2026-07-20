@@ -1,0 +1,96 @@
+---
+title: "Component library"
+description: "The catalog of what the product's UI is made of — three tiers, live previews, and a doc page for every item."
+---
+
+The library is the visual half of Synclair: a browsable catalog of every reusable
+piece of UI the product uses, from a single button to a whole page template. It's
+what a designer, an engineer, or an agent looks at to answer *"do we already have
+this, and how do I use it?"*
+
+## What it is
+
+One catalog, split into **three tiers** by altitude — how much of a screen each piece
+represents:
+
+<CardGroup cols={3}>
+  <Card title="Components" icon="shapes">
+    **`/synclair/components`** — the primitives. Buttons, inputs, badges, cards — the
+    smallest reusable pieces.
+  </Card>
+  <Card title="Blocks" icon="table-cells-large">
+    **`/synclair/blocks`** — composed sections. A sidebar, a data table, a stat row —
+    several components assembled into a purposeful unit.
+  </Card>
+  <Card title="Templates" icon="browser">
+    **`/synclair/templates`** — full page layouts. A dashboard, an auth screen — the
+    frame a real view drops content into.
+  </Card>
+</CardGroup>
+
+## What's in it
+
+Each tier is a **gallery** of card previews; each item has its own **doc page**
+(`/synclair/{tier}/[name]`) with:
+
+- **A live preview** — the real component rendering, not a screenshot. (In existing-app
+  mode, host components are documented from their source and tagged **"Host"**.)
+- **The API** — props, types, and variants, derived from the source.
+- **States & examples** — the meaningful variations, each rendered.
+- **UX documentation** — for blocks and templates: intent, an anatomy wireframe,
+  interaction rules, and responsive behavior.
+
+Everything is searchable from **⌘K**, across all three tiers plus tokens and docs.
+
+## How it works
+
+The catalog is driven by one registry (`registry.json`, the shadcn format) with a
+colocated `*.docs.tsx` file per item. The galleries, doc pages, and search all read
+from it — so the catalog can't disagree with itself.
+
+<Note>
+**Two rules keep the library from rotting**, and both are machine-enforced:
+- **The invention gate** — before anything new is added, you have to prove no existing
+  item covers it (extend or compose instead). New UI is a decision, not a reflex.
+- **Everything must render** — a registry entry, its component, and its docs are
+  checked to stay in sync (`check:registry`), and every item must actually draw its
+  preview (`check:previews`), never degrade to a bare code snippet.
+</Note>
+
+For **multi-frontend products** (e.g. web + React Native sharing a backend), the same
+catalog gains a per-surface drill-in at `/synclair/library`, so a web `button` and a
+native `button` coexist without colliding.
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Find and reuse something" icon="magnifying-glass">
+    Browse the tier galleries or hit **⌘K**. Each doc page shows the API and an
+    install snippet — reuse beats reinventing, which is the whole point of the gate.
+  </Accordion>
+  <Accordion title="Create a new component" icon="plus">
+    Use the `component-library` skill. It walks the **invention gate** (does this need
+    to exist?), then the registration ceremony — add the component, its registry
+    entry, and its `.docs.tsx`, so it shows up in the gallery with a live preview.
+  </Accordion>
+  <Accordion title="Document a block or template" icon="ruler-combined">
+    Use the `ux-doc` skill to author the intent, anatomy wireframe, interaction rows,
+    and responsive rules — commit-anchored to the source so drift is caught
+    (`check:ux-docs`).
+  </Accordion>
+  <Accordion title="Catalog a host app's components" icon="layer-group">
+    In existing-app mode, run `existing-project-intake` (or the `component-cataloger`
+    digger) — host components are documented from their source without importing them,
+    and appear tagged "Host".
+  </Accordion>
+  <Accordion title="Prove it all holds together" icon="circle-check">
+    Run `npm run verify-ui` — the gate that runs typecheck, the token/lint guardrails,
+    the registry drift check, and the render-coverage check. It's the definition of
+    "done" for any library work.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Foundations" icon="palette" href="/foundations">
+  The library is built *on* the design tokens — the color, type, and spacing
+  vocabulary that the lint guardrails enforce.
+</Card>

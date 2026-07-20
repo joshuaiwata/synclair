@@ -1,0 +1,60 @@
+---
+title: "Hygiene"
+description: "Where the host app's code steps outside its own foundation — inline styles, raw colors, bypassed primitives — surfaced as an advisory sweep."
+---
+
+`/synclair/hygiene` is the honesty check on an existing codebase: it surfaces the places
+where the host app's code **steps outside its own design system**. Not to scold — to
+show, concretely, where the gap between "the foundation" and "what's actually shipped"
+lives, so it can be closed deliberately.
+
+## What it is
+
+An advisory sweep of foundation drift — the raw, off-system code that a design system is
+*supposed* to prevent but that accumulates in every real codebase:
+
+- **Inline styles** where a token should be used
+- **Raw colors** (hex/rgb) instead of semantic color roles
+- **Arbitrary values** (magic pixel numbers) off the spacing/type scale
+- **Bypassed primitives** — hand-rolled UI where a shared component exists
+
+## What's in it
+
+Findings live in `data/host-hygiene.json` (schema: `lib/system/host-hygiene.ts`) and
+render at `/synclair/hygiene`, grouped so you can see the shape of the drift — which
+files, which kind, how much.
+
+<Note>
+This is **existing-app (companion) mode** territory — it's about the *host* app's code.
+It's advisory: it reports the drift so a human can decide what to refactor, and never
+changes anything itself.
+</Note>
+
+## How it works
+
+The sweep is produced by `npm run scan:hygiene`, which scans the host source for the
+off-foundation patterns above and writes the findings file. It's a **snapshot** you
+regenerate — the same anti-fiction principle as the rest of the hub: it describes what's
+actually in the code, so the picture can't quietly become nicer than reality.
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Regenerate the sweep" icon="arrows-rotate">
+    Run `npm run scan:hygiene` to refresh `data/host-hygiene.json` after the host code
+    changes.
+  </Accordion>
+  <Accordion title="Prioritize a cleanup" icon="list-check">
+    Use the grouping to pick high-value refactors — e.g. the raw colors that should
+    become semantic tokens, or the repeated inline UI that should become a component.
+  </Accordion>
+  <Accordion title="Feed it into the library" icon="shapes">
+    A "bypassed primitive" finding is often a candidate for the component library — pair
+    it with the `component-library` skill to promote the pattern into a registered item.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Reports" icon="clipboard-list" href="/reports">
+  Hygiene is the design-side drift sweep; the build report is the whole-build read that
+  ranks what to do next.
+</Card>
