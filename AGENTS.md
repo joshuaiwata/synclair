@@ -117,14 +117,25 @@ Key ones for orientation (browse `.claude/skills/` for the full set):
 
 ## Set up this foundation for a project
 
-This is a fresh Synclair clone with the seed blanked. Two paths:
+This is a fresh Synclair clone with the seed blanked. Setup is **two orthogonal
+choices**, not one — keep them separate:
 
-- **New project** (the project IS the clone): [`docs/new-project.md`](docs/new-project.md)
-  — reseed brand/theme, an optional domain skill, knowledge sources, and identity.
-- **Existing project** (Synclair as a companion next to an app that
-  already exists): [`docs/existing-project.md`](docs/existing-project.md) — sibling
-  clone, separate server on port 4100; Synclair is at `localhost:4100/synclair`, never a
-  route inside the host app.
+1. **Topology — where the clone sits** ([`docs/setup-modes.md`](docs/setup-modes.md)):
+   **embedded** (one repo — Synclair lives *inside* the product repo) or **watcher**
+   (two repos — a *separate* companion clone *beside* the product). This is the axis the
+   clone records in `data/setup.json`. Either way Synclair runs on its own server (port
+   4100) at `/synclair`, never a route inside the host app.
+2. **Seeding — what populates the hub**: reseed a **fresh brand/identity**
+   ([`docs/new-project.md`](docs/new-project.md)) when starting from scratch, or
+   **intake from existing code** ([`docs/existing-project.md`](docs/existing-project.md)
+   → the `existing-project-intake` skill) when a product already exists.
+
+"New vs existing" is only the *seeding* axis — it does **not** decide topology. You can
+embed a new project *or* co-locate Synclair into an existing repo (`co-locate-synclair`),
+and watcher is the usual choice beside existing code. The two docs above describe the
+common bundles (new→embedded+fresh, existing→watcher+intake); pick topology deliberately
+via `setup-modes.md` rather than inferring it from which doc you opened.
+
 - **Staying current** (any clone, later): the `synclair-sync` skill /
   `scripts/synclair-sync.sh` — pulls foundation updates from the mother repo as a
   git merge; seed never syncs.
