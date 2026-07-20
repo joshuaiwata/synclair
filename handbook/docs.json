@@ -20,7 +20,22 @@
       },
       {
         "group": "Using Synclair",
-        "pages": ["the-hub", "agents-and-skills", "catalog-sync", "customizing"]
+        "pages": ["agents-and-skills", "catalog-sync", "customizing"]
+      },
+      {
+        "group": "Hub sections",
+        "pages": [
+          "the-hub",
+          "foundations",
+          "component-library",
+          "knowledge",
+          "references",
+          "system-map",
+          "sitemap",
+          "reports",
+          "hygiene",
+          "environment"
+        ]
       },
       {
         "group": "Reference",

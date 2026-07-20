@@ -1,0 +1,100 @@
+---
+title: "Knowledge"
+description: "The section that keeps agents from starting blank — source-of-truth links, distilled digests, and generated summaries, all in one place."
+---
+
+`/synclair/knowledge` is Synclair's answer to the question *"where does the AI get
+its context?"* It's the home for everything a person or agent needs to know about the
+product that **isn't** in the code — the specs, the designs, the decisions — organized
+so it's cheap to load and impossible to lose.
+
+## What it is
+
+The place the project's knowledge lives, in three layers that trade off freshness
+against readiness:
+
+<CardGroup cols={3}>
+  <Card title="Sources" icon="link">
+    Links to the canonical PRDs, decks, and Figma files — wherever they actually
+    live (Drive, Figma, GitHub).
+  </Card>
+  <Card title="Digests" icon="file-lines">
+    The compressed, durable knowledge *extracted* from those sources and kept in the
+    repo as skills — what agents read most of the time.
+  </Card>
+  <Card title="Summaries" icon="newspaper">
+    Generated, audience-specific reads — onboarding briefs, diagrams, custom cuts —
+    on the Summary tab.
+  </Card>
+</CardGroup>
+
+## What's in it
+
+- **Source-of-truth links** (`lib/system/knowledge/sources.ts`) — each entry points
+  at a canonical doc (a PRD in Drive, a Figma file, a deck) with enough metadata to
+  find it and know what it covers. In existing-app mode these are harvested from the
+  host repo's READMEs, `docs/`, and ADRs.
+- **Distilled digests** — the durable essentials pulled out of those sources, stored
+  as the `product-spec` skill (and per-area `references/*.md`). Each digest links
+  back to the canonical source it came from.
+- **Project summaries** (`data/knowledge/summaries/`) — briefs and diagrams generated
+  per audience, shown on the **Summary** tab.
+
+## How it works
+
+The core rule is **link, don't copy** — and it's not a style preference, it's what
+keeps the knowledge from rotting.
+
+<Note>
+A pasted 40-page PRD goes stale the day someone edits the real Doc, and it blows an
+agent's context window when read raw. So raw sources stay **canonical** in Drive /
+Figma / GitHub and are *linked*; the repo holds the **distilled digest**, not the dump.
+</Note>
+
+Two mechanisms make rich context cheap:
+
+<Steps>
+  <Step title="Progressive disclosure">
+    A digest's one-line description is always in context; its body loads only when a
+    task touches that area. A large knowledge base costs almost nothing until it's
+    relevant.
+  </Step>
+  <Step title="Digger agents">
+    A retrieval agent (like `prd-retriever` or `figma-frame-reader`) reads the heavy
+    source in its own throwaway context and hands back a tight brief — so the main
+    conversation never loads the 40-page doc.
+  </Step>
+</Steps>
+
+And it compounds. When a dig surfaces something durable, the agent **writes it back**
+into the digest — so the next agent loads it cheaply instead of re-reading the source.
+This is the flywheel: the knowledge base converges on "what a builder routinely needs."
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Add a source" icon="plus">
+    Add an entry to `lib/system/knowledge/sources.ts` (or, in existing-app mode, let
+    the `knowledge-harvester` digger propose entries from the host repo). It appears
+    on `/synclair/knowledge` immediately — a link, not a copy.
+  </Accordion>
+  <Accordion title="Distill a source into agent-ready knowledge" icon="filter">
+    Use the `product-spec` skill (for docs/PRDs) or `figma-distiller` (for Figma) to
+    pull the durable essentials into a digest. Dig into the raw source with a digger
+    only when the digest is insufficient — then write the durable part back.
+  </Accordion>
+  <Accordion title="Generate a summary" icon="newspaper">
+    Queue a summary from the Summary tab (or run the `product-summary` skill) — a
+    brief, a diagram, or a custom cut for a specific audience. The button queues it;
+    an agent drains the queue and writes it to `data/knowledge/summaries/`.
+  </Accordion>
+  <Accordion title="Onboard someone (or an agent)" icon="user-plus">
+    Point them at `/synclair/knowledge` — the Summary tab's brief is the fastest way
+    in, and the source links are there when they need the canonical detail.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: References" icon="bookmark" href="/references">
+  Knowledge is the *inputs* (specs, designs). References is the project's *findings* —
+  prior art and recommendations agents accumulate as they research.
+</Card>

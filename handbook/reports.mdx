@@ -1,0 +1,87 @@
+---
+title: "Reports"
+description: "A plain-English read of how the build is doing and what to do next — one block per section, plus a ranked, trackable to-do list."
+---
+
+`/synclair/reports` answers three questions in plain terms: **what is this build, how
+ready is it, and what should we do next?** It's the section a stakeholder opens to
+understand the state of things without reading code, and the one a team works *against*
+to decide the next move.
+
+## What it is
+
+A dated **report** — one block per Synclair section (Knowledge, System Map,
+Foundations, Component Library, Environment & AI Setup) plus a **ranked list of
+recommendations**. Each report is a snapshot; the section keeps the whole history so
+you can see progress over time.
+
+<Note>
+Reports are **append-only**. Every run writes a new dated report; old ones become the
+archive. Re-running after you've done some of the work produces a *new* report showing
+what changed — it never overwrites the baseline. That's how "run it again after fixes"
+works.
+</Note>
+
+## What's in it
+
+- **A headline + the shape of things** — the one-line state of the build and the
+  key stats (component counts, knowledge sources, areas covered).
+- **Per-section blocks** — for each section: its **status**, what was **found**,
+  the **gap**, and the **next** step, with a link straight to that section.
+- **Ranked recommendations** — each a concrete change you can *choose* to run, with a
+  stable id (`A1`, `B2`, …), a track, and a **status** (`open` · `in-progress` · `done`).
+- **An archive** — every prior report, openable, so progress is visible across runs.
+
+## How it works
+
+The report is **digger-driven and count-verified**. Agents (`library-curator`,
+`system-mapper`, `codebase-surveyor`) read the host in their own contexts and propose
+findings; the main thread writes the report, and **every number is cross-checked
+against the hub's own data** before it's published.
+
+<Note>
+If a stat ever disagrees with the live catalog, the report shows a **count-mismatch
+banner**. A clean report reads "verified" — so the numbers in a report are the same
+numbers the rest of the hub shows, never a hand-typed guess.
+</Note>
+
+The headline finding is usually the **view-layer gap** — UI that *should* be a
+registered component or block but is currently duplicated inside app folders (sidebars,
+layouts, cards, page frames). That's the recommendation list's richest source.
+
+## How to act on it
+
+This is the part that matters — a report is a **to-do list you drive**, not a passive audit.
+
+<Steps>
+  <Step title="Read the recommendations top to bottom">
+    They're ranked, so the top of the list is where to start. Each one is a discrete,
+    plain-English change — no backend jargon, nothing you can't act on.
+  </Step>
+  <Step title="Pick one and run it">
+    Each recommendation maps to a real action — usually a skill (`build-view`,
+    `component-library`, `existing-project-intake`) or a knowledge/foundation task.
+    Do the work the recommendation describes.
+  </Step>
+  <Step title="Re-run the report">
+    Ask to *"re-run the report"* (the `build-report` skill). It writes a **new** dated
+    report, flips the recommendations you cleared to `status: done`, updates the
+    affected section's found/gap/next, and re-verifies every count.
+  </Step>
+  <Step title="Watch progress accrue">
+    Because recommendation ids are stable (`A1` stays `A1`), you can see exactly what
+    moved between two reports. The archive is the paper trail of the build getting more
+    complete.
+  </Step>
+</Steps>
+
+<Note>
+**When to run one:** after an intake (to see where the hub landed), after shipping work
+against prior recommendations (to log progress), or any time someone asks *"how's the
+build looking / what should we do next?"* It's not a code review of a single change,
+and not the design-side foundations audit — it's the whole-build read.
+</Note>
+
+<Card title="Related: the whole hub" icon="compass" href="/the-hub">
+  A report is a read *across* the sections — see each one it summarizes.
+</Card>
