@@ -28,13 +28,16 @@
           "the-hub",
           "foundations",
           "component-library",
+          "surfaces",
           "knowledge",
           "references",
           "system-map",
           "sitemap",
           "reports",
           "hygiene",
-          "environment"
+          "environment",
+          "github",
+          "search"
         ]
       },
       {

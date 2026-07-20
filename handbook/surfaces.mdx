@@ -1,0 +1,63 @@
+---
+title: "Library & surfaces"
+description: "For products with more than one frontend — a per-surface drill-in so a web app and a native app share one hub without colliding."
+---
+
+`/synclair/library` is the section that only appears when a product has **more than one
+frontend** — a web app and a React Native app sharing a backend, say. It's a per-surface
+drill-in that lets each frontend have its own catalog while living in one hub.
+
+<Note>
+**Most projects never see this.** With zero or one frontend, the surface machinery
+collapses to nothing — the hub is byte-for-byte the single-app version, no extra chrome.
+This page is for the multi-frontend case.
+</Note>
+
+## What it is
+
+A **surface** is one deployable frontend of the product — "the responsive web app," "the
+React Native companion." When a project declares more than one, the library gains a
+scoped explorer so you can browse each surface's UI on its own.
+
+## What's in it
+
+- **Per-surface catalogs** — a web `button` and a native `button` coexist without
+  colliding (names are unique per *surface + name*, not globally).
+- **A scoped explorer** — a dense, filterable tree plus per-surface routes
+  (`/synclair/library/<surface>/<tier>/<name>`), with the surface carried in the path.
+- **Per-surface previews** — each surface renders through its own platform adapter.
+
+## How it works
+
+The list of surfaces is **seed** (`lib/system/seed/surfaces.ts`, empty by default); the
+mechanism is Brain (`lib/system/surfaces.ts`). Some things are per-surface (catalogs,
+preview adapters, environment stacks); others are shared across all of them (the
+knowledge base, the system map, brand tokens).
+
+<Note>
+**Native previews are tiered.** A React Native component that's purely presentational can
+live-render via react-native-web when the surface opts in; anything touching native
+modules (camera, native maps) falls back to a screenshot or embed. That's a per-project
+intake decision, not a default.
+</Note>
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Declare surfaces at intake" icon="layer-group">
+    Add an entry per frontend to `lib/system/seed/surfaces.ts`. This is a setup-time
+    decision — declare them when the project genuinely has multiple frontends.
+  </Accordion>
+  <Accordion title="Browse one surface" icon="magnifying-glass">
+    Use the surface selector (defaults to "All") to scope the explorer to a single
+    frontend, or navigate straight to `/synclair/library/<surface>/...`.
+  </Accordion>
+  <Accordion title="Catalog a new surface's components" icon="shapes">
+    Run the intake/cataloging flow per surface — the same `component-library` and
+    `existing-project-intake` skills, scoped to that surface.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Component library" icon="shapes" href="/component-library">
+  The single-surface catalog — the tiers, galleries, and doc pages every surface builds on.
+</Card>

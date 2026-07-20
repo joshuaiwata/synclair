@@ -1,0 +1,55 @@
+---
+title: "GitHub"
+description: "Recent repo activity, surfaced right in the hub — because git isn't just where the code lives, it's the hub's database."
+---
+
+`/synclair/github` brings the repo's recent activity into the hub — the latest commits
+and their diffs. It's a small section with a big idea behind it: **git is the hub's
+database**, so showing repo activity isn't an integration, it's just reading the source
+of truth.
+
+<Frame caption="The GitHub section at /synclair/github — recent commits read straight from local git.">
+  <img src="/images/github.png" alt="The Synclair GitHub page showing a table of recent commits" />
+</Frame>
+
+## What it is
+
+A live view of recent commits and diffs, read straight from the local git history — the
+shared log of everything that's changed, for humans and agents alike.
+
+## What's in it
+
+- **Recent commits** — what changed, when, and by whom
+- **Diffs** — the actual changes, inline
+- Powered by `lib/system/git-log.ts`, reading local git
+
+## How it works
+
+This section is the most direct expression of a core Synclair principle: **git is the
+database.** Every fact the hub shows — tokens, the registry, docs, knowledge — is a file
+in the repo, and sync between teammates is `git pull` / `git push`. So the "activity
+feed" is just git, rendered.
+
+<Note>
+**The rule of thumb:** if a change deserves a commit message, it's a file in git. That's
+why the hub needs no server and no separate database to be multiplayer — the repo *is*
+the shared state, and this section is the window onto it.
+</Note>
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="See what's changed" icon="clock-rotate-left">
+    Open `/synclair/github` for a quick read of recent work without leaving the hub —
+    useful for a standup glance or catching up after time away.
+  </Accordion>
+  <Accordion title="Trust the freshness" icon="circle-check">
+    Because it reads live git, it's never stale — it shows exactly what's in the repo,
+    the same bytes every other section reads from.
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Environment" icon="server" href="/environment">
+  Git is also how foundation updates flow — the Environment section tracks whether your
+  clone is behind the upstream repo.
+</Card>
