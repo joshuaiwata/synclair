@@ -1,0 +1,65 @@
+---
+title: "Synclair vs. Storybook"
+description: "They both show components in a gallery. That's where the resemblance ends."
+---
+
+This is the first question almost everyone asks, so let's answer it directly.
+
+Storybook is a **component workshop**: you write stories, it renders your components
+in isolation so you can develop and test them. It's a runtime tool, tied to your
+app's stack, focused on one thing — the components.
+
+Synclair is a **governance and context layer**: components are one of several things
+it documents, alongside design tokens, product knowledge, the system map, and the
+AI setup — and its second audience is *AI agents*, not just developers.
+
+## The core difference in one line
+
+<Note>
+Storybook **executes** your components. Synclair **documents** your design system —
+and live-rendering a component is just one way it draws the picture, not the
+definition.
+</Note>
+
+That distinction sounds subtle but drives everything below. Because Synclair treats a
+component as a *documented entity* (tokens + spec + usage + code + a picture) rather
+than as a runtime story, it can catalog things it can't execute — a React Native
+component shown as a screenshot, a host app's component documented from its source
+without importing it — in the same gallery, the same way.
+
+## Side by side
+
+| | **Storybook** | **Synclair** |
+|---|---|---|
+| **Primary job** | Build & test components in isolation | Align humans + agents on the whole design system and its knowledge |
+| **Scope** | Components only | Tokens, components, knowledge, system map, sitemap, AI setup |
+| **Second audience** | Developers | Developers **and AI agents** (machine-readable context) |
+| **Relationship to your app** | A dev dependency you import | Not a dependency — a foundation beside or around your app |
+| **"Rendering"** | The whole point (live stories) | *One way* to depict a documented item; can also be a screenshot, an embed, or a code-only entry |
+| **State / storage** | Config + stories in your repo | Git *is* the database — all facts are versioned files |
+| **Knowledge** | None | First-class: PRDs/Figma/decisions distilled into agent-loadable skills |
+| **Governance** | Not its concern | Lint-enforced tokens, an invention gate, drift checks in CI |
+
+## Where they overlap (be honest)
+
+For the narrow task of *"see my components rendered in a gallery,"* they overlap. If
+that's genuinely all you need, Storybook is the more focused, mature tool and you
+should use it.
+
+Synclair earns its place when the problem is bigger than the components:
+
+- You're building **with AI agents** and tired of re-feeding them context every session.
+- Your **design tokens keep eroding** and you want that machine-prevented, not policed in review.
+- You need one place that answers **"what is this whole app made of"** — pages, backend, knowledge — not just "what do the buttons look like."
+- You want a catalog for a stack Storybook **can't easily run** (native mobile, a host app you only observe).
+
+## Can they coexist?
+
+Yes. They answer different questions. A team can keep Storybook as the component
+development workshop and run Synclair as the alignment layer over the whole system.
+Synclair can even reference a Storybook embed as the "picture" for an item it
+documents.
+
+<Card title="Next: how it actually works" icon="gears" href="/how-it-works">
+  Where the database is, and how Synclair rides on git and your existing AI tools.
+</Card>

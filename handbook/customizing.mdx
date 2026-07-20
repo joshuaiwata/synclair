@@ -1,0 +1,75 @@
+---
+title: "Customizing & modifying Synclair"
+description: "Yes — you can change any of it. The three-layer model tells you what's yours, what's swappable, and what syncs from upstream."
+---
+
+Short answer: **yes, modify anything.** Your clone is *yours* — it diverges freely and
+nothing syncs back automatically. The useful question isn't "can I change it" but
+"how do I change it *without* making future foundation updates painful." A simple
+three-layer model answers that.
+
+## The three layers
+
+Everything in a Synclair clone is one of three things:
+
+<CardGroup cols={3}>
+  <Card title="Brain" icon="brain">
+    The portable governance model — token vocabulary, the tiers, the docs contract,
+    search, the invention gate, the knowledge layer. **Stable across projects.**
+  </Card>
+  <Card title="Adapter" icon="plug">
+    The platform-specific seams — how a preview is depicted, how tokens are exported,
+    how components are distributed. **Swapped per target** (web, React Native, SwiftUI).
+  </Card>
+  <Card title="Seed" icon="seedling">
+    Your project's own content — brand ramps, theme, product name, knowledge, the
+    component catalog, the domain skill. **Reseeded per project; never syncs.**
+  </Card>
+</CardGroup>
+
+## What that means for modifying
+
+| If you're changing… | It's… | Guidance |
+|---|---|---|
+| Brand colors, theme, product name | **Seed** | Change freely — this is *meant* to diverge. It never syncs in either direction. |
+| Your components, knowledge, catalog | **Seed** | Yours entirely. |
+| Which platform you target | **Adapter** | Swap the adapter (web-shadcn by default). |
+| The hub UI, the token *vocabulary*, the guardrails | **Brain** | You can change it, but this is what foundation updates touch — so a heavy fork here makes future merges harder. Consider contributing it upstream instead (see below). |
+
+<Note>
+The reseed is a **file/directory operation**, not untangling code. The seed lives in
+known places (`lib/system/seed/`, your theme, your knowledge, your catalog). Swap
+those; keep the rest.
+</Note>
+
+## Fit it to your setup
+
+Common "can I make it fit my setup" questions, answered:
+
+- **"Can I run it on a different port / mount path?"** The hub mount point is a single
+  swappable constant, and it runs on port 4100 by default — both are yours to change.
+- **"Can I target mobile, not web?"** Yes — that's what the adapter layer is for. The
+  hub UI stays web/shadcn; only the adapter changes.
+- **"Can I add my own skills and agents?"** Yes — that's expected. Just clear the
+  capability gate (prove nothing existing covers it) so the set stays coherent.
+- **"Can I restructure the hub?"** You can, but that's Brain — see the caution above.
+
+## Keeping the option to pull updates
+
+Because your clone keeps the foundation as a git `upstream` remote, you can *choose*
+to pull foundation improvements later — as an ordinary git merge, on your terms.
+Modifying **seed** freely costs you nothing here (seed conflicts resolve "keep
+ours"). Heavily forking **brain** is what makes that merge harder — so if you find
+yourself changing brain, ask whether it's actually a **foundation improvement worth
+contributing upstream** rather than a private fork. The `synclair-sync` skill handles
+both directions.
+
+<Warning>
+Nothing syncs automatically — not foundation updates *into* your clone, and never your
+**seed** in either direction. Your brand, domain, and knowledge stay yours. Pulling
+updates is always a deliberate act.
+</Warning>
+
+<Card title="Still have questions?" icon="list-check" href="/faq">
+  The fast-answer FAQ covers the rest.
+</Card>

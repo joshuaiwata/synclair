@@ -1,0 +1,86 @@
+---
+title: "FAQ"
+description: "The fast answers to the questions everyone asks first."
+---
+
+<AccordionGroup>
+
+  <Accordion title="Is Synclair a separate app, or part of my app?" icon="window">
+    A **separate app**. It's a hub mounted at `/synclair` that runs on its own server
+    (port 4100). It is **not** a dependency your product imports and not a runtime
+    part of your app — it *documents* your app. In watcher mode it's literally a
+    separate repo beside the product; in embedded mode it shares the repo but still
+    runs as its own app on its own port.
+  </Accordion>
+
+  <Accordion title="Where is the database?" icon="database">
+    There isn't one — **git is the database.** Every fact (tokens, component docs,
+    knowledge digests, the system map) is a plain file committed to the repo. Sync
+    between people is `git pull` / `git push`. A real database only enters the picture
+    if you *host* one shared Synclair at a single URL, where per-user real-time state
+    (comments, presence) would need somewhere to live. Running locally from a clone —
+    the normal case — needs no database.
+  </Accordion>
+
+  <Accordion title="Does it turn my app into a monorepo?" icon="folder-tree">
+    Not necessarily. You have three topologies:
+    - **Watcher** (recommended for existing apps) — Synclair is a *separate repo
+      beside* yours. Your repo is untouched; no monorepo.
+    - **New project** — the clone *is* your repo. One repo, one app plus the hub.
+    - **Co-located** — Synclair vendored inside your existing repo at `./synclair`,
+      isolated so builds don't collide. This is the only one that adds a subdirectory
+      to your repo, and it's opt-in, not the default.
+  </Accordion>
+
+  <Accordion title="Can I modify it to fit my setup?" icon="wrench">
+    Yes — modify anything. Your clone is yours and diverges freely. The
+    [three-layer model](/customizing) tells you what's safe to change without making
+    future foundation updates painful: **seed** (your brand/knowledge/catalog) changes
+    freely; **adapter** swaps per platform; heavy changes to **brain** (the hub UI,
+    guardrails) are possible but better contributed upstream than privately forked.
+  </Accordion>
+
+  <Accordion title="How is it different from Storybook?" icon="book-open">
+    Storybook *executes* your components in isolation — a component workshop tied to
+    your stack. Synclair *documents* your whole design system (tokens, components,
+    knowledge, system map) and its second audience is **AI agents**. They can coexist.
+    Full comparison on the [Synclair vs. Storybook](/vs-storybook) page.
+  </Accordion>
+
+  <Accordion title="Does it need Claude, or does it work with other AI tools?" icon="robot">
+    It works with any agent. Skills are portable markdown with a described *when*;
+    Claude Code auto-surfaces them, and any other tool (Cursor, Copilot, Codex,
+    Gemini) reads the same `SKILL.md` when a task matches. The router is `AGENTS.md`
+    precisely so every agent reads one map.
+  </Accordion>
+
+  <Accordion title="What stack is the hub itself built in? Do I have to use that stack?" icon="layer-group">
+    The hub UI is Next + shadcn + Tailwind — and that's **unrelated to what your app
+    is built in.** A React Native or SwiftUI project still gets the same web-based
+    hub; only the *adapter* changes to depict and export for your platform.
+  </Accordion>
+
+  <Accordion title="How do I get foundation updates after I've cloned?" icon="arrows-rotate">
+    Deliberately, never automatically. Your clone keeps the foundation as a git
+    `upstream` remote, so you pull improvements as an ordinary git merge when you want
+    them — handled by the `synclair-sync` skill. Your **seed** (brand, domain,
+    knowledge) never syncs in either direction.
+  </Accordion>
+
+  <Accordion title="Do I run it in production?" icon="server">
+    Typically no — it's a local/internal tool each teammate runs from a clone, the
+    way you'd run a docs or design-system site. It *can* be hosted at a shared URL,
+    but that's the case that introduces the need for a real database (see above).
+  </Accordion>
+
+  <Accordion title="What port does it run on?" icon="plug">
+    **4100**, not 3000 — so it doesn't collide with your app's dev server. You browse
+    the hub at `localhost:4100/synclair`. The port and the mount path are both
+    configurable.
+  </Accordion>
+
+</AccordionGroup>
+
+<Card title="Didn't find it? Start from the top" icon="house" href="/">
+  The overview, and links into every section of the handbook.
+</Card>
