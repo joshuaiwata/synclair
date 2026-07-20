@@ -15,14 +15,16 @@ Synclair over an existing app starts as an empty hub. This skill fills it: five 
 
 **Division of labor is strict:** diggers READ the host and PROPOSE; only you (the main thread) WRITE files in this repo. Diggers never edit; you never bulk-read the host.
 
-## Phase 0 — pin the host(s) + declare surfaces
+## Phase 0 — confirm topology, pin the host(s) + declare surfaces
 
-Confirm the host repo path with the user if not already recorded. Then write it where every later run and digger finds it:
+**FIRST, settle topology with the user — never default it.** Existing-project setup is two orthogonal axes (`docs/setup-modes.md`): this skill is the *seeding* axis (intake from existing code); the *topology* axis — **embedded** (this clone lives *inside* the host repo at `./synclair`, host root is the parent `..`) vs **watcher** (this clone is a *separate sibling* beside the host, host root is `"../acme-app"`) — is the **user's call**. It's not cosmetic: topology sets the host `root` you record AND it materially changes rendering — embedded keeps the host source in-repo so live-import (Path A, Phase 4) is clean and durable; watcher crosses a repo boundary so the compat gate is stricter and cards more often fall back to documented-only. So **if `data/setup.json` isn't already resolved** (a fresh `co-locate-synclair` / `project-bootstrap` install writes it), **ASK the user embed vs watcher before pinning anything** — don't infer it from whichever directory you happen to be running in, and don't pick the faster one for yourself.
+
+Then confirm the host repo path with the user, and write it where every later run and digger finds it:
 
 - `data/external-catalog.json` → `hosts: [{ name, root, surface }]` (roots **relative to this repo**). Pick by topology: **watcher/sibling** → `"../acme-app"`, or monorepo workspaces `"../acme/apps/web"`; **embedded** (this clone is `./synclair` inside the host) → the host root is the **parent**, so `".."`, and its monorepo apps are `"../apps/web"`, `"../apps/mobile"`. Declaring a host whose root is an ancestor of cwd is exactly what makes `detectSetupMode()` resolve `embedded` — so don't omit it.
 - A `memory/` entry (host path(s) + one-line stack description) indexed in `MEMORY.md`.
 
-**Record the setup mode.** If it isn't already resolved (a fresh `co-locate-synclair` install should have written it), record `data/setup.json` now that the host is pinned: `{ "mode": "embedded" | "watcher", "resolvedAt": "<ISO now>", "resolvedBy": "install" }` — `embedded` when the host root is `..`/an ancestor, `watcher` when it's a sibling. Matches `recordSetupMode()` in `lib/system/setup.ts`; blanked to `{ "mode": null }` by `synclair-reset.sh`, so re-record after a reset.
+**Record the setup mode** (the answer the user just gave). Write `data/setup.json` now that the host is pinned: `{ "mode": "embedded" | "watcher", "resolvedAt": "<ISO now>", "resolvedBy": "install" }` — `embedded` when the host root is `..`/an ancestor, `watcher` when it's a sibling; these MUST agree (a `..` root with `"mode": "watcher"` is a contradiction — re-confirm with the user). Matches `recordSetupMode()` in `lib/system/setup.ts`; blanked to `{ "mode": null }` by `synclair-reset.sh`, so re-record after a reset.
 
 **Surfaces.** If the host ships MORE THAN ONE frontend (a web app + a React Native/Expo companion, a monorepo with two apps), each is a **surface** — see `lib/system/surfaces.ts`. After the survey confirms what exists (Phase 1's "Surfaces" section), **ask the user to confirm** the detected surfaces, then declare them in `lib/system/seed/surfaces.ts` (one entry per frontend: `id`, `label`, `platform`, `root`, `framework`) and give each catalog host its `surface` id. **Single frontend = leave the seed empty** — the hub then shows zero multi-surface chrome. Don't invent surfaces for one responsive web app; responsive ≠ a second surface.
 
@@ -70,7 +72,7 @@ Returns proposed brand ramps, typography/spacing/radius, extra foundation catego
 
 - **Colors** → `lib/system/seed/brand-ramps.ts` (companion mode: use `bg-[#hex]` arbitrary classes so swatches are self-contained DATA that never restyle the hub).
 - **Typography, spacing, radius, + agent-decided extra categories** → `lib/system/seed/foundation.ts` (`PROJECT_FOUNDATION`): host `fonts`, custom `type`/`spacing`/`radii` (leave an array EMPTY when the host uses its framework default — Foundations then says "framework default" rather than showing the hub's values — and note it in `notes`), and one `sections` entry per real extra category the dig found (logo, brand guidelines, iconography, elevation, motion; or a "brand is runtime/per-tenant" note for SaaS). These become the Foundations tabs.
-- **Examples sample (leads Foundations when captured):** when the dig can bundle the host's core custom properties verbatim, write `sample` (`vars` + `fontFamily`) into `PROJECT_FOUNDATION` **and, in the same pass, compose the gallery tiles** inside `ExamplesShowcase` (`components/library/foundations.tsx`) against those var names — the module page header, button hierarchy, status badges, a form field. The Examples tab then leads Foundations (first/default). Skip `sample` entirely rather than shipping the tab with no tiles.
+- **Examples sample — REQUIRED, and it must not be empty.** Writing a `sample` makes the **Examples tab the default landing tab of Foundations**, so an authored `sample` with no composed tiles ships an *empty first impression* — the page opens on a blank box and reads as "Foundations wasn't filled out" even though Color/Type/Spacing/Shape all render. That is the specific failure to avoid. So it's all-or-nothing: **either** bundle the host's core custom properties verbatim into `sample` (`vars` + `fontFamily`) **AND in the SAME pass compose the tiles** inside `ExamplesShowcase` (`components/library/foundations.tsx`) against those var names — module page header, button hierarchy, status badges, a form field — so the default tab leads with real applied UI; **or** omit `sample` entirely so Foundations defaults to Color. Never author `sample` and leave the tiles uncomposed. Before calling Phase 3 done, open `/synclair/foundations` and confirm the **default** tab renders content, not an empty frame.
 - **Companion mode keeps the hub neutral:** DON'T write host theme values into `app/globals.css` or `lib/system/tokens.ts` — that restyles the hub itself (the mistake to avoid). Those two files are only the sanctioned home for raw hex/px in **new-project** mode (the clone IS the product). In companion mode, everything the host contributes lives in `lib/system/seed/` as data.
 - Where its proposal is low-confidence (mined, not declared; conflicting values), show the user the conflict and let them pick — don't launder ambiguity into the seed.
 
@@ -88,6 +90,13 @@ Launch with the surveyor's component pointers; let it discover by usage ranking 
 - Run `npm run check:host` — must pass (it verifies your written hashes against the host).
 - Run `npm run check:coverage` — the anti-fiction sweep (docs/rendering-parity.md). It diffs the LIVE host scan against the catalog both ways: **uncataloged candidates** (triage — real design-system pieces get cataloged, page one-offs get ignored; the initial dig always leaves a tail, and the gallery shows the honest count) and **cataloged-but-unused** entries (zero host imports — dead host code worth flagging to the team, or catalog noise worth pruning; never leave them unexamined, that's how catalogs become fiction).
 - Run `npm run scan:hygiene` — writes `data/host-hygiene.json` so `/synclair/hygiene` shows where the host steps outside its own foundation (inline styles, raw colors, arbitrary values, bypassed primitives). Advisory; feeds the build report's story.
+
+## Phase 4b — app sitemap (`pages-map`)
+
+Cataloging the *pieces* isn't the whole app — map the **screens** too, as part of intake, not as a follow-up. Run the **`pages-map`** skill against the host now: it launches the `page-mapper` digger and writes `data/pages-map.json` (every route/view, the components/blocks/templates each composes, navigation edges, and a live-preview URL per screen) so `/synclair/pages` shows the whole app at a glance instead of its empty state. Follow that skill's Generate procedure (validate → write whole file → `check:pages` passes).
+
+- **Live route previews need the host running.** So this phase is also where you record the host's local dev server(s) in `data/dev-servers.json` (local URL + boot command — `lib/system/dev-servers.ts`), so `/synclair/pages` lights up real previews when the host is up and offers to boot it when not. If the host can't be booted here (e.g. it needs a local DB), still write the pages map from the router; note the previews are pending in the build report.
+- Single-frontend hosts map one route tree; multi-surface hosts map per surface (the `page-mapper` takes the surface's host root, same as the cataloger).
 
 ## Phase 5 — build report (`build-report`) — REQUIRED, closes every intake
 
@@ -121,12 +130,14 @@ Re-run the surveyor only on big host changes (new framework). Memory + manifest 
 - [ ] `data/external-catalog.json` has `hosts` (correct `root` for the topology — `..`/ancestor for embedded) + entries; `npm run check:host` passes
 - [ ] `npm run check:coverage` run and triaged (uncataloged candidates dispatched or consciously deferred; zero-usage entries pruned or flagged)
 - [ ] `npm run scan:hygiene` run; `/synclair/hygiene` renders the host's foundation drift
-- [ ] `data/setup.json` resolved (`"mode": "embedded"` or `"watcher"`), not `null`
+- [ ] **Topology was ASKED, not defaulted** — the user chose embed vs watcher; `data/setup.json` resolved (`"mode": "embedded"` or `"watcher"`, agreeing with the host root), not `null`
 - [ ] Multi-frontend hosts: surfaces declared in `lib/system/seed/surfaces.ts` (user-confirmed) and every catalog entry carries its `surface`
 - [ ] `data/system-map.json` written; `/synclair/system` renders the host's anatomy
+- [ ] **App sitemap mapped** — `pages-map` run; `data/pages-map.json` written, `/synclair/pages` renders, `npm run check:pages` passes; host dev server recorded in `data/dev-servers.json` (or previews noted pending in the report)
 - [ ] `lib/system/knowledge/sources.ts` populated; top priorities distilled with `distilledInto` set
 - [ ] Onboarding brief generated (`data/knowledge/summaries/` + `index.json`) so the Knowledge Summary tab isn't empty
-- [ ] Seed reflects the host brand (`brand-ramps.ts`, `globals.css`) or the user chose to keep neutral
+- [ ] Seed reflects the host brand (`brand-ramps.ts` + `foundation.ts`) or the user chose to keep neutral
+- [ ] **Foundations' default tab isn't empty** — either `sample` + composed `ExamplesShowcase` tiles render on the Examples tab, or `sample` is omitted so Foundations opens on Color (verify by loading `/synclair/foundations`)
 - [ ] **Rendered previews decided** — for each surface's top primitives: ported live (`port-host-component`), screenshotted in situ, or documented-only explicitly accepted by the user (never silently deferred)
 - [ ] **Web-surface blocks/templates render LIVE** — every host block/template on a web surface with the host on disk is live-imported (Path A); `npm run check:previews` enforces this, screenshots don't satisfy it
 - [ ] **Build report generated (`build-report`)** — `data/reports/<date>.json` written; `/synclair/reports` renders it with the verified badge (no count-mismatch banner). An intake without a report is not done.
