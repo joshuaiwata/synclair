@@ -18,7 +18,7 @@ Two things in one place:
     the environment.
   </Card>
   <Card title="Foundation freshness" icon="arrows-rotate">
-    Whether this clone is behind the mother Synclair repo — the opt-in "call home" check.
+    Whether this clone is behind the upstream Synclair repository — the opt-in "call home" check.
   </Card>
 </CardGroup>
 
@@ -26,13 +26,13 @@ Two things in one place:
 
 - **The stack view** — the framework, styling, and tooling the clone runs.
 - **The Synclair view** — the foundation freshness state: your clone's **baseline** (the
-  mother sha it last synced to) and, when call-home is on, how many foundation updates
+  upstream commit it last synced to) and, when call-home is on, how many foundation updates
   are available with their commit titles.
 
 ## How it works
 
 Freshness uses an **opt-in "call home"** seam (`data/mother.json`). When enabled, the hub
-compares your recorded baseline against the mother repo via GitHub's public compare API
+compares your recorded baseline against the upstream repository via GitHub's public compare API
 and shows "up to date" or "N updates available" — **checking is never pulling**.
 
 <Note>
@@ -59,7 +59,7 @@ separate, deliberate acts — which is the whole doctrine of "clone, sync delibe
   </Accordion>
   <Accordion title="Promote an improvement upstream" icon="arrow-up">
     If something you built here is foundation (not seed), the same skill cherry-picks it
-    into the mother repo — the flywheel that improves Synclair for every clone.
+    into the upstream repository — the flywheel that improves Synclair for every clone.
   </Accordion>
 </AccordionGroup>
 
