@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
  * `PageHeader`, a centered `max-w-6xl` `<main>`, and a muted intro lead — with
  * the gap and max-width drifting page to page. Centralizing them here is the
  * "eat our own dogfood" move: the hub's own pages use a composable instead of
- * re-typing layout. Long-form/marketing routes (how-it-works) and the library
- * explorer (its own breadcrumb shell) are the deliberate exceptions.
+ * re-typing layout. Long-form/marketing routes and the library explorer (its
+ * own breadcrumb shell) are the deliberate exceptions.
  *
  * Anatomy, top to bottom: title + optional right `meta` slot (path text,
  * status, or an action) → one `lead` paragraph → the page's sections. When a
