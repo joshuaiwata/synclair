@@ -1,10 +1,16 @@
 # Using Synclair alongside an EXISTING project
 
-[`new-project.md`](new-project.md) covers the primary flow: a new project **is**
-a Synclair clone. This doc covers the other case — you already have a product
-repo (its own framework, router, and dev server) and want Synclair next
-to it: knowledge manifest, references library, design tokens,
-Figma digests, and a place to prototype views.
+> **Where this sits in the two axes** ([`setup-modes.md`](setup-modes.md)): this doc is
+> the **intake** path — you populate the hub from code that already exists rather than
+> seeding a fresh brand. It describes the common **watcher** bundle (a *separate* sibling
+> clone beside the product, two repos). If you'd rather keep one repo, the same intake
+> applies to a **co-located embedded** clone (`co-locate-synclair`) — topology is a
+> separate choice from the intake below.
+
+[`new-project.md`](new-project.md) covers the fresh-seed flow. This doc covers the other
+case — you already have a product repo (its own framework, router, and dev server) and
+want Synclair next to it: knowledge manifest, references library, design tokens, Figma
+digests, and a place to prototype views.
 
 ## The mental model (read this first)
 

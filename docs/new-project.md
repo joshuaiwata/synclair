@@ -1,5 +1,12 @@
 # Starting a new project from Synclair
 
+> **Where this sits in the two axes** ([`setup-modes.md`](setup-modes.md)): this doc is
+> the **fresh-seed** path — you reseed a brand/identity from scratch rather than intaking
+> from existing code. It describes the common **embedded** bundle (the product grows
+> inside the clone, one repo), but the *seeding* steps here are independent of topology.
+> Adopting Synclair onto an app that already exists instead? See
+> [`existing-project.md`](existing-project.md).
+
 This is the **clone-and-prune** procedure — the operational half of
 [`foundation-model.md`](foundation-model.md) §6. It replaces the old "carry a
 snapshot" approach: a new project **clones the live Synclair foundation**, blanks
