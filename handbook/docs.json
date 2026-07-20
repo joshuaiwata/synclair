@@ -11,7 +11,7 @@
   "navigation": {
     "groups": [
       {
-        "group": "Overview",
+        "group": "Introduction",
         "pages": ["index", "vs-storybook", "how-it-works"]
       },
       {
@@ -23,7 +23,7 @@
         "pages": ["agents-and-skills", "catalog-sync", "customizing"]
       },
       {
-        "group": "Hub sections",
+        "group": "The hub",
         "pages": [
           "the-hub",
           "foundations",
