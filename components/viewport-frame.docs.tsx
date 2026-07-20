@@ -8,7 +8,7 @@ const doc: ComponentDoc = {
   examples: [
     {
       title: "Default",
-      description: "Toggle desktop / tablet (768px) / mobile (375px); the frame reflows its children.",
+      description: "Toggle wide (1920px) / desktop / tablet (768px) / mobile (375px); the frame reflows its children.",
       code: `<ViewportFrame>
   <MyBlock />
 </ViewportFrame>`,
@@ -41,7 +41,7 @@ const doc: ComponentDoc = {
     { name: "children", type: "ReactNode", description: "The preview content to frame." },
     {
       name: "defaultMode",
-      type: '"mobile" | "tablet" | "desktop" | "fullscreen"',
+      type: '"mobile" | "tablet" | "desktop" | "wide" | "fullscreen"',
       default: '"desktop"',
       description: "Initial viewport.",
     },
@@ -53,7 +53,7 @@ const doc: ComponentDoc = {
     },
   ],
   notes:
-    "Mechanism is CSS width, not an iframe — cheap and animated, but `md:`/`lg:` media queries do NOT fire inside it; container-driven layouts reflow correctly. For full-fidelity responsive previews of whole templates, put an `embed` preview (the real route in an iframe) inside the frame: the iframe's viewport is the frame width, so media queries fire at the device width. Widths are fixed project-wide (mobile 375 / tablet 768) — do not add per-doc widths.",
+    "Mechanism is CSS width, not an iframe — cheap and animated, but `md:`/`lg:` media queries do NOT fire inside it; container-driven layouts reflow correctly. For full-fidelity responsive previews of whole templates, put an `embed` preview (the real route in an iframe) inside the frame: the iframe's viewport is the frame width, so media queries fire at the device width. Widths are fixed project-wide (mobile 375 / tablet 768 / wide 1920) — do not add per-doc widths.",
 }
 
 export default doc

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Maximize2, Monitor, Smartphone, Tablet } from "lucide-react"
+import { Maximize2, Monitor, Smartphone, Tablet, Tv } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils"
 /**
  * The canonical doc viewports. Widths are the industry-standard device
  * checkpoints (and match the responsive vocabulary in DocResponsiveRule):
- * mobile 375, tablet 768, desktop = container width. "fullscreen" exists so a
- * dense template preview can escape the doc column.
+ * mobile 375, tablet 768, desktop = container width, wide = 1920 (large
+ * monitors). "fullscreen" exists so a dense template preview can escape the
+ * doc column.
  *
  * Mechanism is CSS WIDTH, not an iframe: the frame constrains its own width and
  * the embedded tree reflows. Cheap and animated, but media queries don't fire —
@@ -19,12 +20,13 @@ import { cn } from "@/lib/utils"
  * (real route in an iframe) inside this frame — the iframe viewport IS the
  * frame width, so media queries fire at the device width.
  */
-export type ViewportMode = "mobile" | "tablet" | "desktop" | "fullscreen"
+export type ViewportMode = "mobile" | "tablet" | "desktop" | "wide" | "fullscreen"
 
 export const VIEWPORT_WIDTHS: Record<ViewportMode, number | "100%"> = {
   mobile: 375,
   tablet: 768,
   desktop: "100%",
+  wide: 1920,
   fullscreen: "100%",
 }
 
@@ -37,6 +39,7 @@ export const VIEWPORT_WIDTHS: Record<ViewportMode, number | "100%"> = {
 export const ViewportModeContext = React.createContext<ViewportMode>("desktop")
 
 const MODES: { mode: ViewportMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { mode: "wide", label: "Wide (1920px)", icon: Tv },
   { mode: "desktop", label: "Desktop", icon: Monitor },
   { mode: "tablet", label: "Tablet (768px)", icon: Tablet },
   { mode: "mobile", label: "Mobile (375px)", icon: Smartphone },
