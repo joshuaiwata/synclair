@@ -129,12 +129,21 @@ const perFile = new Map(); // hostPath -> { count, byRule }
 let scannedFiles = 0;
 const hostMeta = [];
 
+// A monorepo "shared" host may root at an ancestor of the per-app hosts
+// (shared ".." containing "../apps/portal"). Exclude nested host roots from
+// the outer host's walk, or every app file is scanned (and counted) twice.
+const allHostRootsAbs = hosts
+  .map((h) => path.resolve(root, h.root))
+  .filter((p) => existsSync(p));
 for (const host of hosts) {
   const hostRootAbs = path.resolve(root, host.root);
   if (!existsSync(hostRootAbs)) {
     console.log(`Hygiene: host not found at ${host.root} — skipping.`);
     continue;
   }
+  const nestedRoots = allHostRootsAbs.filter(
+    (p) => p !== hostRootAbs && p.startsWith(hostRootAbs + path.sep)
+  );
   let commit;
   try {
     commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: hostRootAbs })
@@ -151,6 +160,7 @@ for (const host of hosts) {
 
   for (const rel of files) {
     const abs = path.join(hostRootAbs, rel);
+    if (nestedRoots.some((p) => abs.startsWith(p + path.sep))) continue;
     try {
       if (statSync(abs).size > MAX_FILE_BYTES) continue;
     } catch {

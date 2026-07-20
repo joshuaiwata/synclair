@@ -21,6 +21,7 @@ import {
 } from "@/lib/system/seed/foundation"
 import { isExistingProjectMode } from "@/lib/system/external"
 import { project } from "@/lib/system/seed/project"
+import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
 import { ColorSwatch } from "@/components/library/color-swatch"
 import { cn } from "@/lib/utils"
@@ -553,7 +554,9 @@ export function ExamplesShowcase() {
       </p>
       {/* isolate: the scoped vars never cascade past this frame */}
       <div className="grid gap-4 sm:grid-cols-2" style={frameStyle}>
-        {/* Intake composes the project's example tiles here (see doc above). */}
+        {/* Intake composes the project's example tiles here (see doc above);
+            they live in seed (foundation-tiles), never in this Brain file. */}
+        <FoundationExampleTiles />
       </div>
     </div>
   )
