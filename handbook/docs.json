@@ -1,0 +1,46 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Synclair",
+  "description": "One aligned source of truth — design tokens, components, and knowledge — for humans and AI agents building the same product.",
+  "colors": {
+    "primary": "#1c1917",
+    "light": "#d6d3d1",
+    "dark": "#1c1917"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": ["index", "vs-storybook", "how-it-works"]
+      },
+      {
+        "group": "Get started",
+        "pages": ["installation", "setup-modes"]
+      },
+      {
+        "group": "Using Synclair",
+        "pages": ["the-hub", "agents-and-skills", "customizing"]
+      },
+      {
+        "group": "Reference",
+        "pages": ["faq"]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/joshuaiwata/synclair" }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "synclair.dev",
+      "href": "https://synclair.dev"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/joshuaiwata/synclair"
+    }
+  }
+}

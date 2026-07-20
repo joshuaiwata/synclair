@@ -1,0 +1,105 @@
+---
+title: "How it works"
+description: "The non-obvious parts — where the database is, and how Synclair rides on git and the AI tools you already use."
+---
+
+Most of Synclair is intuitive once you've clicked around the hub. A few things are
+genuinely non-obvious the first time, and they're the things people ask about. This
+page covers exactly those.
+
+## There is no server, and no separate database — git is the database
+
+This surprises people, so it's worth stating plainly: **Synclair has no backend and
+no database of its own.** Every fact it shows — a token, a component's docs, a
+knowledge digest, the system map — is a **plain file committed to your repo.**
+
+<Note>
+The rule of thumb: **if a change deserves a commit message, it's a file in git.**
+Tokens, the component registry, docs, knowledge digests — all versioned files. Sync
+between teammates is just `git pull` / `git push`.
+</Note>
+
+Why it's built this way, not as a stopgap:
+
+- **It's what keeps humans and agents reading the same bytes.** One source, two
+  renderings (a page and machine context) only holds if there's a single canonical
+  copy — and a file in git is that copy.
+- **Changes get history and review.** A token change is a diff you can review, not a
+  silent row update.
+- **Agents already read files.** No API to teach them; the knowledge *is* the repo.
+
+**When would a real database appear?** Only if you *host* a single shared Synclair
+at one URL (a read-only filesystem), where per-user, real-time state — comments,
+presence, stars-per-person — needs somewhere to live. Running it locally from a
+clone (the normal case) has a writable filesystem, so even those features work off
+files. Foundation content stays in git regardless.
+
+## It piggybacks on the AI tools you already use
+
+Synclair doesn't ship its own AI. Its "intelligence" is **packaged know-how that
+your existing agent** (Claude Code, Cursor, Copilot, Codex, Gemini, …) **loads on
+demand.** Two mechanisms make this cheap:
+
+<Steps>
+  <Step title="Skills — progressive disclosure">
+    A *skill* is a plain-markdown guide at `.claude/skills/<name>/SKILL.md` with a
+    one-line description of *when* it applies. Only that one line sits in context
+    (cheap); the full body loads only when a task matches; the files it points to
+    load only when the body needs them. A 5,000-line knowledge base costs ~15 words
+    until it's relevant.
+  </Step>
+  <Step title="Digger agents — context isolation">
+    A *digger* is a narrow sub-agent with its own context window. It reads the whole
+    40-page PRD (or the host codebase, or a Figma file), distills it, and returns
+    one tight paragraph. The expensive read happens in a context you throw away —
+    only the answer comes back to the main thread.
+  </Step>
+</Steps>
+
+The format is **portable, not Claude-only**. Claude Code auto-surfaces skills by
+description; any other agent reads the same `SKILL.md` when a task matches its
+*when*. That's why the router file is `AGENTS.md` — every agent reads the same map.
+
+<Card title="See the full capability set" icon="robot" href="/agents-and-skills">
+  What skills and agents ship, and how any agent invokes them.
+</Card>
+
+## It rides on GitHub for the "live" parts
+
+Because git is the database, GitHub (or any git host) does double duty:
+
+- **Repo activity** — recent commits and diffs surface in the hub. Git is the shared
+  log; Synclair just reads it.
+- **Foundation freshness** — an opt-in "call home" check compares your clone against
+  the upstream foundation via the GitHub compare API, so you can see if you're behind
+  before deciding to pull.
+- **CI as the enforcement gate** — the same `verify-ui` checks that run locally run on
+  every push/PR, so the design-system rules aren't advisory.
+
+## Rules ship as machine checks, not just prose
+
+A rule written only as prose ("no raw hex", "register components on creation") works
+only while every agent remembers it. Synclair's convention is: **whenever a rule can
+be machine-checked, it ships with its check.**
+
+| Check | Enforces |
+|---|---|
+| `tsc --noEmit` | Types |
+| ESLint guardrails | No raw hex/px, no hardcoded hub paths |
+| Registry drift check | Registry ↔ component ↔ docs stay in sync |
+
+One command — `npm run verify-ui` — runs them, and CI runs the same. Crucially, the
+**error messages are fix instructions** ("use a semantic token from `tokens.ts`"),
+so when an agent trips a guardrail, the message is a perfectly-timed re-prompt.
+
+## The flywheel
+
+The payoff compounds. The first time an agent digs into an area (reads the PRD,
+surveys the host code), it's expensive. But diggers **write the durable part back**
+into a skill — so the next agent loads it as a cheap one-line description instead of
+re-reading the source. Over time the distilled brain converges on "what a builder
+routinely needs," and raw sources get consulted only for genuinely new detail.
+
+<Card title="Next: install it" icon="download" href="/installation">
+  Two paths — a new project, or beside an app that already exists.
+</Card>

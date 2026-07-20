@@ -1,0 +1,79 @@
+---
+title: "Setup modes"
+description: "Embedded vs. watcher — the two ways a Synclair clone can sit relative to your product, and what each one costs and buys."
+---
+
+Synclair is always a foundation *for a product*. The one structural question is
+**where the clone sits relative to that product** — inside its repo, or beside it.
+That single fact drives how updates flow, whether agents get Synclair's skills
+ambiently, and how the hub frames what it documents. There are exactly **two** modes,
+named for topology.
+
+## The two modes
+
+|  | **Embedded** | **Watcher** |
+|---|---|---|
+| **Topology** | Synclair lives *inside* the product repo (one repo) | Synclair is a *separate* repo *beside* the product (two repos) |
+| **How you get here** | The clone **is** the product (new project), or Synclair was dropped into an existing repo (co-located) | The default sibling companion clone |
+| **Direction** | **Two-way** — skills/knowledge travel with the code; agents get them ambiently | **One-way** — observes and documents the host; nothing lands in it |
+| **On disk** | `product/` with Synclair at the root or vendored at `product/synclair/` | `product/` and `product-synclair/` as peers |
+
+```
+embedded (one repo)                 watcher (two repos)
+┌─────────────────────────┐         ┌──────────────┐   ┌──────────────────────┐
+│ product repo            │         │ product repo │   │ synclair clone       │
+│  ├─ <the product app>   │         │  └─ app/…    │──▶│  └─ /synclair (:4100) │
+│  └─ synclair/ (+ .claude) │         └──────────────┘   └──────────────────────┘
+└─────────────────────────┘          host, untouched     observes the host
+   skills travel with code                              (one-way documentation)
+```
+
+## Why named by topology, not by "sync"
+
+It's tempting to name the modes after which way they sync — but **two different syncs
+pull in opposite directions**, so "the sync mode" is ambiguous:
+
+- **Code ↔ knowledge tightness** favors **embedded** — one repo means skills, digests,
+  and the catalog live with the code and version with it.
+- **Foundation-update ease** favors **watcher** — a separate clone pulls upstream
+  Synclair updates as an ordinary merge, with no risk of entangling the product
+  repo's history or tooling.
+
+Because the two tugs point at different modes, topology is the one unambiguous axis:
+a clone is either *inside* the product repo or *beside* it. The sync trade-offs are a
+consequence of that choice, not the label.
+
+## Which should I pick?
+
+<CardGroup cols={2}>
+  <Card title="Pick embedded when…" icon="code-merge">
+    You're starting a new project, or you want agents building in your repo to get
+    Synclair's skills and knowledge **ambiently**, and one-repo ergonomics matter
+    more than frictionless foundation updates.
+  </Card>
+  <Card title="Pick watcher when…" icon="eye">
+    You're adopting Synclair onto an **existing app** you'd rather not touch, and you
+    want foundation updates to stay a clean, isolated merge. This is the recommended
+    default for existing code.
+  </Card>
+</CardGroup>
+
+## "Standalone" is not a third mode
+
+A brand-new project that clones Synclair and builds the product *in the clone* is
+already **embedded** — the product and Synclair share one repo from commit one.
+"Standalone" is just embedded *before the product files have been added*. That
+pre-product state is a **blank / unresolved** marker, not a mode of its own.
+
+## How the clone remembers its mode
+
+The mode is recorded once, explicitly, so every agent and every page reads the same
+answer instead of re-guessing. It lives in a small file (`data/setup.json`), resolved
+**determine → confirm → record**: install paths write it authoritatively; otherwise
+Synclair infers it from repo topology, confirms with you, then records it. The hub
+chrome shows a small "Embedded mode" / "Watcher mode" badge so you always know which
+you're in. (The upstream foundation repo itself ships blank — it's never "set up".)
+
+<Card title="Next: tour the hub" icon="compass" href="/the-hub">
+  What each section of the Synclair hub is for.
+</Card>

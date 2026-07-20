@@ -1,0 +1,97 @@
+---
+title: "What is Synclair?"
+description: "One aligned source of truth — design tokens, components, and knowledge — that humans and AI agents read the same way."
+---
+
+Synclair is a **foundation you clone at the start of a project** that becomes the
+single, aligned source of truth for how that project is built: its design tokens,
+its components, and the knowledge (specs, decisions, architecture) that everyone —
+human or AI — needs to build consistently.
+
+It exists to close one specific gap: **humans and AI agents drifting out of sync.**
+A designer has the Figma, an engineer has the code, an agent has whatever fits in
+its context window, and a PM has the PRD in Drive. Synclair makes all of them read
+the *same bytes* — one fact, projected as a page for people and as machine-readable
+context for agents, so they can't disagree.
+
+<Note>
+**Synclair is the foundation, not the product.** You don't ship Synclair — you ship
+the app you build *on* Synclair. Think of it as the workshop and the reference
+library for your product, not a feature of the product itself.
+</Note>
+
+## The one-sentence version
+
+> Synclair is a **context and governance layer** for your product's design system
+> and knowledge — a hub that documents what your app is made of, kept honest by
+> machine checks, and readable by every AI tool you already use.
+
+## What you actually get
+
+<CardGroup cols={2}>
+  <Card title="A component catalog" icon="shapes">
+    Every component, block, and template — with live previews, usage docs, and the
+    API — in one browsable gallery. Documented, not just rendered.
+  </Card>
+  <Card title="Design tokens" icon="palette">
+    Color, type, and spacing as one semantic vocabulary. Lint-enforced, so raw
+    hex/px can't sneak back in.
+  </Card>
+  <Card title="A knowledge base for agents" icon="brain">
+    PRDs, Figma, and decisions distilled into skills your AI tools load on demand —
+    so agents never start from a blank context.
+  </Card>
+  <Card title="A map of the whole app" icon="map">
+    The route/page sitemap, the backend/system map, and the host component catalog —
+    visibility into what the codebase actually consists of.
+  </Card>
+</CardGroup>
+
+## The mental model that makes the rest click
+
+Synclair is built on three principles. If you remember only these, the rest of this
+handbook follows:
+
+<Steps>
+  <Step title="It documents your design system; it doesn't execute it">
+    A component in the gallery is a *documented entity* — its tokens, spec, usage
+    rules, code, and a picture. Live-rendering it inline is just one convenient way
+    to draw that picture. The documentation is the point, not the runtime.
+  </Step>
+  <Step title="One source, two renderings">
+    Every fact lives once (in data/config files) and is projected two ways: an HTML
+    page for humans, and a machine-readable form for agents. They *can't* drift —
+    they derive from the same source.
+  </Step>
+  <Step title="Clone, then diverge deliberately">
+    You clone the foundation as your project's starting point and it becomes yours.
+    Nothing syncs automatically. When you *want* foundation improvements later, you
+    pull them with an ordinary git merge — on your terms.
+  </Step>
+</Steps>
+
+## Who it's for
+
+- **Teams pairing humans with AI agents** who keep re-explaining the same context
+  to every new session, and watching the design system erode one raw hex at a time.
+- **An existing app** that wants a living catalog + agent-readable knowledge layer
+  *beside* it, without becoming a dependency of it.
+- **A new project** that wants to start on rails — tokens, component conventions,
+  and an AI setup — instead of assembling them from scratch.
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="How is this different from Storybook?" icon="circle-question" href="/vs-storybook">
+    The comparison everyone asks for — and where the two genuinely diverge.
+  </Card>
+  <Card title="How it works" icon="gears" href="/how-it-works">
+    The non-obvious parts: where the "database" is, how it rides on git and your AI tools.
+  </Card>
+  <Card title="Install it" icon="download" href="/installation">
+    New project, or beside an app that already exists.
+  </Card>
+  <Card title="FAQ" icon="list-check" href="/faq">
+    Separate app? Monorepo? Can I modify it? Fast answers.
+  </Card>
+</CardGroup>

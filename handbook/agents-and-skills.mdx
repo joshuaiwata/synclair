@@ -1,0 +1,82 @@
+---
+title: "Skills & agents"
+description: "The reusable know-how Synclair ships as portable markdown skills and narrow digger agents — and how any AI tool uses them."
+---
+
+Synclair's "intelligence" is not a model it ships — it's **packaged know-how** your
+existing agent loads on demand. It comes in two shapes.
+
+## Skills — the packaged know-how
+
+A **skill** is a plain-markdown guide at `.claude/skills/<name>/SKILL.md`, each with a
+one-line description of *when* it applies. That's the whole format — no framework.
+
+<CardGroup cols={2}>
+  <Card title="Claude Code" icon="robot">
+    Auto-surfaces skills by their description and invokes them by name. You don't open
+    the file first.
+  </Card>
+  <Card title="Any other agent" icon="terminal">
+    Cursor, Copilot, Codex, Gemini, Aider — when a task matches a skill's *when*, the
+    agent opens and reads that `SKILL.md` (and any `references/*.md` it points to). The
+    manual version of the same progressive disclosure.
+  </Card>
+</CardGroup>
+
+<Note>
+This portability is why the project's router is `AGENTS.md`, not a Claude-only file —
+every agent reads the same map.
+</Note>
+
+## Agents (diggers) — narrow retrieval workers
+
+A **digger** is a sub-agent with its own context window. It reads something heavy — a
+40-page PRD, the host codebase, a Figma file — distills it, and returns one tight
+answer. The expensive read happens in a throwaway context; only the answer comes
+back. Narrow diggers return tighter answers than one do-everything agent.
+
+Examples that ship: `codebase-surveyor`, `system-mapper`, `knowledge-harvester`,
+`token-archaeologist`, `component-cataloger` (the existing-app intake crew),
+`prd-retriever`, `figma-frame-reader`, and reviewers like `doc-quality-reviewer`.
+
+## How capabilities are organized
+
+Every skill and agent carries two classifiers, surfaced on `/synclair/ai-setup`:
+
+- **`category`** — `build` · `knowledge` · `intake` · `foundation` · `tooling` — groups them.
+- **`layer`** — `foundation` (ships with Synclair, syncs from upstream) vs. `project`
+  (this repo's own, never syncs) — drives the "Origin" badge.
+
+## The ones worth knowing first
+
+| When you're… | Reach for |
+|---|---|
+| Asking "what is this project / give me an overview" | **`project-identity`** — answers about the product, not the foundation |
+| Building a view or screen | **`build-view`** — Figma is a guide, not a spec |
+| Creating or changing a component | **`component-library`** — the invention gate + registry |
+| Populating the hub from an existing codebase | **`existing-project-intake`** — survey → knowledge → tokens → catalog |
+| Mapping the backend/architecture | **`codebase-map`** — generates `/synclair/system` |
+| Mapping the pages/routes | **`pages-map`** — generates `/synclair/pages` |
+| Maintaining Synclair itself | **`synclair`** — the foundation's own guide |
+| Pulling foundation updates | **`synclair-sync`** — upstream merge, on your terms |
+
+Browse `.claude/skills/` for the full set.
+
+## The gate that keeps the set solid
+
+The set doesn't stay clean by a size limit — it stays clean by a **gate at creation**.
+Before adding a new skill or agent, you have to prove no existing capability covers it
+(extend or distill into it instead), pick skill-vs-agent by whether it needs its own
+context window, and declare its layer + category. That gate lives in the `synclair`
+skill.
+
+## The flywheel — capabilities get smarter
+
+When a digger surfaces something durable, it **writes the durable part back** into the
+relevant skill. So the first read of an area is expensive, and every read after is a
+cheap one-line load. Over time the distilled brain converges on what a builder
+routinely needs.
+
+<Card title="Next: can I modify all this?" icon="wrench" href="/customizing">
+  What's safe to change, what syncs from upstream, and what's yours forever.
+</Card>
