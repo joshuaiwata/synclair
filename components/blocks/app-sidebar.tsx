@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  ArrowUpRight,
   Blocks,
   BookOpen,
   Bot,
@@ -24,7 +25,7 @@ import {
 
 import { OPEN_COMMAND_EVENT } from "@/components/blocks/command-palette"
 import { Badge } from "@/components/ui/badge"
-import { synclair } from "@/lib/system/routes"
+import { HANDBOOK_URL, synclair } from "@/lib/system/routes"
 import { project } from "@/lib/system/seed/project"
 import { isMultiSurface } from "@/lib/system/surfaces"
 import {
@@ -216,17 +217,19 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              tooltip="How Synclair works"
-              isActive={pathname === synclair("/how-it-works")}
+              tooltip="Open the Synclair handbook"
               className="h-auto py-2"
             >
-              <Link href={synclair("/how-it-works")}>
+              <a href={HANDBOOK_URL} target="_blank" rel="noopener noreferrer">
                 <Compass />
                 <span className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="text-sm font-medium">How it works</span>
-                  <span className="text-muted-foreground text-2xs">What Synclair is</span>
+                  <span className="flex items-center gap-1 text-sm font-medium">
+                    Handbook
+                    <ArrowUpRight className="text-muted-foreground size-3" />
+                  </span>
+                  <span className="text-muted-foreground text-2xs">What Synclair is &amp; how it works</span>
                 </span>
-              </Link>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -2,8 +2,8 @@
   "anchors": [
     {
       "name": "app-sidebar",
-      "sourceHash": "cd1b342ae7976bd1703841959fa7aedd53f28252e5a64d650ad04aa98468380a",
-      "anchoredAt": "2026-07-17T21:28:22.722Z"
+      "sourceHash": "e1ddcbafe44d57905d39f5208cab071da88daeb0212aeed4fc839cfa5bd91db3",
+      "anchoredAt": "2026-07-20T18:20:28.817Z"
     },
     {
       "name": "command-palette",
@@ -37,8 +37,8 @@
     },
     {
       "name": "hub-page",
-      "sourceHash": "42e1417b00fec499812782ad054c17a0716c1ef3c97e8c2e6b7af2ec8d788a09",
-      "anchoredAt": "2026-07-17T08:36:34.517Z"
+      "sourceHash": "6a50785fe8db0abfe96822dd2e550173c1782dc8282447e1d05f90537f9f451f",
+      "anchoredAt": "2026-07-20T18:20:28.712Z"
     },
     {
       "name": "library-explorer",

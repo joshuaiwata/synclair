@@ -9,7 +9,7 @@ const doc: ComponentDoc = {
   intent:
     "Synclair's single navigation surface: every route is reachable from here, grouped by altitude (Synclair / Project / Library), with a global search entry point. It exists so no page needs its own navigation and so adding a route is a one-line nav item — never a fork. If a route isn't in the sidebar or ⌘K, it doesn't exist for the reader.",
   anatomy: {
-    description: "Brand header, search trigger, grouped nav, a footer 'How it works' link + snapshot.",
+    description: "Brand header, search trigger, grouped nav, a footer Handbook link + snapshot.",
     regions: [
       {
         name: "Brand header",
@@ -25,7 +25,7 @@ const doc: ComponentDoc = {
       {
         name: "Footer",
         purpose:
-          "A persistent 'How it works' link (the Synclair explainer) above optional snapshot/date text passed via props.",
+          "A persistent Handbook link (opens the Synclair docs at docs.synclair.dev in a new tab) above optional snapshot/date text passed via props.",
       },
     ],
   },
