@@ -1,0 +1,48 @@
+---
+title: "Search (⌘K)"
+description: "One command palette across the whole hub — components, blocks, templates, tokens, docs, and pages, all one keystroke away."
+---
+
+Press **⌘K** anywhere in the hub and a command palette opens over everything. It's not a
+section you navigate to — it's the connective tissue that makes the whole hub feel like
+one surface instead of a dozen separate pages.
+
+## What it is
+
+A single, global search across every catalogued thing in the hub — so you never have to
+remember *which* section something lives in. Type what you're looking for; jump straight
+to it.
+
+## What's in it
+
+The palette searches across:
+
+- **Components, blocks, and templates** — every library item
+- **Design tokens** — colors, type, spacing
+- **Docs and pages** — the per-item doc pages and the app's views
+
+It's backed by `lib/system/search-index.ts` — a pure metadata index, fully portable, that
+every hub carries.
+
+## How it works
+
+The index is plain metadata, so search is instant and works the same in every clone. It's
+one of the reasons the hub scales: as the library and knowledge grow, ⌘K keeps everything
+one keystroke away instead of buried behind navigation.
+
+## How to act on it
+
+<AccordionGroup>
+  <Accordion title="Jump to anything" icon="magnifying-glass">
+    Hit **⌘K**, type a component name, a token, or a page, and go straight there — the
+    fastest way to move around the hub.
+  </Accordion>
+  <Accordion title="Discover what exists" icon="compass">
+    Not sure if something's already in the library? Search first — it's the quickest way
+    to honor the invention gate (reuse before you build).
+  </Accordion>
+</AccordionGroup>
+
+<Card title="Related: Component library" icon="shapes" href="/component-library">
+  Most ⌘K results are library items — the components, blocks, and templates the catalog holds.
+</Card>
