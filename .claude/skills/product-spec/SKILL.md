@@ -2,6 +2,7 @@
 name: product-spec
 category: knowledge
 layer: foundation
+ambient: true
 description: Distilled product requirements for this project — the compressed, per-area digest of what each view/feature must do, sourced from the PRDs/specs/decks in the knowledge manifest. Use when building or scoping a specific product area and you need the requirements, entities, states, and rules — before or alongside build-view. Complements the project's domain skill (industry knowledge) with THIS product's decisions.
 ---
 
