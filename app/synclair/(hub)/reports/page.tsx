@@ -211,10 +211,14 @@ export default async function ReportsPage({
                     {p.hint && <div className="text-muted-foreground font-mono text-2xs">{p.hint}</div>}
                   </div>
                   <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-                    <div className="bg-primary h-full rounded-full" style={{ width: `${p.score}%` }} />
+                    {/* score is a 0–5 rubric (ReportPillar) — map to bar fill. */}
+                    <div
+                      className="bg-primary h-full rounded-full"
+                      style={{ width: `${Math.min(Math.max(p.score, 0), 5) * 20}%` }}
+                    />
                   </div>
                   <div className="text-muted-foreground w-12 shrink-0 text-right font-mono text-sm font-bold tabular-nums">
-                    {p.score}
+                    {p.score}/5
                   </div>
                 </div>
               ))}

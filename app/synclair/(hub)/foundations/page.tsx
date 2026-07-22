@@ -13,11 +13,13 @@ import {
   SpacingFoundation,
   TypographyFoundation,
 } from "@/components/library/foundations"
+import { DriftView, TokenSystemView } from "@/components/library/token-systems"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Markdown } from "@/components/markdown"
 import { isExistingProjectMode } from "@/lib/system/external"
 import { PROJECT_FOUNDATION } from "@/lib/system/seed/foundation"
 import { project } from "@/lib/system/seed/project"
+import { TOKEN_DRIFT, TOKEN_SYSTEMS } from "@/lib/system/seed/token-systems"
 
 type FoundationTab = {
   value: string
@@ -49,6 +51,37 @@ const NEW_PROJECT_TABS: FoundationTab[] = [
  * conditional tabs appear only when the token dig captured content for them.
  * Synclair's own tokens are never shown; they don't describe the product.
  */
+/**
+ * Multi-system companion mode: the host runs PARALLEL token systems, so each
+ * renders as its own complete style sheet and Compare leads with the drift
+ * between them — the decision aid for converging on one. The consolidated
+ * per-category tabs only make sense when there's a single vocabulary.
+ */
+function multiSystemTabs(): FoundationTab[] {
+  const tabs: FoundationTab[] = []
+  if (TOKEN_DRIFT.length > 0)
+    tabs.push({
+      value: "compare",
+      label: "Compare",
+      bare: true,
+      content: <DriftView systems={TOKEN_SYSTEMS} sections={TOKEN_DRIFT} />,
+    })
+  for (const system of TOKEN_SYSTEMS)
+    tabs.push({
+      value: `system-${system.id}`,
+      label: system.label,
+      bare: true,
+      content: <TokenSystemView system={system} />,
+    })
+  if (PROJECT_FOUNDATION.sections.length > 0)
+    tabs.push({
+      value: "notes",
+      label: "Notes",
+      content: <SectionsView sections={PROJECT_FOUNDATION.sections} />,
+    })
+  return tabs
+}
+
 function companionTabs(): FoundationTab[] {
   const byGroup = (g: string) =>
     PROJECT_FOUNDATION.sections.filter((s) => (s.group ?? "extra") === g)
@@ -120,13 +153,26 @@ function companionTabs(): FoundationTab[] {
 
 export default async function FoundationsPage() {
   const existingProject = await isExistingProjectMode()
-  const tabs = existingProject ? companionTabs() : NEW_PROJECT_TABS
+  const multiSystem = existingProject && TOKEN_SYSTEMS.length > 1
+  const tabs = multiSystem
+    ? multiSystemTabs()
+    : existingProject
+      ? companionTabs()
+      : NEW_PROJECT_TABS
   return (
     <HubPage
       title="Foundations"
       meta={<span className="font-mono text-xs text-muted-foreground">design tokens</span>}
       lead={
-        existingProject ? (
+        multiSystem ? (
+          <>
+            {project.name} runs {TOKEN_SYSTEMS.length} parallel token systems. Each renders here
+            as its own complete style sheet, and <span className="font-medium">Compare</span>{" "}
+            puts the same design slots side by side — the drift is the point: see where they
+            disagree, then converge on one. Documented as data in{" "}
+            <code className="font-mono text-xs">lib/system/seed/token-systems.ts</code>.
+          </>
+        ) : existingProject ? (
           <>
             {project.name}&rsquo;s design foundation, documented from the host codebase as data —
             the color, type, spacing, shape, and motion vocabulary its screens are built from (in{" "}

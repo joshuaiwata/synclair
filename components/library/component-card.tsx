@@ -42,6 +42,12 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   // neither, an honest `<name />` placeholder — never a misleading stand-in.
   const isHost = component.origin === "external"
   const hostPreview = isHost ? getHostPreview(component.name, component.surface) : undefined
+  // Blocks and templates are FLUID (panels, forms, layouts sized by their
+  // container) — thumb LIVE previews of them on a logical stage width so they
+  // lay out like a page column instead of collapsing to max-content (see
+  // CardThumb). Matches the doc view's framedByDefault tier split; components
+  // stay 1:1 intrinsic, and image previews keep their natural size.
+  const stageWidth = component.kind !== "component" ? 768 : undefined
   if (hostPreview) {
     const Live = hostPreview.component
     const node = hostPreview.theme ? (
@@ -53,7 +59,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
     )
     return (
       <div className="bg-muted/30 relative h-36 overflow-hidden border-b">
-        <CardThumb>{node}</CardThumb>
+        <CardThumb stageWidth={stageWidth}>{node}</CardThumb>
       </div>
     )
   }
@@ -82,7 +88,9 @@ function CardPreview({ component }: { component: RegistryComponent }) {
     <div className="bg-muted/30 relative flex h-36 items-center justify-center overflow-hidden border-b">
       {preview ? (
         // Non-interactive, zoom-to-fit thumbnail (Storybook-canvas semantics).
-        <CardThumb>{preview}</CardThumb>
+        <CardThumb stageWidth={first && first.kind !== "image" ? stageWidth : undefined}>
+          {preview}
+        </CardThumb>
       ) : (
         <span className="text-muted-foreground/60 font-mono text-xs">
           {`<${component.name} />`}

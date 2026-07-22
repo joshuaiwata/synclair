@@ -42,9 +42,15 @@ const EXPORT_PATTERNS = [
 ];
 const MAX_FILE_BYTES = 300 * 1024;
 
+// Keep in sync with lib/system/host-scan.ts + ci-pr-catalog-check.mjs. Beyond the
+// DS-convention components/ui, include feature-organized UI locations (screens,
+// views, features, shell, blocks, layouts) — coverage is advisory triage, so
+// over-surfacing a feature tree beats leaving it invisible.
+const UI_DIR_SEGMENTS = new Set([
+  "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+]);
 function isComponentDir(rel) {
-  const segs = rel.split(path.sep);
-  return segs.includes("components") || segs.includes("ui");
+  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg));
 }
 
 // All web source files (usage corpus), not just component dirs.
