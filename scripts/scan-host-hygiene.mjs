@@ -66,6 +66,15 @@ if (hosts.length === 0) {
 // of the system, not a bypass of it — those files are skipped for most rules.
 const HEX = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/;
 const LINKISH = /href=|http|mailto|import |from ["']/;
+// Tailwind's built-in LITERAL color utilities (white/black + the numbered
+// palette) — these bypass the project's semantic token scale exactly like a raw
+// hex does, but are invisible to the raw-hex rule because they're class names.
+// `transparent`/`current`/`inherit` are intentionally allowed (legit utilities).
+const TW_PREFIX = "text|bg|border|ring|fill|stroke|divide|outline|decoration|accent|caret|from|via|to|placeholder|shadow";
+const TW_HUE = "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
+const RAW_COLOR_UTILITY = new RegExp(
+  `\\b(?:${TW_PREFIX})-(?:white|black|(?:${TW_HUE})-(?:50|100|200|300|400|500|600|700|800|900|950))\\b`,
+);
 
 function makeRules(hostRootAbs) {
   // native-element only fires for primitives the host actually has.
@@ -93,6 +102,11 @@ function makeRules(hostRootAbs) {
       id: "arbitrary-value",
       skipUiDir: true,
       test: (line) => /\w-\[(?:#|\d)/.test(line) && /class(Name)?=/.test(line),
+    },
+    {
+      id: "raw-color-utility",
+      skipUiDir: true,
+      test: (line) => RAW_COLOR_UTILITY.test(line) && !LINKISH.test(line),
     },
     { id: "important", skipUiDir: false, test: (line) => /!important/.test(line) },
     {
@@ -167,7 +181,12 @@ for (const host of hosts) {
       continue;
     }
     scannedFiles += 1;
-    const inUiDir = /(^|\/)components\/ui\//.test(rel.split(path.sep).join("/"));
+    // A design-system primitive dir by convention: components/ui, a co-located
+    // *-ui set (e.g. toolbelt-ui), or a top-level primitives/ layer. Raw values
+    // here are the IMPLEMENTATION of the system, not a bypass of it.
+    const relPosix = rel.split(path.sep).join("/");
+    const inUiDir =
+      /(^|\/)components\/(ui|[a-z0-9]+-ui)\//.test(relPosix) || /(^|\/)primitives\//.test(relPosix);
     const lines = readFileSync(abs, "utf8").split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -207,7 +226,7 @@ if (hostMeta.length === 0) {
 // --- report ------------------------------------------------------------------
 const RULE_ORDER = [
   "inline-style", "raw-hex-color", "color-function",
-  "arbitrary-value", "important", "native-element",
+  "arbitrary-value", "raw-color-utility", "important", "native-element",
 ];
 const rules = RULE_ORDER.filter((id) => perRule.has(id)).map((id) => {
   const s = perRule.get(id);

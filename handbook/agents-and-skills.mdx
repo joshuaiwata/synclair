@@ -81,6 +81,17 @@ any single conversation.
 That portability is why the project's router is `AGENTS.md`, not a Claude-only file —
 **every agent reads the same map.**
 
+<Note>
+**Embedded / co-located mode** adds a doorway. Agents open the *host* repo at its root,
+but Synclair's skills live in the `synclair/` subdir — a place agent tools don't scan. So
+`scripts/bridge-agents.mjs` copies the **ambient** skills (those with `ambient: true` —
+`product-spec`, `project-identity`, `building-in-this-repo`) into `.claude/skills`,
+`.agents/skills`, and `.cursor/skills` at the host root, and writes an `AGENTS.md` block
+that also **points to** the deeper build skills and the specialist agents that stay in the
+hub. So a coder building anywhere in the product gets the build-guidance + the full map
+ambiently, without cd-ing into `synclair/`. Re-run the bridge after adding an ambient skill.
+</Note>
+
 ## Agents — specialist readers with their own context
 
 An **agent** (Synclair calls them *diggers*) is a sub-agent with its **own context
@@ -180,6 +191,7 @@ routinely needs — and raw sources get consulted only for genuinely new detail.
 | When you're… | Reach for |
 |---|---|
 | Asking "what is this project / give me an overview" | **`project-identity`** |
+| Building anywhere in the product app (embedded mode) | **`building-in-this-repo`** |
 | Building a view or screen | **`build-view`** |
 | Creating or changing a component | **`component-library`** |
 | Populating the hub from an existing codebase | **`existing-project-intake`** |
