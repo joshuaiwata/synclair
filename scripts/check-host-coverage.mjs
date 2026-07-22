@@ -109,6 +109,34 @@ function exportsOf(abs) {
   }
 }
 
+// Local (non-exported) PascalCase component definitions in a file — the
+// inline-invention blind spot. A screen that defines several of these has
+// grown DS-worthy primitives in place; because they're never exported, the
+// export-based coverage scan and the import-graph resolver are both blind to
+// them. PascalCase in a .tsx (functions/arrow-consts, hooks are camelCase)
+// reads as a component; requiring a function-shaped RHS avoids PascalCase
+// constant/config false positives.
+function localComponentsOf(abs) {
+  try {
+    if (statSync(abs).size > MAX_FILE_BYTES) return [];
+    const src = readFileSync(abs, "utf8");
+    const names = new Set();
+    const fn = /(^|\n)[ \t]*(export[ \t]+)?(?:async[ \t]+)?function[ \t]+([A-Z][A-Za-z0-9]*)[ \t]*[(<]/g;
+    const arrow =
+      /(^|\n)[ \t]*(export[ \t]+)?const[ \t]+([A-Z][A-Za-z0-9]*)[ \t]*(?::[^=]+)?=[ \t]*(?:async[ \t]+)?(?:\([^)]*\)|[A-Za-z0-9_$]+)[ \t]*(?::[^=>]+)?=>|(^|\n)[ \t]*(export[ \t]+)?const[ \t]+([A-Z][A-Za-z0-9]*)[ \t]*=[ \t]*(?:forwardRef|memo|function)\b/g;
+    let m;
+    while ((m = fn.exec(src)) !== null) if (!m[2]) names.add(m[3]);
+    while ((m = arrow.exec(src)) !== null) {
+      const isExport = m[2] || m[5];
+      const name = m[3] || m[6];
+      if (!isExport && name) names.add(name);
+    }
+    return [...names];
+  } catch {
+    return [];
+  }
+}
+
 const norm = (p) => p.replace(/^\.\//, "").split(path.sep).join("/");
 
 // --- resolve hosts + items ---------------------------------------------------
@@ -183,6 +211,12 @@ for (const host of hosts) {
 
   const uncataloged = candidates.filter((c) => !documented.has(c.rel));
 
+  // Inline-invention smell: files that define 2+ local (non-exported) components.
+  // These primitives were born inside a screen and are invisible to the catalog.
+  const inventionSmell = files
+    .map((rel) => ({ rel: norm(rel), locals: localComponentsOf(path.join(hostRootAbs, rel)) }))
+    .filter((c) => c.locals.length >= 2);
+
   // Live unused check (web surfaces): count each cataloged item's JSX tag
   // across the whole host web source; snapshot fallback for non-web surfaces.
   const webCorpus = [];
@@ -224,6 +258,15 @@ for (const host of hosts) {
     console.log(`\n  ⚠ Cataloged but UNUSED in the host (${unusedCataloged.length}) — fiction risk:`);
     for (const it of unusedCataloged) console.log(`    · ${it.name}  (${it.hostPath})`);
     console.log("  Either dead host code worth flagging to the team, or catalog noise worth pruning.");
+  }
+
+  if (inventionSmell.length > 0) {
+    console.log(`\n  ⚠ Inline-invented components (${inventionSmell.length} file${inventionSmell.length === 1 ? "" : "s"}) — DS-worthy primitives born inside a screen, invisible to the catalog:`);
+    for (const c of inventionSmell.slice(0, 20)) {
+      console.log(`    · ${c.rel}  (${c.locals.slice(0, 4).join(", ")}${c.locals.length > 4 ? ", …" : ""})`);
+    }
+    if (inventionSmell.length > 20) console.log(`    … and ${inventionSmell.length - 20} more`);
+    console.log("  Triage: a genuinely reusable one (a Checkbox, a Stepper) → promote to the component set + catalog it; a true one-off → leave it.");
   }
 
   // Documented but not rendered: no preview scene registered and no screenshot

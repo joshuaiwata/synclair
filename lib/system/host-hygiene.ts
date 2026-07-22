@@ -22,6 +22,7 @@ export type HygieneRuleId =
   | "raw-hex-color"
   | "color-function"
   | "arbitrary-value"
+  | "raw-color-utility"
   | "important"
   | "native-element"
 
@@ -50,6 +51,11 @@ export const HYGIENE_RULES: Record<HygieneRuleId, HygieneRuleMeta> = {
     label: "Arbitrary Tailwind values",
     description:
       "Bracketed one-off class values (a fixed pixel width, a literal hex background) that step outside the scale the foundation defines.",
+  },
+  "raw-color-utility": {
+    label: "Raw color utilities",
+    description:
+      "Tailwind's built-in literal color classes (text-white, bg-black, text-blue-500…) used instead of a semantic token — they bypass the palette and won't follow a re-theme, same as a raw hex.",
   },
   important: {
     label: "!important",
