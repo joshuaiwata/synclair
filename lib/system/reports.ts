@@ -44,7 +44,11 @@ export interface ReportSurface {
 export interface ReportPillar {
   name: string
   hint?: string
-  /** 0–100 */
+  /**
+   * Readiness on a 0–5 rubric — the scale report generators naturally author,
+   * and the honest precision for a qualitative judgment (not a fake
+   * percentage). Rendered as `n/5` beside a bar filled to n/5 of full width.
+   */
   score: number
 }
 

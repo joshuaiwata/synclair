@@ -52,6 +52,23 @@ re-register the item — it stays `origin: "external"` with its hash anchor);
 props on its doc page are already derived live from the host source
 (lib/system/host-docgen.ts), so the entry needs no authored `props` refresh.
 
+### Path A patterns proven in the field
+
+- **Session-wired hosts: render harness children CLIENT-side only.** If the
+  host's session/mock store persists to `localStorage`, the server renders
+  previews signed-out while the client hydrates signed-in — every
+  session-GATED preview hydration-mismatches on load. Give your shared session
+  wrapper the `useSyncExternalStore` is-client idiom (server snapshot `false`,
+  client `true`) and render children only when mounted. Previews are
+  client-interactive surfaces; skipping their SSR HTML costs nothing.
+- **Viewport-gated components (`md:hidden` etc.): iframe at the device width.**
+  Media queries fire at the BROWSER viewport, so a narrow container can't show
+  a mobile-only piece. Register a chrome-free scene for it
+  (`components/library/preview-scenes.tsx` → `/synclair/preview/<name>`, wrapped
+  in the product's scoped theme) and make the preview an `EmbedFrame` pinned to
+  the mobile logical width (`ViewportModeContext.Provider value="mobile"`). The
+  iframe viewport IS the device width, so the gated component actually exists.
+
 ## Path B — rewrite port (the original flow)
 
 **The one rule that overrides everything: NEVER restyle the hub to match the
