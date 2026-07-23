@@ -66,22 +66,28 @@ Two mechanisms make rich context cheap:
   </Step>
 </Steps>
 
-And it compounds. When a dig surfaces something durable, the agent **writes it back**
-into the digest — so the next agent loads it cheaply instead of re-reading the source.
-This is the flywheel: the knowledge base converges on "what a builder routinely needs."
+And a contract keeps it from decaying into a link dump: **linking a source and
+distilling it are one act, not two.** Adding a manifest entry *includes* writing its
+digest in the same pass — an entry with no digest is unfinished work, and the only
+exception is an explicit `TODO: distill` note when the source genuinely can't be read
+yet. Write-back is the second half of the same flywheel: when a later dig surfaces
+something durable, the agent **refines the existing digest** — so the knowledge base
+converges on "what a builder routinely needs."
 
 ## How to act on it
 
 <AccordionGroup>
-  <Accordion title="Add a source" icon="plus">
+  <Accordion title="Add a source — link and distill in one pass" icon="plus">
     Add an entry to `lib/system/knowledge/sources.ts` (or, in existing-app mode, let
-    the `knowledge-harvester` digger propose entries from the host repo). It appears
-    on `/synclair/knowledge` immediately — a link, not a copy.
+    the `knowledge-harvester` digger propose entries from the host repo) **and write
+    its digest in the same change** — `product-spec` for docs/PRDs/decks,
+    `figma-distiller` for Figma. If distilling genuinely has to wait, record an
+    explicit `TODO: distill` in the entry's notes so the IOU is visible.
   </Accordion>
-  <Accordion title="Distill a source into agent-ready knowledge" icon="filter">
-    Use the `product-spec` skill (for docs/PRDs) or `figma-distiller` (for Figma) to
-    pull the durable essentials into a digest. Dig into the raw source with a digger
-    only when the digest is insufficient — then write the durable part back.
+  <Accordion title="Dig deeper than the digest" icon="filter">
+    Dig into the raw source with a digger (`prd-retriever`, `figma-frame-reader`)
+    only when the digest is insufficient — then write the durable part back so the
+    digest gets sharper.
   </Accordion>
   <Accordion title="Generate a summary" icon="newspaper">
     Queue a summary from the Summary tab (or run the `product-summary` skill) — a
