@@ -36,7 +36,7 @@ const doc: ComponentDoc = {
       type: "boolean",
       default: "false",
       description:
-        "Renders repo-committed inline HTML/SVG that inherits theme tokens. Never enable for external or user-supplied input.",
+        "Renders repo-committed inline HTML/SVG that inherits theme tokens — sanitized (safe HTML + presentation SVG only; scripts and event handlers are stripped). Still: don't enable for external or user-supplied input.",
     },
     { name: "className", type: "string", description: "Overrides on the wrapper." },
   ],

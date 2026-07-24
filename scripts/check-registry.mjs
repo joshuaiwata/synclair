@@ -72,7 +72,7 @@ function* walk(dir) {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) {
-      if (entry === "ui" || entry === "node_modules") continue; // vendored / deps
+      if (path.relative(root, full) === path.join("components", "ui") || entry === "node_modules") continue; // vendored / deps
       yield* walk(full);
     } else if (entry.endsWith(".docs.tsx")) {
       yield path.relative(root, full);
@@ -80,7 +80,7 @@ function* walk(dir) {
   }
 }
 // Templates colocate their docs with their route, so app/ is swept too.
-for (const dir of ["components", "app"]) {
+for (const dir of ["components", "app", "lib"]) {
   for (const docsFile of walk(path.join(root, dir))) {
     if (!registeredDocs.has(docsFile)) {
       errors.push(

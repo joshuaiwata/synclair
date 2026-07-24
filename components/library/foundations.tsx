@@ -21,6 +21,7 @@ import {
   type FoundationSection,
 } from "@/lib/system/seed/foundation"
 import { isExistingProjectMode } from "@/lib/system/external"
+import { sanitizeSvg } from "@/lib/system/sanitize-svg"
 import { project } from "@/lib/system/seed/project"
 import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
@@ -480,7 +481,7 @@ export function IconographyFoundation() {
             <div
               className="size-16 shrink-0 [&>svg]:size-full"
               // Trusted seed SVG (self-colored brand mark).
-              dangerouslySetInnerHTML={{ __html: icons.markSvg }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSvg(icons.markSvg) }}
             />
             {icons.markLabel && (
               <span className="text-xs text-muted-foreground">
@@ -507,7 +508,7 @@ export function IconographyFoundation() {
                 <div
                   className="size-6 text-foreground [&>svg]:size-full"
                   // Trusted seed SVG (host icon glyph, currentColor).
-                  dangerouslySetInnerHTML={{ __html: g.svg }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeSvg(g.svg) }}
                 />
                 <code className="max-w-full truncate text-2xs text-muted-foreground">
                   {g.name}

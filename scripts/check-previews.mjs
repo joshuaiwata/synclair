@@ -41,9 +41,13 @@ for (const name of natives) {
 
 // 2. Registered docs modules must have at least one renderable example.
 const registry = JSON.parse(readFileSync(path.join(root, "registry.json"), "utf8"));
+// Match markers in CODE only — a doc comment mentioning route() must not
+// green-light a code-only page (same stripping as the @host scan below).
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 for (const item of registry.items ?? []) {
   if (!item.docs || !existsSync(path.join(root, item.docs))) continue; // check:registry owns this
-  const source = readFileSync(path.join(root, item.docs), "utf8");
+  const source = stripComments(readFileSync(path.join(root, item.docs), "utf8"));
   const renderable = /\blive\(|\bscene\(|\broute\(|kind:\s*"(?:image|embed)"/.test(source);
   if (!renderable) {
     errors.push(
@@ -64,7 +68,7 @@ for (const item of registry.items ?? []) {
   if (item.type !== "registry:block" && item.type !== "registry:page") continue;
   if (!item.docs || !existsSync(path.join(root, item.docs))) continue;
   const tierLabel = item.type === "registry:page" ? "template" : "block";
-  const source = readFileSync(path.join(root, item.docs), "utf8");
+  const source = stripComments(readFileSync(path.join(root, item.docs), "utf8"));
   const selfImport = (item.files ?? []).some((f) => {
     const spec = `@/${f.path.replace(/\.tsx?$/, "")}`;
     return source.includes(`from "${spec}"`);

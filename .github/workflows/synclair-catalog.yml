@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Collect changed files vs base
         run: git diff --name-only "origin/${{ github.base_ref }}"...HEAD > /tmp/changed.txt

@@ -94,6 +94,76 @@ export interface ReportDoc {
 
 const REPORTS_DIR = path.join(process.cwd(), "data", "reports")
 
+// ── Normalization ─────────────────────────────────────────────────────────────
+// Reports are hand-editable JSON (agents write them, humans tweak them) — the
+// same rule as system-map.ts/pages-map.ts applies: normalize every field so a
+// missing or mistyped value renders as an empty state, never a 500. This module
+// preaches "counts can't lie"; it must not crash on data either.
+const str = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" : String(v))
+const opt = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined)
+const arr = <T>(v: unknown, norm: (e: Record<string, unknown>) => T): T[] =>
+  Array.isArray(v)
+    ? v.filter((e): e is Record<string, unknown> => !!e && typeof e === "object").map(norm)
+    : []
+
+function normalizeReport(parsed: unknown, fallbackId: string): ReportDoc | null {
+  if (!parsed || typeof parsed !== "object") return null
+  const p = parsed as Record<string, unknown>
+  const STATUSES: ReportStatusKind[] = ["mapped", "partial", "gap", "missing"]
+  return {
+    id: opt(p.id) ?? fallbackId,
+    type: str(p.type),
+    subject: str(p.subject),
+    date: str(p.date),
+    lens: opt(p.lens),
+    headline: str(p.headline),
+    dek: opt(p.dek),
+    stats: arr(p.stats, (e) => ({
+      label: str(e.label),
+      value: str(e.value),
+      accent: e.accent === true,
+      derivedFrom:
+        e.derivedFrom === "components" || e.derivedFrom === "blocks" || e.derivedFrom === "templates"
+          ? e.derivedFrom
+          : undefined,
+    })),
+    surfaces: arr(p.surfaces, (e) => ({
+      name: str(e.name),
+      note: opt(e.note),
+      kind: opt(e.kind),
+      scope: opt(e.scope),
+    })),
+    pillars: arr(p.pillars, (e) => ({
+      name: str(e.name),
+      hint: opt(e.hint),
+      score: Math.min(5, Math.max(0, Number(e.score) || 0)),
+    })),
+    areas: arr(p.areas, (e) => ({
+      id: str(e.id),
+      name: str(e.name),
+      status: STATUSES.includes(e.status as ReportStatusKind)
+        ? (e.status as ReportStatusKind)
+        : "missing",
+      href: opt(e.href),
+      found: str(e.found),
+      gap: opt(e.gap),
+      next: opt(e.next),
+    })),
+    recommendations: arr(p.recommendations, (e) => ({
+      id: str(e.id),
+      track: str(e.track),
+      area: opt(e.area),
+      title: str(e.title),
+      detail: str(e.detail),
+      status:
+        e.status === "open" || e.status === "in-progress" || e.status === "done"
+          ? e.status
+          : undefined,
+      delta: opt(e.delta),
+    })),
+  }
+}
+
 /** All reports, newest first (the archive). Empty when none exist. */
 export async function listReports(): Promise<ReportDoc[]> {
   let files: string[]
@@ -106,8 +176,7 @@ export async function listReports(): Promise<ReportDoc[]> {
     files.map(async (f) => {
       try {
         const raw = await readFile(path.join(REPORTS_DIR, f), "utf8")
-        const doc = JSON.parse(raw) as ReportDoc
-        return { ...doc, id: doc.id ?? f.replace(/\.json$/, "") }
+        return normalizeReport(JSON.parse(raw), f.replace(/\.json$/, ""))
       } catch {
         return null
       }

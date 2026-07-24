@@ -196,6 +196,20 @@ if (registryPresent) {
 // --- sweep -------------------------------------------------------------------
 const fallbackSurface = hosts[0]?.surface;
 
+// Surface platforms from the seed (same derivation as check-previews.mjs):
+// "web-ness" comes from the declared platform, never a magic surface id.
+const surfacesSeedPath = path.join(root, "lib/system/seed/surfaces.ts");
+const surfacesSeed = existsSync(surfacesSeedPath)
+  ? readFileSync(surfacesSeedPath, "utf8")
+  : "";
+const surfacePlatforms = new Map(
+  [...surfacesSeed.matchAll(/id:\s*"([^"]+)"[^}]*?platform:\s*"([^"]+)"/g)].map(
+    (m) => [m[1], m[2]]
+  )
+);
+const isWebSurface = (surfaceId) =>
+  surfacePlatforms.size === 0 || surfacePlatforms.get(surfaceId) === "web";
+
 // Standalone surfaces ship their own component set and do NOT consume the
 // shared library (lib/system/surfaces.ts) — exclude them when measuring shared
 // adoption, or their namesake local components (a local <Badge>) read as false
@@ -249,7 +263,7 @@ for (const host of hosts) {
       : [hostRootAbs]
   ).filter((abs) => existsSync(abs));
   const webCorpus = [];
-  if (host.surface !== "mobile") {
+  if (isWebSurface(host.surface ?? fallbackSurface)) {
     for (const rootAbs of usageRoots) {
       const corpusFiles = [];
       walkAll(rootAbs, rootAbs, corpusFiles);
