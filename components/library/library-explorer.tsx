@@ -123,8 +123,11 @@ export function LibraryExplorer({
     <div className="flex min-h-svh flex-col">
       <ExplorerHeader tree={tree} pathname={pathname} />
       <div className="flex min-h-0 flex-1">
-        {/* Floating sidebar — a nested panel with its own rounded, ringed card. */}
-        <aside className="sticky top-2 m-2 flex max-h-[calc(100svh-4.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden rounded-lg border bg-sidebar shadow-sm ring-1 ring-sidebar-border">
+        {/* Explorer rail — a FLAT second column, hairline-separated (the
+            Storybook/docs double-sidebar pattern). No card chrome: a floating
+            shadowed panel in the same tint as the app sidebar read as a
+            duplicate sidebar, not a nested level. */}
+        <aside className="sticky top-0 flex max-h-svh w-64 shrink-0 flex-col self-start overflow-hidden border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             {tree.multiSurface && (
               <Select
@@ -134,10 +137,11 @@ export function LibraryExplorer({
                   router.push(tierHref(v === "all" ? undefined : v, activeKind))
                 }
               >
-                {/* bg-background: the panel is bg-sidebar — transparent controls
-                    read as same-color-on-same-color, so fields sit on the page
-                    ground instead. */}
-                <SelectTrigger size="sm" className="bg-background w-full text-xs">
+                {/* bg-card: on the tinted canvas (background == sidebar tint
+                    since the facelift) a bg-background control is same-color-
+                    on-same-color — fields sit one step ABOVE their surface,
+                    which is bg-card now. */}
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +163,7 @@ export function LibraryExplorer({
               value={activeKind}
               onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
             >
-              <SelectTrigger size="sm" className="bg-background w-full text-xs">
+              <SelectTrigger size="sm" className="bg-card w-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -177,7 +181,7 @@ export function LibraryExplorer({
                 onChange={(e) => setFilter(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && setFilter("")}
                 placeholder="Filter…"
-                className="bg-background h-7 pr-7 text-xs"
+                className="bg-card h-7 pr-7 text-xs"
               />
               <kbd className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 font-mono text-3xs">
                 /

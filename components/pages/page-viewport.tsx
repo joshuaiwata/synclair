@@ -33,7 +33,7 @@ export function PageViewport({
           <span className="bg-muted-foreground/25 size-2.5 rounded-full" />
           <span className="bg-muted-foreground/25 size-2.5 rounded-full" />
         </span>
-        <span className="bg-background text-muted-foreground min-w-0 flex-1 truncate rounded px-2 py-0.5 font-mono text-xs">
+        <span className="bg-card text-muted-foreground min-w-0 flex-1 truncate rounded px-2 py-0.5 font-mono text-xs">
           {route}
         </span>
       </div>
