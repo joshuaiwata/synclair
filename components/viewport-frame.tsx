@@ -13,6 +13,7 @@ import {
   Tablet,
   Tv,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -95,19 +96,42 @@ export function ViewportFrame({
   className?: string
 }) {
   const [mode, setMode] = React.useState<ViewportMode>(defaultMode)
-  const [stageDark, setStageDark] = React.useState(false)
+  // The stage follows the app theme until flipped; flipping shows the OPPOSITE
+  // theme via a scoped `.dark`/`.light` wrapper (see globals.css), so the flip
+  // works from either app theme.
+  const [stageFlipped, setStageFlipped] = React.useState(false)
+  const { resolvedTheme } = useTheme()
+  const appDark = resolvedTheme === "dark"
+  const stageDark = stageFlipped ? !appDark : appDark
   const [showCode, setShowCode] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  const copyTimer = React.useRef<number | undefined>(undefined)
   const width = VIEWPORT_WIDTHS[mode]
   const modes = MODES.filter(({ mode: m }) =>
     m === "fullscreen" ? fullscreen : (allowedModes?.includes(m) ?? true)
   )
 
+  React.useEffect(() => () => window.clearTimeout(copyTimer.current), [])
+
   const copy = async () => {
     if (!code) return
-    await navigator.clipboard.writeText(code)
+    try {
+      await navigator.clipboard.writeText(code)
+    } catch {
+      // Insecure origins (e.g. the hub over LAN) have no clipboard API — fall
+      // back to the selection-based copy.
+      const ta = document.createElement("textarea")
+      ta.value = code
+      ta.style.position = "fixed"
+      ta.style.opacity = "0"
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand("copy")
+      ta.remove()
+    }
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    window.clearTimeout(copyTimer.current)
+    copyTimer.current = window.setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -128,9 +152,9 @@ export function ViewportFrame({
               variant="ghost"
               size="icon"
               className="size-6"
-              aria-pressed={stageDark}
+              aria-pressed={stageFlipped}
               title={stageDark ? "Stage: dark (switch to light)" : "Stage: light (switch to dark)"}
-              onClick={() => setStageDark((d) => !d)}
+              onClick={() => setStageFlipped((f) => !f)}
             >
               {stageDark ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
               <span className="sr-only">Toggle stage theme</span>
@@ -176,7 +200,7 @@ export function ViewportFrame({
         <div
           className={cn(
             "stage-canvas mx-auto overflow-auto rounded-lg border transition-[width] duration-200 ease-out",
-            stageDark && "dark",
+            stageFlipped && (stageDark ? "dark" : "light"),
             mode === "mobile" || mode === "tablet" ? "max-h-[70vh] min-h-48" : "min-h-24"
           )}
           style={{ width: width === "100%" ? "100%" : width, maxWidth: "100%" }}

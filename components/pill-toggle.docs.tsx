@@ -54,22 +54,24 @@ const doc: ComponentDoc = {
     {
       title: "URL mode",
       description:
-        "Give each option an `href` and it renders `<Link>`s, so a server component can drive selection through the URL.",
+        "Give each option an `href` and it renders `<Link>`s, so a server component can drive a FILTER facet through the URL.",
       code: `<PillToggle
-  aria-label="Environment view"
-  value={active}
+  aria-label="Origin"
+  value={origin}
   options={[
-    { value: "project", label: "Acme", href: synclair("/environment") },
-    { value: "synclair", label: "Synclair", href: \`\${synclair("/environment")}?view=synclair\` },
+    { value: "all", label: "All", count: 37, href: basePath },
+    { value: "custom", label: "Custom", count: 15, href: \`\${basePath}?origin=custom\` },
+    { value: "native", label: "shadcn", count: 22, href: \`\${basePath}?origin=native\` },
   ]}
 />`,
       preview: live(
         <PillToggle
-          aria-label="Environment view"
-          value="synclair"
+          aria-label="Origin"
+          value="custom"
           options={[
-            { value: "project", label: "Acme", href: "#project" },
-            { value: "synclair", label: "Synclair", href: "#synclair" },
+            { value: "all", label: "All", count: 37, href: "#all" },
+            { value: "custom", label: "Custom", count: 15, href: "#custom" },
+            { value: "native", label: "shadcn", count: 22, href: "#native" },
           ]}
         />
       ),
@@ -91,7 +93,7 @@ const doc: ComponentDoc = {
     { name: "className", type: "string", description: "Layout overrides on the pill row." },
   ],
   notes:
-    "The one rounded-pill toggle for a single facet. Replaced three byte-identical hand-rolled copies (environment, ai-setup, knowledge). URL mode (with `href`) for server components; state mode (with `onValueChange`) for client ones — same options either way.",
+    "The one rounded-pill toggle for a single FILTER facet — the hub's tab rule: filtering gets pills, content/view switching gets tab chrome (`Tabs` for client state, `TabsNav` for URL params). Replaced three byte-identical hand-rolled copies. URL mode (with `href`) for server components; state mode (with `onValueChange`) for client ones — same options either way.",
 }
 
 export default doc

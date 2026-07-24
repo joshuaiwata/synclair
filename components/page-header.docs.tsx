@@ -43,7 +43,7 @@ const doc: ComponentDoc = {
     { name: "className", type: "string", description: "Overrides on the header element." },
   ],
   notes:
-    "Use once at the very top of every route. Includes the `SidebarTrigger`, so it must render inside the `SidebarProvider` (the app shell already provides it). Sticky top bar, 3.5rem tall, bottom border.",
+    "Use once at the very top of every route. Includes the `SidebarTrigger`, so it must render inside the `SidebarProvider` (the app shell already provides it). Slim context bar, 3.5rem tall, bottom border — the page's real `<h1>` lives in the body via `PageTitle`.",
 }
 
 export default doc

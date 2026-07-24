@@ -23,6 +23,7 @@ import { getAgents } from "@/lib/system/agents"
 import { getRecentActivity, type ActivityKind } from "@/lib/system/activity"
 import { getGlobalCapabilities } from "@/lib/system/global-skills"
 import { getCatalog, isFoundationVisible, isLibraryVisible } from "@/lib/system/components"
+import { isExistingProjectMode } from "@/lib/system/external"
 import { formatDay } from "@/lib/system/format-date"
 import { getLatestCommitDate } from "@/lib/system/git-dates"
 import { getCommitStats, getRepoRootLabel, type CommitStat } from "@/lib/system/git-log"
@@ -147,7 +148,9 @@ function CommitLedger({ commits, days = 5 }: { commits: CommitStat[]; days?: num
     list.push(c)
     byDay.set(key, list)
   }
-  const groups = [...byDay.entries()].slice(0, days)
+  // Sort day keys, not insertion order: squash-merges carry the PR's original
+  // AUTHOR date, so log order and day order can disagree.
+  const groups = [...byDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, days)
   const MAX_ROWS = 5
 
   return (
@@ -223,11 +226,12 @@ export default async function Page() {
       getCommitStats(60),
       getUsageMap(await getCatalog()),
     ])
-  const [repoLabel, lastCommit, pagesMap, systemMap] = await Promise.all([
+  const [repoLabel, lastCommit, pagesMap, systemMap, existingProject] = await Promise.all([
     getRepoRootLabel(),
     getLatestCommitDate().catch(() => ""),
     getPagesMap().catch(() => null),
     getSystemMap().catch(() => null),
+    isExistingProjectMode(),
   ])
   const knowledge = getKnowledgeSources()
   const references = getReferences()
@@ -277,7 +281,9 @@ export default async function Page() {
       label: "Foundations",
       href: synclair("/foundations"),
       icon: Palette,
-      detail: `${FOUNDATION_GROUPS.length} token groups`,
+      // FOUNDATION_GROUPS drives the tabs only in new-project mode; companion
+      // mode builds its tabs from the host's seed, so no count is claimed.
+      detail: existingProject ? "the host's design language" : `${FOUNDATION_GROUPS.length} token groups`,
     },
     {
       label: "Knowledge",
@@ -334,7 +340,7 @@ export default async function Page() {
             <Link
               key={j.label}
               href={j.href}
-              className="group bg-card hover:border-foreground/20 flex items-start gap-3 rounded-lg border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="group bg-card hover:border-foreground/20 card-lift flex items-start gap-3 rounded-lg border p-4"
             >
               <span className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
                 <j.icon className="text-muted-foreground size-4" />

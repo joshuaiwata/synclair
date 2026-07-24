@@ -722,6 +722,8 @@ export function OpacityFoundation() {
 export function HubMotionFoundation() {
   return (
     <div className="flex flex-col gap-6">
+      {/* Demo timings mirror .stagger-children in app/globals.css (0.3s ease-out,
+          40ms steps) — keep the two in lockstep if the vocabulary changes. */}
       <style>{`
         .tbf-hub-motion-demo:hover .tbf-hub-motion-item { animation: hub-enter 0.3s ease-out both; }
         .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(2) { animation-delay: 40ms; }

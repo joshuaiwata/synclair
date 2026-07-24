@@ -177,7 +177,7 @@ export async function PageDocView({ id }: { id: string }) {
           composed items so the sitemap relationships read first. */}
       {node.links && node.links.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Links to</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Links to</h2>
           <div className="flex flex-wrap gap-1.5">
             {node.links.map((route) => {
               const targetId = routeToId.get(route)
@@ -204,7 +204,7 @@ export async function PageDocView({ id }: { id: string }) {
 
       {/* Composed items, grouped by tier, linked into the library. */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold">
+        <h2 className="text-lg font-semibold tracking-tight">
           Composes{" "}
           <span className="text-muted-foreground font-normal tabular-nums">{cataloged.length}</span>
           <span className="text-muted-foreground/70 ml-1 text-xs font-normal">

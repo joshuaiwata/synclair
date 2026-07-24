@@ -155,18 +155,22 @@ export default async function PagesOverview({
       }
     >
       {/* Flip the sitemap between app surfaces — the same switcher the tier
-          galleries use; renders nothing for single-surface projects. */}
-      <SurfaceSwitcher
-        active={activeSurface}
-        allHref={synclair("/pages")}
-        hrefFor={(id) => `${synclair("/pages")}?surface=${id}`}
-        counts={Object.fromEntries(
-          [...new Set(allPages.map((p) => p.surface).filter((s): s is string => !!s))].map(
-            (id) => [id, allPages.filter((p) => p.surface === id).length]
-          )
-        )}
-        aria-label="Sitemap surface"
-      />
+          galleries use. Hidden when the digest predates surface tagging (no
+          page carries a surface id), so the tabs can never all lead to an
+          empty sitemap; renders nothing for single-surface projects anyway. */}
+      {allPages.some((p) => p.surface) && (
+        <SurfaceSwitcher
+          active={activeSurface}
+          allHref={synclair("/pages")}
+          hrefFor={(id) => `${synclair("/pages")}?surface=${id}`}
+          counts={Object.fromEntries(
+            [...new Set(allPages.map((p) => p.surface).filter((s): s is string => !!s))].map(
+              (id) => [id, allPages.filter((p) => p.surface === id).length]
+            )
+          )}
+          aria-label="Sitemap surface"
+        />
+      )}
       <StatGrid items={stats} />
       <HostStatus isHost={isHost} server={hostServer} liveBaseUrl={liveBaseUrl} />
       <PagesExplorer tree={tree} pages={flatPages} chart={<SitemapChart nodes={tree} />} />

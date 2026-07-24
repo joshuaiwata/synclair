@@ -30,7 +30,7 @@ export function PreviewStage({
     <div
       ref={setEl}
       className={
-        "relative overflow-hidden rounded-lg border bg-muted/30 [transform:translateZ(0)] " +
+        "stage-canvas relative overflow-hidden rounded-lg border [transform:translateZ(0)] " +
         className
       }
     >

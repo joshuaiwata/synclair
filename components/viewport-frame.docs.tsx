@@ -55,7 +55,8 @@ const doc: ComponentDoc = {
     },
     {
       trigger: "Click the sun/moon",
-      behavior: "The stage re-renders in the opposite theme via a scoped `.dark` wrapper.",
+      behavior:
+        "The stage re-renders in the opposite theme via a scoped `.dark`/`.light` wrapper — works from either app theme.",
       result: "Only the stage flips; the page keeps its theme.",
     },
     {
@@ -103,7 +104,7 @@ const doc: ComponentDoc = {
     },
   ],
   notes:
-    "Mechanism is CSS width, not an iframe — cheap and animated, but `md:`/`lg:` media queries do NOT fire inside it; container-driven layouts reflow correctly. For full-fidelity responsive previews of whole templates, put an `embed` preview (the real route in an iframe) inside the frame: the iframe's viewport is the frame width, so media queries fire at the device width. Widths are fixed project-wide (mobile 375 / tablet 768 / wide 1920) — do not add per-doc widths. The stage theme flip relies on the class-based dark variant (`.dark` wrapper), so it costs nothing and can't drift from the real theme.",
+    "Mechanism is CSS width, not an iframe — cheap and animated, but `md:`/`lg:` media queries do NOT fire inside it; container-driven layouts reflow correctly. For full-fidelity responsive previews of whole templates, put an `embed` preview (the real route in an iframe) inside the frame: the iframe's viewport is the frame width, so media queries fire at the device width. Widths are fixed project-wide (mobile 375 / tablet 768 / wide 1920) — do not add per-doc widths. The stage theme flip follows the app theme until toggled, then scopes the OPPOSITE theme (`.dark` or `.light` wrapper — `.light` mirrors `:root` in globals.css), so it works from dark mode too and can't drift from the real theme.",
 }
 
 export default doc

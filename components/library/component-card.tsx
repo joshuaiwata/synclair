@@ -45,7 +45,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   // Blocks and templates are FLUID (panels, forms, layouts sized by their
   // container) — thumb LIVE previews of them on a logical stage width so they
   // lay out like a page column instead of collapsing to max-content (see
-  // CardThumb). Matches the doc view's framedByDefault tier split; components
+  // CardThumb). Matches the doc view's stage-mode tier split; components
   // stay 1:1 intrinsic, and image previews keep their natural size.
   const stageWidth = component.kind !== "component" ? 768 : undefined
   if (hostPreview) {
@@ -133,7 +133,7 @@ export function ComponentCard({
     // real anchors (breadcrumb, filter chips) and HTML forbids <a> inside <a>
     // — as a sibling under the overlay the preview stays valid markup.
     <div className="group relative">
-      <Card className="group-hover:border-foreground/20 gap-0 overflow-hidden py-0 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+      <Card className="group-hover:border-foreground/20 card-lift gap-0 overflow-hidden py-0">
         <CardPreview component={component} />
         <div className="flex flex-col gap-1.5 p-4">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -2,7 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* `.light` re-scopes the light theme inside a `.dark` subtree (and vice versa)
+   so the doc-preview stage can flip either way; the :not() keeps dark-variant
+   utilities from leaking into a scoped-light stage on a dark page. */
+@custom-variant dark (&:is(.dark *):not(.light *));
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -84,9 +87,12 @@
     --text-3xs--line-height: 0.875rem;
 }
 
-:root {
+:root,
+.light {
     /* Theme — Light. Neutral stone base (SEED: rebrand per project — typically
-       wire the brand color in as --secondary). */
+       wire the brand color in as --secondary). `.light` mirrors :root so a
+       scoped stage (ViewportFrame's theme flip) can render light inside a
+       dark page. */
     --background: #fafaf9;          /* stone-50 — tinted canvas so white cards read as raised surfaces */
     --foreground: #0c0a09;          /* stone-950 — high-emphasis text */
     --body-content: #44403ccc;      /* stone-700 @ 80% — softer body/reading text */
@@ -214,15 +220,29 @@
 
 @layer utilities {
     /* Documentation preview stage — the Storybook-style dot-grid canvas.
-       Both layers ride the theme tokens, so a scoped `.dark` stage flips with
-       zero extra CSS. */
+       Both layers ride the theme tokens, so a scoped `.dark`/`.light` stage
+       flips with zero extra CSS. */
     .stage-canvas {
         background-color: var(--card);
         background-image: radial-gradient(color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 0);
         background-size: 16px 16px;
     }
-    .page-enter { animation: hub-enter 0.35s ease-out both; }
-    .stagger-children > * { animation: hub-enter 0.3s ease-out both; }
+    /* Interactive-card hover: lift + shadow, flattened under reduced motion.
+       One utility so cards and jump tiles can't drift apart. */
+    .card-lift {
+        transition: translate 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out, background-color 0.2s ease-out;
+    }
+    .card-lift:hover {
+        translate: 0 -2px;
+        box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--foreground) 12%, transparent);
+    }
+    /* fill-mode BACKWARDS, never `both`: a retained end-keyframe transform
+       would make every animated container the containing block for
+       position:fixed children (breaking fullscreen overlays) and override
+       hover translates forever. Backwards keeps delayed children hidden
+       until their turn, then releases all styles back to the author. */
+    .page-enter { animation: hub-enter 0.35s ease-out backwards; }
+    .stagger-children > * { animation: hub-enter 0.3s ease-out backwards; }
     .stagger-children > :nth-child(2) { animation-delay: 40ms; }
     .stagger-children > :nth-child(3) { animation-delay: 80ms; }
     .stagger-children > :nth-child(4) { animation-delay: 120ms; }

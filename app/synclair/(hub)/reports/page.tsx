@@ -8,6 +8,7 @@ import {
 
 import { PageBody } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
+import { PillToggle } from "@/components/pill-toggle"
 import { SectionHeader } from "@/components/section-header"
 import {
   Empty,
@@ -103,25 +104,25 @@ export default async function ReportsPage({
       </PageHeader>
 
       <PageBody className="gap-12">
-        {/* Archive — past runs, never destroyed */}
+        {/* Archive — past runs, never destroyed. A filter facet (which run am I
+            reading?), so it wears PillToggle per the tab rule. */}
         {all.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-muted-foreground font-mono text-2xs uppercase tracking-wider">
               archive
             </span>
-            {all.map((doc) => (
-              <a
-                key={doc.id}
-                href={doc.id === (id ?? all[0].id) ? synclair("/reports") : `${synclair("/reports")}?id=${doc.id}`}
-                className={`rounded-md border px-2 py-1 font-mono text-2xs ${
-                  doc.id === r.id
-                    ? "border-primary text-primary"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {doc.date}
-              </a>
-            ))}
+            <PillToggle
+              aria-label="Report run"
+              value={r.id}
+              options={all.map((doc) => ({
+                value: doc.id,
+                label: doc.date,
+                href:
+                  doc.id === all[0].id
+                    ? synclair("/reports")
+                    : `${synclair("/reports")}?id=${doc.id}`,
+              }))}
+            />
           </div>
         )}
 
@@ -141,7 +142,9 @@ export default async function ReportsPage({
           </Card>
         )}
 
-        {/* Hero */}
+        {/* Hero — DELIBERATELY editorial (text-3xl/4xl bold), not PageTitle:
+            a report reads like an article with a headline, dek, and stat strip;
+            the hub scale would flatten it. The one sanctioned exception. */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="gap-1.5">

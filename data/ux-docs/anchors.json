@@ -32,8 +32,8 @@
     },
     {
       "name": "foundations-sections",
-      "sourceHash": "a54739c872e5392c9e46b14188e16052a1d9aac13329074e366d8588a8a49e7c",
-      "anchoredAt": "2026-07-24T01:00:02.377Z"
+      "sourceHash": "6b67e69aa2d2e10b5361e143b72cda9a5075e0092feac0a9c5c97b92d92db923",
+      "anchoredAt": "2026-07-24T02:11:09.876Z"
     },
     {
       "name": "hub-page",
@@ -112,13 +112,13 @@
     },
     {
       "name": "tier-gallery",
-      "sourceHash": "3f21b4c1541ff434171980bd555f31471a32b2ad975df65022193774cba0407b",
-      "anchoredAt": "2026-07-24T01:00:02.377Z"
+      "sourceHash": "2e6d7b41f268e6d99167775eb04cfa557ea187e35e0fd8b1d5adcd67ee565426",
+      "anchoredAt": "2026-07-24T02:11:09.876Z"
     },
     {
       "name": "viewport-frame",
-      "sourceHash": "3754c5eaa461daa23a9bf2c02e7fc5d8e0c3e42230fe002e0bcccfd906d17a74",
-      "anchoredAt": "2026-07-24T01:00:02.376Z"
+      "sourceHash": "eded983cdfaba658fe2a15776d9ffc426e98f3f06e0486192e7fac97dc1e4eef",
+      "anchoredAt": "2026-07-24T02:11:09.874Z"
     },
     {
       "name": "wireframe-kit",

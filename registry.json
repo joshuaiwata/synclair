@@ -93,7 +93,7 @@
       "name": "page-header",
       "type": "registry:component",
       "title": "Page Header",
-      "description": "The sticky top bar for a page: sidebar trigger, separator, page title, and a right-aligned slot for path text, status, or actions. Use once at the top of every route.",
+      "description": "The slim top context bar: sidebar trigger, a muted context label (a plain string) or a breadcrumb trail (a node), and a right-aligned slot for status or actions. The page's real h1 lives in the body via PageTitle.",
       "categories": [
         "layout",
         "navigation"
@@ -118,7 +118,7 @@
       "name": "hub-page",
       "type": "registry:component",
       "title": "Hub Page",
-      "description": "The one page scaffold every hub route composes from: the sticky PageHeader, a centered max-w-6xl main, and a single muted intro lead. Ends the per-page copy-paste of layout. Exports HubPage plus PageBody and PageLead for pages that wrap main in a provider.",
+      "description": "The one page scaffold every /synclair route composes from: the slim context bar (PageHeader), a centered max-w-6xl body column with the page-enter entrance, and the in-body PageTitle \u2014 display-scale h1, right meta slot, lead paragraph. Exports HubPage plus PageBody, PageTitle, and PageLead for pages that wrap the body in a provider.",
       "categories": [
         "layout"
       ],
@@ -141,7 +141,7 @@
       "name": "pill-toggle",
       "type": "registry:component",
       "title": "Pill Toggle",
-      "description": "A rounded-pill segmented toggle for a single facet (Origin, Surface, a Project/Synclair view). Renders as URL links (with href) for server components or as buttons (with onValueChange) for client ones, with optional trailing counts.",
+      "description": "A rounded-pill segmented toggle for FILTER facets (Origin, Usage, a doc-type facet) \u2014 never for switching what a page shows (that's Tabs / Tabs Nav). Renders as URL links (with href) for server components or as buttons (with onValueChange) for client ones, with optional trailing counts.",
       "categories": [
         "navigation"
       ],
@@ -195,7 +195,10 @@
       "meta": {
         "status": "stable",
         "layer": "foundation"
-      }
+      },
+      "registryDependencies": [
+        "tabs-nav"
+      ]
     },
     {
       "name": "definition-list",
@@ -511,7 +514,8 @@
         "card",
         "empty",
         "status-badge",
-        "filter-bar"
+        "filter-bar",
+        "surface-switcher"
       ],
       "docs": "components/library/tier-gallery.docs.tsx",
       "meta": {
