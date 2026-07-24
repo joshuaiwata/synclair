@@ -3,12 +3,19 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
-import { Archive, ArchiveRestore, ExternalLink, MoreHorizontal, PanelRightOpen } from "lucide-react"
+import { Archive, ArchiveRestore, BookOpen, ExternalLink, MoreHorizontal, PanelRightOpen } from "lucide-react"
 
 import { PillToggle } from "@/components/pill-toggle"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -201,6 +208,27 @@ function SourceRows({
   /** Multi-surface projects: show which surfaces a tagged source is scoped to. */
   showSurfaces?: boolean
 }) {
+  // The standard empty treatment, not a headerless table: every other section
+  // educates when it's blank (Reports, Pages, Hygiene) — Knowledge does too.
+  if (sources.length === 0) {
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <BookOpen />
+          </EmptyMedia>
+          <EmptyTitle>No knowledge sources yet</EmptyTitle>
+          <EmptyDescription>
+            Knowledge is the project&rsquo;s sources of truth — specs, PRDs, Figma files, decks —
+            linked here so agents never start blank. Add entries to{" "}
+            <code>lib/system/knowledge/sources.ts</code> as you locate them, or run the{" "}
+            <code>existing-project-intake</code> skill to harvest a host codebase&rsquo;s docs
+            automatically.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
   return (
     <div className="overflow-hidden rounded-lg border">
       <Table>
