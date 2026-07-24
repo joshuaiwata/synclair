@@ -119,6 +119,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Use the workflow's own token — no Claude GitHub App install required.
+          github_token: ${{ github.token }}
           # Paths below are repo-root-relative (Synclair at the root). If Synclair
           # is embedded at ./synclair, prefix each with `synclair/`.
           prompt: |
