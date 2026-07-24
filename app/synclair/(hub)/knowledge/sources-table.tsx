@@ -119,7 +119,7 @@ export function SourcesTable({
 
   return (
     <>
-      <Tabs defaultValue={defaultTab} className="gap-3">
+      <Tabs defaultValue={defaultTab} className="gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList>
             {/* The distilled onboarding brief leads; source-kind filters follow. */}

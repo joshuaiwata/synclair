@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import { PageBody } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
 import { SectionHeader } from "@/components/section-header"
 import {
@@ -63,7 +64,7 @@ export default async function ReportsPage({
     return (
       <>
         <PageHeader title="Reports" />
-        <main className="mx-auto w-full max-w-6xl p-6">
+        <PageBody>
           <Empty className="border">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -78,7 +79,7 @@ export default async function ReportsPage({
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
-        </main>
+        </PageBody>
       </>
     )
   }
@@ -101,7 +102,7 @@ export default async function ReportsPage({
         </Badge>
       </PageHeader>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 p-6 md:p-8">
+      <PageBody className="gap-12">
         {/* Archive — past runs, never destroyed */}
         {all.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -327,7 +328,7 @@ export default async function ReportsPage({
           Synclair · report verified against hub data · {r.date}
           {all.length > 1 ? ` · ${all.length} in archive` : ""}
         </footer>
-      </main>
+      </PageBody>
     </>
   )
 }

@@ -8,6 +8,7 @@ import {
   BASE_COLOR_GROUPS,
   FONT_FAMILIES,
   FONT_WEIGHTS,
+  MOTION_TOKENS,
   OPACITY_STEPS,
   RADIUS_TOKENS,
   SPACING_STEPS,
@@ -705,6 +706,70 @@ export function OpacityFoundation() {
             <span className="text-2xs text-muted-foreground">
               {OPACITY_STEPS[i].label}
             </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * New-project mode "Motion": the hub's own chrome-motion vocabulary from
+ * `lib/system/tokens.ts` MOTION_TOKENS, with hover-replayed specimens for the
+ * two entrance moves. Demos are scoped CSS (replay = animation re-applies on
+ * hover) and flatten under prefers-reduced-motion, like everything they document.
+ */
+export function HubMotionFoundation() {
+  return (
+    <div className="flex flex-col gap-6">
+      <style>{`
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item { animation: hub-enter 0.3s ease-out both; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(2) { animation-delay: 40ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(3) { animation-delay: 80ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(4) { animation-delay: 120ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(5) { animation-delay: 160ms; }
+        @media (prefers-reduced-motion: reduce) { .tbf-hub-motion-demo:hover .tbf-hub-motion-item { animation: none !important; } }
+      `}</style>
+      <p className="max-w-2xl text-xs text-muted-foreground">
+        Two entrance moves — a page-level fade-rise and a short child stagger — plus fast
+        hover/resize transitions. Opacity and small translates only; layout properties never
+        animate, and everything flattens under{" "}
+        <code className="font-mono">prefers-reduced-motion</code>. Utilities live in{" "}
+        <code className="font-mono">app/globals.css</code>.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="tbf-hub-motion-demo flex flex-col gap-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <code className="font-mono text-xs font-medium">page-enter</code>
+            <span className="text-2xs text-muted-foreground">hover to replay</span>
+          </div>
+          <div className="tbf-hub-motion-item bg-muted flex h-20 flex-col gap-2 rounded-md border p-3">
+            <div className="bg-border h-2 w-1/3 rounded-full" />
+            <div className="bg-border h-2 w-2/3 rounded-full" />
+            <div className="bg-border h-2 w-1/2 rounded-full" />
+          </div>
+        </div>
+        <div className="tbf-hub-motion-demo flex flex-col gap-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <code className="font-mono text-xs font-medium">stagger-children</code>
+            <span className="text-2xs text-muted-foreground">hover to replay</span>
+          </div>
+          <div className="flex h-20 items-stretch gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} className="tbf-hub-motion-item bg-muted flex-1 rounded-md border" />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col divide-y">
+        {MOTION_TOKENS.map((m) => (
+          <div key={m.name} className="flex items-baseline gap-4 py-3">
+            <span className="w-32 shrink-0 text-xs font-medium">{m.name}</span>
+            <code className="shrink-0 font-mono text-2xs text-muted-foreground">
+              {m.className}
+            </code>
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">{m.usage}</span>
+            <span className="shrink-0 font-mono text-2xs text-muted-foreground">{m.timing}</span>
           </div>
         ))}
       </div>

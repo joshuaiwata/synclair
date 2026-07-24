@@ -58,7 +58,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
       <Live />
     )
     return (
-      <div className="bg-muted/30 relative h-36 overflow-hidden border-b">
+      <div className="stage-canvas relative h-36 overflow-hidden border-b">
         <CardThumb stageWidth={stageWidth}>{node}</CardThumb>
       </div>
     )
@@ -85,7 +85,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   const preview = first ? adapterFor(component.surface).renderPreview(first) : null
 
   return (
-    <div className="bg-muted/30 relative flex h-36 items-center justify-center overflow-hidden border-b">
+    <div className="stage-canvas relative flex h-36 items-center justify-center overflow-hidden border-b">
       {preview ? (
         // Non-interactive, zoom-to-fit thumbnail (Storybook-canvas semantics).
         <CardThumb stageWidth={first && first.kind !== "image" ? stageWidth : undefined}>
@@ -133,11 +133,11 @@ export function ComponentCard({
     // real anchors (breadcrumb, filter chips) and HTML forbids <a> inside <a>
     // — as a sibling under the overlay the preview stays valid markup.
     <div className="group relative">
-      <Card className="group-hover:border-foreground/20 gap-0 overflow-hidden py-0 transition-colors">
+      <Card className="group-hover:border-foreground/20 gap-0 overflow-hidden py-0 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
         <CardPreview component={component} />
         <div className="flex flex-col gap-1.5 p-4">
-          <div className="flex items-center gap-2">
-            <h3 className="flex-1 truncate text-sm font-medium">{component.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 className="mr-auto min-w-0 text-sm font-medium">{component.title}</h3>
             {chips?.map((chip) => (
               <Badge key={chip} variant="outline" className="text-muted-foreground text-3xs">
                 {chip}

@@ -2,8 +2,8 @@ import { ArrowUpRight } from "lucide-react"
 
 import { DefinitionList } from "@/components/definition-list"
 import { HubPage } from "@/components/hub-page"
-import { PillToggle } from "@/components/pill-toggle"
 import { SectionHeader } from "@/components/section-header"
+import { TabsNav } from "@/components/tabs-nav"
 import { StatGrid } from "@/components/stat-grid"
 import { StatusBadge } from "@/components/status-badge"
 import {
@@ -44,9 +44,9 @@ export default async function EnvironmentPage({
   const companion = Boolean(host)
   const projectHasData = stackFacts.length > 0 || integrations.length > 0
 
-  // Same pill vocabulary as the library FilterBar / AI Setup Origin filter, so
-  // every Project↔Synclair toggle across the app reads identically.
-  const pills = [
+  // View switch, not a filter — so it wears tab chrome (TabsNav), like every
+  // other "switch what this page shows" control across the hub.
+  const views = [
     { value: "project", label: project.name, href: synclair("/environment") },
     { value: "synclair", label: "Synclair", href: `${synclair("/environment")}?view=synclair` },
   ]
@@ -89,7 +89,7 @@ export default async function EnvironmentPage({
         </>
       }
     >
-      <PillToggle aria-label="Environment view" value={active} options={pills} />
+      <TabsNav aria-label="Environment view" value={active} options={views} />
 
       {/* Project — the product's own environment, pulled live from the System Map. */}
       {active === "project" &&

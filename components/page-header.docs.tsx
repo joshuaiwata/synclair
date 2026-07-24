@@ -33,7 +33,7 @@ const doc: ComponentDoc = {
       name: "title",
       type: "React.ReactNode",
       description:
-        "The page title — a plain string renders as the `<h1>`; a node (e.g. a breadcrumb trail) renders as-is in the title slot.",
+        "The page context label — a plain string renders as muted text (the real `<h1>` is the body's `PageTitle`); a node (e.g. a breadcrumb trail) renders as-is in the title slot.",
     },
     {
       name: "children",

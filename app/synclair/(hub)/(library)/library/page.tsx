@@ -70,7 +70,7 @@ export default async function LibraryHomePage() {
     of.filter((c) => c.kind === kind).length
 
   return (
-    <main className="flex flex-col gap-4 p-6">
+    <div className="page-enter mx-auto w-full flex flex-col gap-4 p-6">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-base font-semibold">Library</h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
@@ -135,6 +135,6 @@ export default async function LibraryHomePage() {
           </span>
         ))}
       </p>
-    </main>
+    </div>
   )
 }

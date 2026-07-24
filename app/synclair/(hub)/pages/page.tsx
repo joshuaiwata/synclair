@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/empty"
 import { HubPage } from "@/components/hub-page"
 import { StatGrid } from "@/components/stat-grid"
+import { SurfaceSwitcher } from "@/components/surface-switcher"
 import { PagesExplorer, type FlatPage } from "@/components/pages/pages-explorer"
 import { SitemapChart } from "@/components/pages/sitemap-chart"
 import { type SitemapDatum } from "@/components/pages/sitemap-tree"
 import { HostStatus } from "@/components/pages/host-status"
 import { formatDay } from "@/lib/system/format-date"
 import { getPagesMap, hasPagesMap, type PageNode } from "@/lib/system/pages-map"
+import { synclair } from "@/lib/system/routes"
 import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
 export const dynamic = "force-dynamic"
@@ -28,7 +30,12 @@ export const dynamic = "force-dynamic"
  * lib/system/pages-map.ts); regenerated via the `pages-map` skill / `page-mapper`
  * agent, kept honest by `npm run check:pages`.
  */
-export default async function PagesOverview() {
+export default async function PagesOverview({
+  searchParams,
+}: {
+  searchParams?: Promise<{ surface?: string }>
+}) {
+  const { surface: activeSurface } = (await searchParams) ?? {}
   const map = await getPagesMap()
 
   if (map.unreadable) {
@@ -72,7 +79,11 @@ export default async function PagesOverview() {
     )
   }
 
-  const { repo, pages } = map
+  const { repo, pages: allPages } = map
+
+  // The shared SurfaceSwitcher scopes the sitemap to one frontend when the
+  // digest carries surface ids (multi-surface projects; no-op otherwise).
+  const pages = activeSurface ? allPages.filter((p) => p.surface === activeSurface) : allPages
 
   const totalUses = pages.reduce((n, p) => n + p.items.length, 0)
   const uncatalogued = new Set(
@@ -143,6 +154,19 @@ export default async function PagesOverview() {
         </>
       }
     >
+      {/* Flip the sitemap between app surfaces — the same switcher the tier
+          galleries use; renders nothing for single-surface projects. */}
+      <SurfaceSwitcher
+        active={activeSurface}
+        allHref={synclair("/pages")}
+        hrefFor={(id) => `${synclair("/pages")}?surface=${id}`}
+        counts={Object.fromEntries(
+          [...new Set(allPages.map((p) => p.surface).filter((s): s is string => !!s))].map(
+            (id) => [id, allPages.filter((p) => p.surface === id).length]
+          )
+        )}
+        aria-label="Sitemap surface"
+      />
       <StatGrid items={stats} />
       <HostStatus isHost={isHost} server={hostServer} liveBaseUrl={liveBaseUrl} />
       <PagesExplorer tree={tree} pages={flatPages} chart={<SitemapChart nodes={tree} />} />

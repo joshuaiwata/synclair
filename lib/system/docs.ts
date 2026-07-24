@@ -21,6 +21,8 @@ import statGrid from "@/components/stat-grid.docs"
 import statusBadge from "@/components/status-badge.docs"
 import stepLadder from "@/components/step-ladder.docs"
 import summaryShell from "@/components/summary-shell.docs"
+import surfaceSwitcher from "@/components/surface-switcher.docs"
+import tabsNav from "@/components/tabs-nav.docs"
 import viewportFrame from "@/components/viewport-frame.docs"
 import wireframeKit from "@/components/wireframe-kit.docs"
 
@@ -43,6 +45,8 @@ export const docs: Record<string, ComponentDoc> = {
   "page-header": pageHeader,
   "hub-page": hubPage,
   "pill-toggle": pillToggle,
+  "tabs-nav": tabsNav,
+  "surface-switcher": surfaceSwitcher,
   "definition-list": definitionList,
   "stat-grid": statGrid,
   "viewport-frame": viewportFrame,

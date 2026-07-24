@@ -87,10 +87,10 @@
 :root {
     /* Theme — Light. Neutral stone base (SEED: rebrand per project — typically
        wire the brand color in as --secondary). */
-    --background: #ffffff;
+    --background: #fafaf9;          /* stone-50 — tinted canvas so white cards read as raised surfaces */
     --foreground: #0c0a09;          /* stone-950 — high-emphasis text */
     --body-content: #44403ccc;      /* stone-700 @ 80% — softer body/reading text */
-    --card: #ffffff;                /* white — raised surfaces stay as light as the page; borders/rings give definition */
+    --card: #ffffff;                /* white — one step above the canvas; borders keep the hairline definition */
     --card-foreground: #0c0a09;
     --popover: #ffffff;
     --popover-foreground: #0c0a09;
@@ -201,4 +201,37 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Motion — hub-chrome entrances (documented in lib/system/tokens.ts MOTION).
+   Two moves only: a page-level fade-rise and a short child stagger for grids.
+   Opacity + small translate exclusively — never animate layout properties.
+   Both flatten under prefers-reduced-motion. */
+@keyframes hub-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@layer utilities {
+    /* Documentation preview stage — the Storybook-style dot-grid canvas.
+       Both layers ride the theme tokens, so a scoped `.dark` stage flips with
+       zero extra CSS. */
+    .stage-canvas {
+        background-color: var(--card);
+        background-image: radial-gradient(color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 0);
+        background-size: 16px 16px;
+    }
+    .page-enter { animation: hub-enter 0.35s ease-out both; }
+    .stagger-children > * { animation: hub-enter 0.3s ease-out both; }
+    .stagger-children > :nth-child(2) { animation-delay: 40ms; }
+    .stagger-children > :nth-child(3) { animation-delay: 80ms; }
+    .stagger-children > :nth-child(4) { animation-delay: 120ms; }
+    .stagger-children > :nth-child(5) { animation-delay: 160ms; }
+    .stagger-children > :nth-child(6) { animation-delay: 200ms; }
+    .stagger-children > :nth-child(n + 7) { animation-delay: 240ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-enter,
+    .stagger-children > * { animation: none; }
 }

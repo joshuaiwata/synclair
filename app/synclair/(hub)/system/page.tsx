@@ -463,7 +463,7 @@ export default async function SystemMapPage() {
       }
     >
         {tabs.length > 0 && (
-          <Tabs defaultValue={tabs[0].value} className="gap-5">
+          <Tabs defaultValue={tabs[0].value} className="gap-6">
             <TabsList>
               {tabs.map((t) => (
                 <TabsTrigger key={t.value} value={t.value}>

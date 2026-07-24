@@ -2,6 +2,7 @@ import { HubPage } from "@/components/hub-page"
 import {
   ColorsFoundation,
   ExamplesShowcase,
+  HubMotionFoundation,
   IconographyFoundation,
   MotionFoundation,
   OpacityFoundation,
@@ -17,6 +18,7 @@ import { DriftView, TokenSystemView } from "@/components/library/token-systems"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Markdown } from "@/components/markdown"
 import { isExistingProjectMode } from "@/lib/system/external"
+import { FOUNDATION_GROUPS } from "@/lib/system/tokens"
 import { PROJECT_FOUNDATION } from "@/lib/system/seed/foundation"
 import { project } from "@/lib/system/seed/project"
 import { TOKEN_DRIFT, TOKEN_SYSTEMS } from "@/lib/system/seed/token-systems"
@@ -29,18 +31,23 @@ type FoundationTab = {
   bare?: boolean
 }
 
-/** New-project mode: the clone IS the product, so its own tokens are shown. */
-const NEW_PROJECT_TABS: FoundationTab[] = [
-  { value: "colors", label: "Colors", content: <ColorsFoundation /> },
-  {
-    value: "typography",
-    label: "Typography",
-    content: <TypographyFoundation />,
-  },
-  { value: "spacing", label: "Spacing", content: <SpacingFoundation /> },
-  { value: "radius", label: "Radius", content: <RadiusFoundation /> },
-  { value: "opacity", label: "Opacity", content: <OpacityFoundation /> },
-]
+/** New-project mode: the clone IS the product, so its own tokens are shown.
+ *  Built from FOUNDATION_GROUPS (lib/system/tokens.ts) so the Overview's
+ *  Foundations count and these tabs can never disagree. */
+const NEW_PROJECT_CONTENT: Record<(typeof FOUNDATION_GROUPS)[number], React.ReactNode> = {
+  Colors: <ColorsFoundation />,
+  Typography: <TypographyFoundation />,
+  Spacing: <SpacingFoundation />,
+  Radius: <RadiusFoundation />,
+  Opacity: <OpacityFoundation />,
+  Motion: <HubMotionFoundation />,
+}
+
+const NEW_PROJECT_TABS: FoundationTab[] = FOUNDATION_GROUPS.map((g) => ({
+  value: g.toLowerCase(),
+  label: g,
+  content: NEW_PROJECT_CONTENT[g],
+}))
 
 /**
  * Companion mode: describe the PROJECT's design language (from the host, as data)

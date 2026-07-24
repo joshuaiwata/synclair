@@ -74,7 +74,7 @@ export default async function KnowledgePage() {
     <HubPage
       title="Knowledge"
       meta={
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground font-mono text-xs">
           {activeCount} source{activeCount === 1 ? "" : "s"}
         </span>
       }
