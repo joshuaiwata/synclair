@@ -373,13 +373,20 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
       className="sticky top-0 z-20"
       title={
         <Breadcrumb>
-          <BreadcrumbList className="text-xs">
+          {/* Same voice as every other page's context bar (PageHeader string
+              title: text-sm font-medium text-muted-foreground) — the trail is
+              context chrome, not the page's h1. */}
+          <BreadcrumbList className="text-sm">
             {crumbs.map((c, i) => (
               <React.Fragment key={`${c.label}-${i}`}>
                 {i > 0 && <BreadcrumbSeparator />}
                 <BreadcrumbItem>
                   {i === last || !c.href ? (
-                    <BreadcrumbPage className={cn(c.mono && "font-mono")}>{c.label}</BreadcrumbPage>
+                    <BreadcrumbPage
+                      className={cn("text-muted-foreground font-medium", c.mono && "font-mono")}
+                    >
+                      {c.label}
+                    </BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link href={c.href}>{c.label}</Link>
