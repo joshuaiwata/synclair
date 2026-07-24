@@ -46,7 +46,9 @@ paying the full dig. Write-back then *refines* the digest as builds surface new 
    manifest and launch the **`prd-retriever`** agent to fetch the source of record
    in its own context and return a brief.
 4. **Write back:** when a dig surfaces durable requirements, add/update
-   `references/<area>.md` and set `distilledInto` on the manifest entry. That's the
+   `references/<area>.md` and set `distilledInto` on the manifest entry — as
+   `product-spec:references/<area>.md` (the `<skill>:references/…` token is what
+   makes the row open the digest drawer on `/synclair/knowledge`). That's the
    flywheel — the next build reads a cheap digest instead of digging again.
 
 ## What a good area digest contains

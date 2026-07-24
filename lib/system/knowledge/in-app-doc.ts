@@ -14,10 +14,14 @@ export interface InAppDoc {
   file: string
 }
 
-// A `<skill>:references/…​.md` token inside `distilledInto`. Dots are disallowed
-// in the path (except the `.md`) so `..` can never match — the server action
-// re-checks containment regardless.
+// A digest reference inside `distilledInto`, in either spelling: the token form
+// `<skill>:references/…​.md`, or the repo-path form
+// `.claude/skills/<skill>/references/…​.md` (what intake agents naturally write).
+// Dots are disallowed in the path (except the `.md`) so `..` can never match —
+// the server action re-checks containment regardless.
 const DOC_RE = /([a-z0-9-]+):(references\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.md)/
+const DOC_PATH_RE =
+  /\.claude\/skills\/([a-z0-9-]+)\/(references\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.md)/
 
 /**
  * Whether a source's distillation is an in-repo markdown digest we can render
@@ -25,7 +29,8 @@ const DOC_RE = /([a-z0-9-]+):(references\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.m
  * and external-only sources — those keep their new-tab link.
  */
 export function resolveInAppDoc(source: KnowledgeSource): InAppDoc | null {
-  const match = source.distilledInto?.match(DOC_RE)
+  const match =
+    source.distilledInto?.match(DOC_RE) ?? source.distilledInto?.match(DOC_PATH_RE)
   if (!match) return null
   const [, skill, path] = match
   return {
