@@ -27,13 +27,15 @@
  *
  * Usage: node scripts/ci-pr-catalog-check.mjs <changed-files.txt>
  *   (paths in the file are repo-root-relative, e.g. `git diff --name-only`)
- * Writes a markdown comment body to /tmp/synclair-catalog-comment.md and, when
- * $GITHUB_OUTPUT is set, `has_gaps` + `gap_files` outputs for the catalog job.
+ * Writes a markdown comment body to <os.tmpdir()>/synclair-catalog-comment.md
+ * and, when $GITHUB_OUTPUT is set, `has_gaps` + `gap_files` + `comment_path`
+ * outputs for the catalog job.
  * Always exits 0 — the gate informs; the catalog job (if enabled) acts.
  */
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -71,11 +73,25 @@ const hosts = Array.isArray(catalog.hosts) ? catalog.hosts : catalog.host ? [cat
 const items = catalog.items ?? [];
 
 // Repo-root-relative prefix of each host (e.g. synclair/../prototype -> "prototype").
-// Hosts that resolve OUTSIDE the repo (watcher-mode siblings) are dropped — the
-// CI in this repo can't see their files, so there is nothing to gate.
-const hostPrefixes = hosts
-  .map((h) => path.relative(repoRoot, path.resolve(synclairRoot, h.root)).split(path.sep).join("/"))
-  .filter((p) => p && !p.startsWith(".."));
+// Hosts that resolve OUTSIDE the repo (watcher-mode siblings) get a null prefix —
+// the CI in this repo can't see their files, so there is nothing to gate.
+const hostEntries = hosts.map((h) => {
+  const rel = path.relative(repoRoot, path.resolve(synclairRoot, h.root)).split(path.sep).join("/");
+  return { surface: h.surface, prefix: rel && !rel.startsWith("..") ? rel : null };
+});
+const hostPrefixes = hostEntries.map((h) => h.prefix).filter(Boolean);
+
+// Per-item host resolution: items carry a `surface`, hosts map surface → root
+// (lib/system/external.ts — one host per surface; items without a surface
+// belong to the first host). Every per-item path below must resolve against
+// ITS host's prefix, never hosts[0]'s — multi-host repos diverge otherwise.
+// Returns null when the item's host sits outside this repo (nothing to gate).
+const fallbackSurface = hosts[0]?.surface;
+function prefixForItem(it) {
+  const surface = it.surface ?? fallbackSurface;
+  const entry = hostEntries.find((h) => h.surface === surface) ?? hostEntries[0];
+  return entry?.prefix ?? null;
+}
 
 const norm = (p) => p.replace(/^\.\//, "").split(path.sep).join("/");
 const documented = new Set(items.map((it) => norm(it.hostPath ?? "")));
@@ -126,15 +142,17 @@ for (const file of changed) {
 
 // 2. Cataloged entries whose source this PR touches AND whose stored hash no
 // longer matches — a PR that already refreshed the entry (code + catalog in
-// the same branch) is in sync, not stale. Each entry is matched against the
-// host prefix its file actually lives under, not just hosts[0].
+// the same branch) is in sync, not stale. Each entry resolves against ITS OWN
+// host's prefix (surface → host), so a same-named file changed under a
+// DIFFERENT host can never stale it or feed the wrong bytes into the hash.
 const changedSet = new Set(changed.map(norm));
 const staled = [];
 for (const it of items) {
   const rel = norm(it.hostPath ?? "");
-  const prefix = hostPrefixes.find((p) => changedSet.has(norm(path.join(p, rel))));
-  if (!prefix) continue;
+  const prefix = prefixForItem(it);
+  if (!rel || !prefix) continue;
   const file = norm(path.join(prefix, rel));
+  if (!changedSet.has(file)) continue;
   const abs = path.join(repoRoot, file);
   if (!existsSync(abs)) {
     staled.push({ it, file }); // source deleted but still cataloged
@@ -161,9 +179,10 @@ const unrendered = items.filter((it) => {
   const hasScreenshot = (it.examples ?? []).some((ex) => ex.image);
   return !hasPreview && !hasScreenshot;
 });
-const unrenderedFromPr = unrendered.filter((it) =>
-  hostPrefixes.some((p) => changedSet.has(norm(path.join(p, it.hostPath ?? "")))),
-);
+const unrenderedFromPr = unrendered.filter((it) => {
+  const prefix = prefixForItem(it); // its own host, not any host
+  return prefix && changedSet.has(norm(path.join(prefix, it.hostPath ?? "")));
+});
 
 // 4. Route files this PR adds that the pages map doesn't know (Next app-router
 // convention — the page-mapper agent's enumeration rule), plus mapped routes
@@ -284,7 +303,8 @@ if (unrendered.length > unrenderedFromPr.length) {
 
 const body = lines.join("\n");
 console.log(body);
-writeFileSync("/tmp/synclair-catalog-comment.md", body);
+const commentPath = path.join(os.tmpdir(), "synclair-catalog-comment.md");
+writeFileSync(commentPath, body);
 
 if (process.env.GITHUB_OUTPUT) {
   const gapFiles = [
@@ -292,6 +312,9 @@ if (process.env.GITHUB_OUTPUT) {
     ...staled.map((s) => s.file),
   ];
   appendFileSync(process.env.GITHUB_OUTPUT, `has_gaps=${hasGaps}\n`);
+  // Where the comment body was written — the workflow's comment step reads
+  // this instead of assuming the runner's tmpdir is /tmp.
+  appendFileSync(process.env.GITHUB_OUTPUT, `comment_path=${commentPath}\n`);
   appendFileSync(process.env.GITHUB_OUTPUT, `gap_files=${[...new Set(gapFiles)].join(",")}\n`);
   appendFileSync(
     process.env.GITHUB_OUTPUT,

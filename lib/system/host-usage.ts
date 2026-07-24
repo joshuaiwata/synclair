@@ -3,6 +3,7 @@ import path from "node:path"
 import { cache } from "react"
 
 import { getExternalCatalog } from "./external"
+import { hostAnchoredCache } from "./host-cache"
 import { getSurface } from "./surfaces"
 
 /**
@@ -68,9 +69,13 @@ async function collect(root: string, dir: string, out: string[]): Promise<void> 
 }
 
 /**
- * The web-host corpus, loaded once per request. Hosts come from the external
- * catalog; non-web surfaces are excluded (see module note). Empty when the
- * host repos aren't checked out (CI) — every count then returns null.
+ * The web-host corpus. react `cache()` dedupes within a request; beneath it,
+ * `hostAnchoredCache` keeps the loaded corpus ACROSS requests, anchored on the
+ * hosts' HEAD shas (+ a short TTL for uncommitted edits — host-cache.ts), so a
+ * navigation doesn't re-read every host source file. Hosts come from the
+ * external catalog; non-web surfaces are excluded (see module note). Empty
+ * when there are no web hosts or the host repos aren't checked out (CI) —
+ * every count then returns null.
  */
 const getWebCorpus = cache(async (): Promise<CorpusFile[]> => {
   const catalog = await getExternalCatalog()
@@ -78,29 +83,33 @@ const getWebCorpus = cache(async (): Promise<CorpusFile[]> => {
   // be excluded, a web surface named "mobile" must not be (same rule as
   // host-scan.ts). Hosts without a declared surface default to web.
   const hosts = (catalog.hosts ?? []).filter(
-    (h) => (getSurface(h.surface)?.platform ?? "web") === "web"
+    (h) => h.root && (getSurface(h.surface)?.platform ?? "web") === "web"
   )
-  const corpus: CorpusFile[] = []
-  for (const host of hosts) {
-    if (!host.root) continue
-    const root = path.resolve(process.cwd(), host.root)
-    const files: string[] = []
-    await collect(root, "", files)
-    const label = host.name ?? host.surface ?? path.basename(root)
-    await Promise.all(
-      files.map(async (f) => {
-        try {
-          corpus.push({
-            file: `${label}/${f.split(path.sep).join("/")}`,
-            text: await readFile(path.join(root, f), "utf8"),
-          })
-        } catch {
-          /* unreadable file — skip */
-        }
-      })
-    )
-  }
-  return corpus
+  // No hosts (blank-seed / new-project mode): nothing to scan, nothing to cache.
+  if (hosts.length === 0) return []
+  const roots = hosts.map((h) => path.resolve(process.cwd(), h.root))
+  return hostAnchoredCache("web-corpus", roots, async () => {
+    const corpus: CorpusFile[] = []
+    for (const host of hosts) {
+      const root = path.resolve(process.cwd(), host.root)
+      const files: string[] = []
+      await collect(root, "", files)
+      const label = host.name ?? host.surface ?? path.basename(root)
+      await Promise.all(
+        files.map(async (f) => {
+          try {
+            corpus.push({
+              file: `${label}/${f.split(path.sep).join("/")}`,
+              text: await readFile(path.join(root, f), "utf8"),
+            })
+          } catch {
+            /* unreadable file — skip */
+          }
+        })
+      )
+    }
+    return corpus
+  })
 })
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")

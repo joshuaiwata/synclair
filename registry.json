@@ -617,6 +617,87 @@
         "layer": "foundation",
         "previewImage": "/previews/library-tier-page.png"
       }
+    },
+    {
+      "name": "embed-frame",
+      "type": "registry:component",
+      "title": "Embed Frame",
+      "description": "Live-route iframe for documentation previews \u2014 renders the REAL page at the logical device width of the surrounding ViewportFrame and scales to fit, so media queries fire at the width the device switcher claims. The embed side of the preview contract.",
+      "categories": [
+        "documentation"
+      ],
+      "files": [
+        {
+          "path": "components/embed-frame.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "components/embed-frame.docs.tsx",
+      "meta": {
+        "status": "stable",
+        "layer": "foundation"
+      }
+    },
+    {
+      "name": "pages-explorer",
+      "type": "registry:block",
+      "title": "Pages Explorer",
+      "description": "The Pages overview body: one scoped search over the app sitemap with three browsing views \u2014 collapsible route tree, branched chart, live-thumbnail gallery. Data via props from data/pages-map.json; its organs (sitemap tree/chart, page thumb/viewport, host status) ride as files of this block.",
+      "categories": [
+        "documentation",
+        "navigation"
+      ],
+      "files": [
+        {
+          "path": "components/pages/pages-explorer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/pages/sitemap-tree.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/pages/sitemap-chart.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/pages/page-thumb.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/pages/page-viewport.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/pages/host-status.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "components/pages/pages-explorer.docs.tsx",
+      "meta": {
+        "status": "stable",
+        "layer": "foundation"
+      }
+    },
+    {
+      "name": "token-systems",
+      "type": "registry:block",
+      "title": "Token Systems",
+      "description": "Companion multi-system mode: one complete style sheet per PARALLEL token system (TokenSystemView) plus the Compare tab that leads with the drift between them (DriftView) \u2014 the decision aid for converging several design vocabularies into one.",
+      "categories": [
+        "documentation"
+      ],
+      "files": [
+        {
+          "path": "components/library/token-systems.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "components/library/token-systems.docs.tsx",
+      "meta": {
+        "status": "stable",
+        "layer": "foundation"
+      }
     }
   ]
 }

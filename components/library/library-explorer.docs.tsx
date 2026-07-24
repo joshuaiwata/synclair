@@ -7,7 +7,7 @@ import { live, scene, type ComponentDoc } from "@/lib/system/doc-types"
  */
 const doc: ComponentDoc = {
   intent:
-    "The two-pane shell of the library: a floating sidebar that scopes by surface and tier over a grouped, filterable item list, with the routed page beside it. It exists so every library route shares one navigation model — scope and tier live in the URL, so any filtered position is a shareable link. Single-surface projects get the same shell minus the surface level.",
+    "The two-pane shell of the library: a flat, hairline-separated explorer rail (the docs double-sidebar pattern — no card chrome, so it reads as a nested level rather than a second app sidebar) that scopes by surface and tier over a grouped, filterable item list, with the routed page beside it. It exists so every library route shares one navigation model — scope and tier live in the URL, so any filtered position is a shareable link. Single-surface projects get the same shell minus the surface level.",
   examples: [
     {
       title: "Live",

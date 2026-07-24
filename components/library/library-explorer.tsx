@@ -14,7 +14,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -44,9 +43,9 @@ import { cn } from "@/lib/utils"
 
 /**
  * The LIBRARY EXPLORER — the two-pane shell every library route renders in:
- * a FLOATING sidebar on the left (two selectors — surface + tier — over a
- * grouped, filterable item list, shadcn/Storybook style), the routed page on
- * the right under the shared page-header bar.
+ * a flat, hairline-separated rail on the left (two selectors — surface + tier
+ * — over a grouped, filterable item list, shadcn/Storybook docs style), the
+ * routed page on the right under the shared page-header bar.
  *
  * The old accordion tree stacked every tier at once and made you expand to
  * reach anything; the two selectors collapse that to one clear "which surface,
@@ -86,21 +85,21 @@ export function LibraryExplorer({
 }) {
   const router = useRouter()
   const { pathname, scopeId, tier } = useLocation(tree)
-  const [filter, setFilter] = React.useState("")
-  const filterRef = React.useRef<HTMLInputElement>(null)
+  const [query, setQuery] = React.useState("")
+  const searchRef = React.useRef<HTMLInputElement>(null)
 
   // The active tier drives both the select value and the list; default to the
   // first tier so a surface home (no tier in the path) still shows something.
   const activeKind: ComponentKind = tier?.kind ?? TIERS[0].kind
 
-  // "/" focuses the filter from anywhere in the explorer.
+  // "/" focuses the search from anywhere in the explorer.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return
       e.preventDefault()
-      filterRef.current?.focus()
+      searchRef.current?.focus()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -117,14 +116,20 @@ export function LibraryExplorer({
     ? [scopedRoot, ...tree.roots.filter((r) => r.id === "shared" && r.id !== scopedRoot.id)]
     : tree.roots
 
-  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, filter.trim().toLowerCase())
+  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, query.trim().toLowerCase())
 
   return (
     <div className="flex min-h-svh flex-col">
       <ExplorerHeader tree={tree} pathname={pathname} />
       <div className="flex min-h-0 flex-1">
-        {/* Floating sidebar — a nested panel with its own rounded, ringed card. */}
-        <aside className="sticky top-2 m-2 flex max-h-[calc(100svh-4.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden rounded-lg border bg-sidebar shadow-sm ring-1 ring-sidebar-border">
+        {/* Explorer rail — a FLAT second column, hairline-separated (the
+            Storybook/docs double-sidebar pattern). No card chrome: a floating
+            shadowed panel in the same tint as the app sidebar read as a
+            duplicate sidebar, not a nested level. */}
+        {/* top-14/-3.5rem pairs with the sticky ExplorerHeader (h-14): the rail
+            is always fully visible, so the item list scrolls INTERNALLY
+            instead of running below the fold. */}
+        <aside className="sticky top-14 flex max-h-[calc(100svh-3.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             {tree.multiSurface && (
               <Select
@@ -134,10 +139,11 @@ export function LibraryExplorer({
                   router.push(tierHref(v === "all" ? undefined : v, activeKind))
                 }
               >
-                {/* bg-background: the panel is bg-sidebar — transparent controls
-                    read as same-color-on-same-color, so fields sit on the page
-                    ground instead. */}
-                <SelectTrigger size="sm" className="bg-background w-full text-xs">
+                {/* bg-card: on the tinted canvas (background == sidebar tint
+                    since the facelift) a bg-background control is same-color-
+                    on-same-color — fields sit one step ABOVE their surface,
+                    which is bg-card now. */}
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -155,38 +161,47 @@ export function LibraryExplorer({
                 </SelectContent>
               </Select>
             )}
-            <Select
-              value={activeKind}
-              onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
-            >
-              <SelectTrigger size="sm" className="bg-background w-full text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIERS.map((t) => (
-                  <SelectItem key={t.kind} value={t.kind} className="text-xs">
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Tier select only when surfaces exist: it composes with the
+                surface select (switch surface, keep tier). Single-surface
+                projects already switch tiers from the app sidebar and the
+                breadcrumb names the tier — a third control is redundant. */}
+            {tree.multiSurface && (
+              <Select
+                value={activeKind}
+                onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
+              >
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIERS.map((t) => (
+                    <SelectItem key={t.kind} value={t.kind} className="text-xs">
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="relative">
               <Input
-                ref={filterRef}
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setFilter("")}
-                placeholder="Filter…"
-                className="bg-background h-7 pr-7 text-xs"
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+                placeholder="Search…"
+                className="bg-card h-7 pr-7 text-xs"
               />
               <kbd className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 font-mono text-3xs">
                 /
               </kbd>
             </div>
           </div>
-          <ScrollArea className="min-h-0 flex-1">
+          {/* Native overflow, not Radix ScrollArea: its viewport doesn't
+              reliably clamp to a flexed max-height parent, which left this
+              list unscrollable. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <ItemList groups={groups} pathname={pathname} tier={tier ?? TIERS.find((t) => t.kind === activeKind)!} />
-          </ScrollArea>
+          </div>
         </aside>
 
         <div className="min-w-0 flex-1">{children}</div>
@@ -358,16 +373,26 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
   const last = crumbs.length - 1
 
   return (
+    // Sticky: the rail pins at top-14 right below this bar, so together they
+    // form the always-visible explorer chrome while the page scrolls.
     <PageHeader
+      className="sticky top-0 z-20"
       title={
         <Breadcrumb>
-          <BreadcrumbList className="text-xs">
+          {/* Same voice as every other page's context bar (PageHeader string
+              title: text-sm font-medium text-muted-foreground) — the trail is
+              context chrome, not the page's h1. */}
+          <BreadcrumbList className="text-sm">
             {crumbs.map((c, i) => (
               <React.Fragment key={`${c.label}-${i}`}>
                 {i > 0 && <BreadcrumbSeparator />}
                 <BreadcrumbItem>
                   {i === last || !c.href ? (
-                    <BreadcrumbPage className={cn(c.mono && "font-mono")}>{c.label}</BreadcrumbPage>
+                    <BreadcrumbPage
+                      className={cn("text-muted-foreground font-medium", c.mono && "font-mono")}
+                    >
+                      {c.label}
+                    </BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link href={c.href}>{c.label}</Link>

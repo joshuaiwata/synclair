@@ -86,7 +86,7 @@ jobs:
           gh pr comment "${{ github.event.pull_request.number }}" \
             --repo "${{ github.repository }}" \
             --edit-last --create-if-none \
-            --body-file /tmp/synclair-catalog-comment.md
+            --body-file "${{ steps.gate.outputs.comment_path }}"
 
   sync:
     needs: gate

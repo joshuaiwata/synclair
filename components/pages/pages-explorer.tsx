@@ -56,7 +56,7 @@ export function PagesExplorer({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search pages by name or route…"
           aria-label="Search pages"
-          className="border-input bg-background focus-visible:ring-ring/50 h-9 w-full rounded-md border pr-9 pl-9 text-sm outline-none focus-visible:ring-2"
+          className="border-input bg-card focus-visible:ring-ring/50 h-9 w-full rounded-md border pr-9 pl-9 text-sm outline-none focus-visible:ring-2"
         />
         {query && (
           <button

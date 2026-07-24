@@ -3,7 +3,13 @@ import { existsSync } from "node:fs"
 import path from "node:path"
 import { cache } from "react"
 
-import { getExternalCatalog, type ExternalHost } from "./external"
+import {
+  CATALOG_PATH,
+  getExternalCatalog,
+  type ExternalHost,
+  type ExternalItem,
+} from "./external"
+import { fileAnchor, hostAnchoredCache } from "./host-cache"
 import { countHostUsage, jsxTagPattern } from "./host-usage"
 import { getSurface } from "./surfaces"
 
@@ -186,11 +192,31 @@ function normalizePath(p: string): string {
 
 /**
  * Coverage per host: what the live scan found vs what the catalog documents.
- * Memoised per request. Empty array when there are no hosts (new-project mode).
+ * react `cache()` memoises per request; beneath it, `hostAnchoredCache` keeps
+ * the result ACROSS requests so the layout's per-navigation call doesn't
+ * re-walk the host. The anchor is the hosts' HEAD shas PLUS the catalog file's
+ * change-stamp (coverage diffs scan vs catalog, so a catalog edit must
+ * invalidate just as immediately as a host commit); a short TTL bounds
+ * staleness for uncommitted host edits (host-cache.ts). Empty array when
+ * there are no hosts (new-project mode) — that path never touches the cache.
  */
 export const getHostCoverage = cache(async (): Promise<HostCoverage[]> => {
   const { hosts, items } = await getExternalCatalog()
   if (hosts.length === 0) return []
+  const roots = hosts.map((h) => path.resolve(process.cwd(), h.root))
+  const catalogStamp = await fileAnchor(CATALOG_PATH)
+  return hostAnchoredCache(
+    "host-coverage",
+    roots,
+    () => computeHostCoverage(hosts, items),
+    `catalog:${catalogStamp}`
+  )
+})
+
+async function computeHostCoverage(
+  hosts: ExternalHost[],
+  items: ExternalItem[]
+): Promise<HostCoverage[]> {
   const fallbackSurface = hosts[0].surface
   const results: HostCoverage[] = []
   for (const host of hosts) {
@@ -243,4 +269,4 @@ export const getHostCoverage = cache(async (): Promise<HostCoverage[]> => {
     })
   }
   return results
-})
+}

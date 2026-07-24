@@ -25,31 +25,44 @@ import { sanitizeSvg } from "@/lib/system/sanitize-svg"
 import { project } from "@/lib/system/seed/project"
 import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
-import { ColorSwatch } from "@/components/library/color-swatch"
+import { ColorSwatch, RampStrip } from "@/components/library/color-swatch"
 import { cn } from "@/lib/utils"
 
 export function ColorGroupBlock({ group }: { group: ColorGroup }) {
+  // Step-scaled ramps (50…950) render as ONE continuous strip — the
+  // Storybook/Radix idiom — instead of a wall of per-step cards. Discrete
+  // semantic/status/chart tokens keep individual (compact) chips, where the
+  // name matters more than the position in a scale.
+  const isRamp =
+    group.tokens.length >= 6 &&
+    group.tokens.every((t) => /^\d{2,4}$/.test(t.name.split("-").pop() ?? ""))
   return (
     <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-2.5">
-          {/* A continuous ramp bead — reads the group at a glance. */}
-          <span className="flex h-4 overflow-hidden rounded-full ring-1 ring-black/10 ring-inset">
-            {group.tokens.map((t) => (
-              <span key={t.name} className={cn("w-4", t.bg)} />
-            ))}
-          </span>
+          {!isRamp && (
+            /* A continuous ramp bead — reads the group at a glance. */
+            <span className="flex h-4 overflow-hidden rounded-full ring-1 ring-black/10 ring-inset">
+              {group.tokens.map((t) => (
+                <span key={t.name} className={cn("w-4", t.bg)} />
+              ))}
+            </span>
+          )}
           <h3 className="text-sm font-semibold tracking-tight">{group.label}</h3>
         </div>
         {group.hint && (
           <p className="text-muted-foreground max-w-3xl text-xs leading-relaxed">{group.hint}</p>
         )}
       </header>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-        {group.tokens.map((t) => (
-          <ColorSwatch key={t.name} name={t.name} value={t.value} usage={t.usage} bg={t.bg} />
-        ))}
-      </div>
+      {isRamp ? (
+        <RampStrip tokens={group.tokens} />
+      ) : (
+        <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
+          {group.tokens.map((t) => (
+            <ColorSwatch key={t.name} name={t.name} value={t.value} usage={t.usage} bg={t.bg} />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

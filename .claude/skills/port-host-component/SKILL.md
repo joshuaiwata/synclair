@@ -76,8 +76,11 @@ tsconfig (`@/* → ./*`, the hub root), colliding with the hub's own `@/`. A glo
 alias can't fix it (the hub uses `@/components` / `@/lib` for its own code too).
 Fix: wire `scripts/host-self-alias-loader.cjs` in `next.config.ts`
 (`turbopack.rules`, keyed `*.ts`/`*.tsx` by basename). It rewrites a HOST file's
-own `@/x` → `@host/src/x`, which resolves to the host root via the `@host/*`
-alias, while the hub's own files (resourcePath-guarded no-op) are untouched.
+own `@/x` onto the hub's `@host/*` alias — `@host/src/x` for src-layout hosts,
+`@host/x` for root-level ones (it reads the host's own `@/*` mapping) — while
+the hub's own files (host-root containment guard, not path substrings) are
+untouched. Host trees come from the hub tsconfig's `@host/*` targets, or pass
+`options.hosts` (`[{ root, srcBase?, alias? }]`) in the rule wiring.
 Clear `.next` after wiring. Hosts that self-reference via bare workspace
 specifiers (`@acme/ui`) don't need this.
 

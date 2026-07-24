@@ -50,7 +50,7 @@ export function TabsNav({ options, value, className, "aria-label": ariaLabel }: 
             className={cn(
               "inline-flex h-full items-center justify-center gap-1.5 rounded-md border border-transparent px-2.5 text-sm font-medium whitespace-nowrap transition-all",
               isActive
-                ? "bg-background text-foreground shadow-sm dark:border-input dark:bg-input/30"
+                ? "bg-card text-foreground shadow-sm dark:border-input dark:bg-input/30"
                 : "text-foreground/60 hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground"
             )}
           >

@@ -1,3 +1,5 @@
+
+/** Registry-exempt (route-bound view): the /synclair/pages/[id] detail — it loads by id from the pages map and 404s without one, so it cannot render as a library preview on a blank seed. Analogous to a route file, not a reusable block. */
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowUpRight, ExternalLink } from "lucide-react"

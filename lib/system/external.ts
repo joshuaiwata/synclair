@@ -30,7 +30,8 @@ import { defaultSurfaceId } from "./surfaces"
  * `sourceHash`.
  */
 
-const CATALOG_PATH = path.join(process.cwd(), "data", "external-catalog.json")
+/** Exported so derived layers (host-scan.ts) can anchor caches on the file's change-stamp. */
+export const CATALOG_PATH = path.join(process.cwd(), "data", "external-catalog.json")
 
 /**
  * A host app this catalog was surveyed from. Single-frontend projects have one;
