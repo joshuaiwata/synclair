@@ -46,6 +46,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # claude-code-action authenticates via OIDC
 
 concurrency:
   group: synclair-catalog-${{ github.event.pull_request.number }}
@@ -118,6 +119,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Use the workflow's own token — no Claude GitHub App install required.
+          github_token: ${{ github.token }}
           # Paths below are repo-root-relative (Synclair at the root). If Synclair
           # is embedded at ./synclair, prefix each with `synclair/`.
           prompt: |
@@ -170,7 +173,7 @@ jobs:
             to data/external-catalog.json, components/host-previews/,
             data/pages-map.json, data/host-hygiene.json, and
             lib/system/knowledge/sources.ts.
-          claude_args: "--max-turns 100"
+          claude_args: '--max-turns 100 --allowedTools "Bash,Read,Glob,Grep,Edit,MultiEdit,Write"'
 
       - name: Commit and push sync updates
         if: env.HAS_KEY == 'true'
