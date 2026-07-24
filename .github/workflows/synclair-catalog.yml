@@ -46,6 +46,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # claude-code-action authenticates via OIDC
 
 concurrency:
   group: synclair-catalog-${{ github.event.pull_request.number }}
