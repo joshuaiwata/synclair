@@ -14,7 +14,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -44,9 +43,9 @@ import { cn } from "@/lib/utils"
 
 /**
  * The LIBRARY EXPLORER — the two-pane shell every library route renders in:
- * a FLOATING sidebar on the left (two selectors — surface + tier — over a
- * grouped, filterable item list, shadcn/Storybook style), the routed page on
- * the right under the shared page-header bar.
+ * a flat, hairline-separated rail on the left (two selectors — surface + tier
+ * — over a grouped, filterable item list, shadcn/Storybook docs style), the
+ * routed page on the right under the shared page-header bar.
  *
  * The old accordion tree stacked every tier at once and made you expand to
  * reach anything; the two selectors collapse that to one clear "which surface,
@@ -127,7 +126,10 @@ export function LibraryExplorer({
             Storybook/docs double-sidebar pattern). No card chrome: a floating
             shadowed panel in the same tint as the app sidebar read as a
             duplicate sidebar, not a nested level. */}
-        <aside className="sticky top-0 flex max-h-svh w-64 shrink-0 flex-col self-start overflow-hidden border-r">
+        {/* top-14/-3.5rem pairs with the sticky ExplorerHeader (h-14): the rail
+            is always fully visible, so the item list scrolls INTERNALLY
+            instead of running below the fold. */}
+        <aside className="sticky top-14 flex max-h-[calc(100svh-3.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             {tree.multiSurface && (
               <Select
@@ -188,9 +190,12 @@ export function LibraryExplorer({
               </kbd>
             </div>
           </div>
-          <ScrollArea className="min-h-0 flex-1">
+          {/* Native overflow, not Radix ScrollArea: its viewport doesn't
+              reliably clamp to a flexed max-height parent, which left this
+              list unscrollable. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <ItemList groups={groups} pathname={pathname} tier={tier ?? TIERS.find((t) => t.kind === activeKind)!} />
-          </ScrollArea>
+          </div>
         </aside>
 
         <div className="min-w-0 flex-1">{children}</div>
@@ -362,7 +367,10 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
   const last = crumbs.length - 1
 
   return (
+    // Sticky: the rail pins at top-14 right below this bar, so together they
+    // form the always-visible explorer chrome while the page scrolls.
     <PageHeader
+      className="sticky top-0 z-20"
       title={
         <Breadcrumb>
           <BreadcrumbList className="text-xs">
