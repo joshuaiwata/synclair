@@ -106,7 +106,7 @@ export function summarizeFreshness(report: FreshnessReport | null): Record<Fresh
     unverifiable: 0,
     unreachable: 0,
   }
-  for (const s of report?.sources ?? []) zero[s.state] += 1
+  for (const s of report?.sources ?? []) if (s.state in zero) zero[s.state] += 1
   return zero
 }
 

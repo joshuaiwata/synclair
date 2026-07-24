@@ -121,7 +121,9 @@ export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
       at: updatedAt,
     })
   }
-  items.push(...docs.sort((a, b) => b.at.localeCompare(a.at)).slice(0, DOC_CAP))
+  // Date.parse, not localeCompare: git %aI carries local offsets while Figma
+  // timestamps are Z — lexicographic order on mixed offsets is not chronological.
+  items.push(...docs.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, DOC_CAP))
 
   // References — dated by their `addedOn`
   for (const r of getReferences()) {
@@ -153,5 +155,5 @@ export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
     })
   }
 
-  return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit)
+  return items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, limit)
 }

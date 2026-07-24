@@ -4,6 +4,7 @@ import { LayoutTemplate } from "lucide-react"
 import { ComponentCard } from "@/components/library/component-card"
 import { getHostPreview } from "@/components/host-previews/registry"
 import { FilterBar, type FilterGroup } from "@/components/library/filter-bar"
+import { SurfaceSwitcher } from "@/components/surface-switcher"
 import {
   Empty,
   EmptyDescription,
@@ -302,10 +303,10 @@ export async function TierGallery({
     : 0
 
   return (
-    <main className="flex max-w-6xl flex-col gap-8 p-6">
+    <div className="page-enter mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-8 md:px-8">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-base font-semibold">{t.label}</h1>
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t.label}</h1>
           <span className="text-muted-foreground font-mono text-xs">
             {hasHost
               ? `${items.length} ${t.label.toLowerCase()} · ${basisCount("shadcn")} shadcn · ${basisCount("custom")} custom · ${usedCount} in use`
@@ -322,7 +323,22 @@ export async function TierGallery({
                 }`}
           </span>
         </div>
-        <p className="text-muted-foreground max-w-2xl text-sm">{t.description}</p>
+        <p className="text-body-content max-w-2xl text-base">{t.description}</p>
+        {/* Flip between the project's app surfaces without leaving this tier —
+            the SAME switcher the pages sitemap uses (nothing renders for
+            single-surface projects). */}
+        <SurfaceSwitcher
+          active={scope}
+          allHref={t.path}
+          hrefFor={(id) => synclair(`/library/${id}/${tierSlug(kind)}`)}
+          includeShared
+          counts={Object.fromEntries(
+            [...new Set(allOfTier.map(surfaceOf))].map((id) => [
+              id,
+              allOfTier.filter((c) => surfaceOf(c) === id).length,
+            ])
+          )}
+        />
         {(uncatalogedCount > 0 || unusedCount > 0 || unrenderedCount > 0) && (
           <p className="text-muted-foreground/80 max-w-2xl text-xs">
             Live host scan:
@@ -408,12 +424,14 @@ export async function TierGallery({
         </Empty>
       ) : (
         sections.map(([category, group]) => (
-          <section key={category} className="flex flex-col gap-3">
+          <section key={category} className="flex flex-col gap-4">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-sm font-semibold">{category}</h2>
-              <span className="text-muted-foreground text-xs">{group.length}</span>
+              <h2 className="text-lg font-semibold tracking-tight">{category}</h2>
+              <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                {group.length}
+              </span>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((e) => (
                 <ComponentCard
                   key={`${surfaceOf(e.primary)}:${e.primary.name}`}
@@ -428,7 +446,7 @@ export async function TierGallery({
           </section>
         ))
       )}
-    </main>
+    </div>
   )
 }
 

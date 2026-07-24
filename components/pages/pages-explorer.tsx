@@ -190,7 +190,7 @@ function GalleryCard({ p }: { p: FlatPage }) {
       {p.previewSrc ? (
         <PageThumb url={p.previewSrc} title={p.route} />
       ) : (
-        <div className="bg-muted/30 text-muted-foreground/50 flex h-40 items-center justify-center border-b">
+        <div className="stage-canvas text-muted-foreground/50 flex h-40 items-center justify-center border-b">
           <FileWarning className="size-6" />
         </div>
       )}

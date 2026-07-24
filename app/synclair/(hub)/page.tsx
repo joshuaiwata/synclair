@@ -8,9 +8,13 @@ import {
   FileText,
   Frame,
   LayoutTemplate,
+  Map as MapIcon,
+  Network,
+  Palette,
   Sparkles,
 } from "lucide-react"
 
+import { ComponentCard } from "@/components/library/component-card"
 import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
 import { StatusBadge } from "@/components/status-badge"
@@ -19,9 +23,13 @@ import { getAgents } from "@/lib/system/agents"
 import { getRecentActivity, type ActivityKind } from "@/lib/system/activity"
 import { getGlobalCapabilities } from "@/lib/system/global-skills"
 import { getCatalog, isFoundationVisible, isLibraryVisible } from "@/lib/system/components"
+import { isExistingProjectMode } from "@/lib/system/external"
+import { formatDay } from "@/lib/system/format-date"
+import { getLatestCommitDate } from "@/lib/system/git-dates"
+import { getCommitStats, getRepoRootLabel, type CommitStat } from "@/lib/system/git-log"
 import { getKnowledgeSources } from "@/lib/system/knowledge/sources"
+import { getPagesMap } from "@/lib/system/pages-map"
 import { getReferences } from "@/lib/system/references"
-import { getRepoRootLabel } from "@/lib/system/git-log"
 import { synclair } from "@/lib/system/routes"
 import { getSkills } from "@/lib/system/skills"
 import {
@@ -31,6 +39,8 @@ import {
   PLATFORM_BADGE,
 } from "@/lib/system/surfaces"
 import { getSystemMap } from "@/lib/system/system-map"
+import { FOUNDATION_GROUPS } from "@/lib/system/tokens"
+import { getUsageMap } from "@/lib/system/usage"
 import { mcpServers, openItems, stack } from "@/lib/synclair-data"
 
 export const dynamic = "force-dynamic"
@@ -77,7 +87,7 @@ async function ProjectShape() {
           <Link
             key={s.id}
             href={synclair(`/library/${s.id}`)}
-            className="group hover:bg-muted/40 flex flex-col gap-1.5 rounded-lg border p-4 transition-colors"
+            className="group hover:bg-muted/40 bg-card flex flex-col gap-1.5 rounded-lg border p-4 transition-colors"
           >
             <span className="flex items-center gap-2">
               <span className="text-sm font-medium">{s.label}</span>
@@ -96,7 +106,7 @@ async function ProjectShape() {
       {sharedAreas.length > 0 && (
         <Link
           href={synclair("/system")}
-          className="group hover:bg-muted/40 flex flex-wrap items-center gap-2 rounded-lg border p-4 transition-colors"
+          className="group hover:bg-muted/40 bg-card flex flex-wrap items-center gap-2 rounded-lg border p-4 transition-colors"
         >
           <span className="text-sm font-medium">Shared</span>
           <span className="text-muted-foreground text-xs">
@@ -111,20 +121,118 @@ async function ProjectShape() {
   )
 }
 
+/** Local YYYY-MM-DD of an ISO datetime — the ledger's day-grouping key. */
+function dayKey(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function dayLabel(key: string, now = new Date()): string {
+  const today = dayKey(now.toISOString())
+  const yesterday = dayKey(new Date(now.getTime() - 86_400_000).toISOString())
+  if (key === today) return "Today"
+  if (key === yesterday) return "Yesterday"
+  return formatDay(`${key}T00:00:00`)
+}
+
+/**
+ * The day-grouped commit ledger — what the team actually shipped, day by day:
+ * authors, churn, and each commit's subject. Reads one `git log --shortstat`
+ * pass; rows link to the GitHub page where the commit drawer has the full diff.
+ */
+function CommitLedger({ commits, days = 5 }: { commits: CommitStat[]; days?: number }) {
+  const byDay = new Map<string, CommitStat[]>()
+  for (const c of commits) {
+    const key = dayKey(c.date)
+    const list = byDay.get(key) ?? []
+    list.push(c)
+    byDay.set(key, list)
+  }
+  // Sort day keys, not insertion order: squash-merges carry the PR's original
+  // AUTHOR date, so log order and day order can disagree.
+  const groups = [...byDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, days)
+  const MAX_ROWS = 5
+
+  return (
+    <div className="flex flex-col gap-4">
+      {groups.map(([key, dayCommits]) => {
+        const authors = [...new Set(dayCommits.map((c) => c.author))]
+        const ins = dayCommits.reduce((n, c) => n + c.insertions, 0)
+        const del = dayCommits.reduce((n, c) => n + c.deletions, 0)
+        return (
+          <div key={key} className="bg-card overflow-hidden rounded-lg border">
+            <div className="bg-muted/40 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-4 py-2">
+              <span className="text-sm font-medium">{dayLabel(key)}</span>
+              <span className="text-muted-foreground text-xs">
+                {dayCommits.length} commit{dayCommits.length === 1 ? "" : "s"} ·{" "}
+                {authors.join(", ")}
+              </span>
+              <span className="text-muted-foreground ml-auto font-mono text-2xs tabular-nums">
+                <span className="text-success">+{ins}</span>{" "}
+                <span className="text-destructive">−{del}</span>
+              </span>
+            </div>
+            <div className="divide-y">
+              {dayCommits.slice(0, MAX_ROWS).map((c) => (
+                <Link
+                  key={c.hash}
+                  href={synclair("/github")}
+                  className="group hover:bg-muted/40 flex items-center gap-3 px-4 py-2 transition-colors"
+                >
+                  <code className="text-muted-foreground shrink-0 font-mono text-2xs">
+                    {c.shortHash}
+                  </code>
+                  <span className="min-w-0 flex-1 truncate text-sm">{c.subject}</span>
+                  {c.unpushed && (
+                    <StatusBadge status="warning" className="shrink-0 text-3xs">
+                      not pushed
+                    </StatusBadge>
+                  )}
+                  <span className="text-muted-foreground shrink-0 text-xs">{c.author}</span>
+                  <span className="text-muted-foreground/70 shrink-0 text-xs tabular-nums">
+                    {relativeTime(c.date)}
+                  </span>
+                </Link>
+              ))}
+              {dayCommits.length > MAX_ROWS && (
+                <Link
+                  href={synclair("/github")}
+                  className="text-muted-foreground hover:text-foreground block px-4 py-2 text-xs transition-colors"
+                >
+                  +{dayCommits.length - MAX_ROWS} more on the GitHub page &rarr;
+                </Link>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default async function Page() {
-  const [components, skills, agents, global, recent, foundationVisible] = await Promise.all([
-    // The Library card counts the FULL project catalog (registered + host
-    // externals + native fillers) so it matches the gallery headline a click
-    // away — getProjectComponents() is registered-project-only, which read 0
-    // for a host-cataloged project and contradicted the galleries.
-    getCatalog(),
-    getSkills(),
-    getAgents(),
-    getGlobalCapabilities(),
-    getRecentActivity(10),
-    isFoundationVisible(),
+  const [components, skills, agents, global, activity, foundationVisible, commits, usage] =
+    await Promise.all([
+      // The Library tiles count the FULL project catalog (registered + host
+      // externals + native fillers) so they match the gallery headline a click
+      // away — getProjectComponents() is registered-project-only, which read 0
+      // for a host-cataloged project and contradicted the galleries.
+      getCatalog(),
+      getSkills(),
+      getAgents(),
+      getGlobalCapabilities(),
+      getRecentActivity(14),
+      isFoundationVisible(),
+      getCommitStats(60),
+      getUsageMap(await getCatalog()),
+    ])
+  const [repoLabel, lastCommit, pagesMap, systemMap, existingProject] = await Promise.all([
+    getRepoRootLabel(),
+    getLatestCommitDate().catch(() => ""),
+    getPagesMap().catch(() => null),
+    getSystemMap().catch(() => null),
+    isExistingProjectMode(),
   ])
-  const repoLabel = await getRepoRootLabel()
   const knowledge = getKnowledgeSources()
   const references = getReferences()
   // Match the gallery headline: the visible project catalog excludes Synclair's
@@ -132,42 +240,87 @@ export default async function Page() {
   // foundation hidden") but includes it in new-project mode (the mother repo,
   // where those components ARE the design system), so Overview and the
   // galleries agree either way.
-  const byKind = (k: string) =>
-    components.filter((c) => c.kind === k && isLibraryVisible(c, foundationVisible)).length
+  const visible = components.filter((c) => isLibraryVisible(c, foundationVisible))
+  const byKind = (k: string) => visible.filter((c) => c.kind === k).length
 
-  // The foundation at a glance — grouped live counts, each row deep-links.
-  const groups: { label: string; rows: { label: string; value: number; href: string }[] }[] = [
+  // New in the library — the most recently touched visible items, as real
+  // rendered cards (recognition over recall: show the component, not its name).
+  const newInLibrary = [...visible]
+    .filter((c) => c.updatedAt)
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
+    .slice(0, 3)
+
+  // Around the foundation — recent non-library changes (skills, agents, docs,
+  // Figma, references). Library changes render as cards above instead.
+  const foundationActivity = activity
+    .filter((a) => a.kind !== "component" && a.kind !== "block" && a.kind !== "template")
+    .slice(0, 6)
+
+  // Jump-off points — every major surface, its live count, one click away.
+  const jumps: {
+    label: string
+    href: string
+    icon: React.ComponentType<{ className?: string }>
+    detail: string
+  }[] = [
     {
-      label: "Project",
-      rows: [
-        { label: "Knowledge sources", value: knowledge.length, href: synclair("/knowledge") },
-        { label: "References", value: references.length, href: synclair("/references") },
-      ],
+      label: "Components",
+      href: synclair("/components"),
+      icon: Component,
+      detail: `${byKind("component")} components · ${byKind("block")} blocks · ${byKind("template")} templates`,
     },
     {
-      label: "Library",
-      rows: [
-        { label: "Foundations", value: 5, href: synclair("/foundations") },
-        { label: "Components", value: byKind("component"), href: synclair("/components") },
-        { label: "Blocks", value: byKind("block"), href: synclair("/blocks") },
-        { label: "Templates", value: byKind("template"), href: synclair("/templates") },
-      ],
+      label: "Pages",
+      href: synclair("/pages"),
+      icon: MapIcon,
+      detail: pagesMap?.pages.length
+        ? `${pagesMap.pages.length} view${pagesMap.pages.length === 1 ? "" : "s"} mapped`
+        : "not mapped yet — run pages-map",
     },
     {
-      label: "AI setup",
-      rows: [
-        { label: "Skills", value: skills.length, href: synclair("/ai-setup") },
-        { label: "Agents", value: agents.length, href: synclair("/ai-setup") },
-        { label: "MCP servers", value: mcpServers.length, href: synclair("/ai-setup") },
-        { label: "Global skills", value: global.length, href: synclair("/ai-setup") },
-      ],
+      label: "Foundations",
+      href: synclair("/foundations"),
+      icon: Palette,
+      // FOUNDATION_GROUPS drives the tabs only in new-project mode; companion
+      // mode builds its tabs from the host's seed, so no count is claimed.
+      detail: existingProject ? "the host's design language" : `${FOUNDATION_GROUPS.length} token groups`,
+    },
+    {
+      label: "Knowledge",
+      href: synclair("/knowledge"),
+      icon: BookOpen,
+      detail: `${knowledge.length} source${knowledge.length === 1 ? "" : "s"} · ${references.length} reference${references.length === 1 ? "" : "s"}`,
+    },
+    {
+      label: "System Map",
+      href: synclair("/system"),
+      icon: Network,
+      detail: systemMap?.areas.length
+        ? `${systemMap.areas.length} area${systemMap.areas.length === 1 ? "" : "s"} mapped`
+        : "not mapped yet — run codebase-map",
+    },
+    {
+      label: "AI Setup",
+      href: synclair("/ai-setup"),
+      icon: Bot,
+      detail: `${skills.length} skills · ${agents.length} agents · ${mcpServers.length} MCP · ${global.length} global`,
     },
   ]
 
   return (
     <HubPage
       title="Synclair"
-      meta={<span className="text-muted-foreground font-mono text-xs">{repoLabel}</span>}
+      meta={
+        <span className="flex items-center gap-2">
+          {lastCommit && (
+            <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+              <span className="bg-success inline-block size-1.5 rounded-full" aria-hidden />
+              updated {relativeTime(lastCommit)}
+            </span>
+          )}
+          <span className="text-muted-foreground font-mono text-xs">{repoLabel}</span>
+        </span>
+      }
       lead={
         <>
           The team&rsquo;s space for building this project&rsquo;s front end with AI agents — the
@@ -181,33 +334,34 @@ export default async function Page() {
             how the product divides into frontends + what they share. */}
         {isMultiSurface() && <ProjectShape />}
 
-        {/* The foundation at a glance — grouped live counts */}
-        <div className="grid gap-3 md:grid-cols-3">
-          {groups.map((group) => (
-            <div key={group.label} className="flex flex-col rounded-lg border p-2">
-              <div className="text-muted-foreground px-2 pt-1 pb-1.5 text-xs font-medium tracking-wide uppercase">
-                {group.label}
-              </div>
-              {group.rows.map((row) => (
-                <Link
-                  key={row.label}
-                  href={row.href}
-                  className="group hover:bg-muted/50 flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 transition-colors"
-                >
-                  <span className="text-muted-foreground group-hover:text-foreground text-sm transition-colors">
-                    {row.label}
-                  </span>
-                  <span className="font-mono text-sm font-medium tabular-nums">{row.value}</span>
-                </Link>
-              ))}
-            </div>
+        {/* Jump-off points — where every session starts and fans out. */}
+        <div className="stagger-children grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {jumps.map((j) => (
+            <Link
+              key={j.label}
+              href={j.href}
+              className="group bg-card hover:border-foreground/20 card-lift flex items-start gap-3 rounded-lg border p-4"
+            >
+              <span className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
+                <j.icon className="text-muted-foreground size-4" />
+              </span>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex items-center gap-1 text-sm font-medium">
+                  {j.label}
+                  <ArrowUpRight className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                </span>
+                <span className="text-muted-foreground truncate font-mono text-2xs">
+                  {j.detail}
+                </span>
+              </span>
+            </Link>
           ))}
         </div>
 
-        {/* Foundation health at a glance */}
+        {/* Foundation health at a glance — curated stack status. */}
         <Link
           href={synclair("/environment")}
-          className="group hover:bg-muted/40 flex flex-wrap items-center gap-2 rounded-lg border p-4 transition-colors"
+          className="group hover:bg-muted/40 bg-card flex flex-wrap items-center gap-2 rounded-lg border p-4 transition-colors"
         >
           <span className="mr-1 text-sm font-medium">Foundation</span>
           {stack.map((layer) => (
@@ -220,19 +374,46 @@ export default async function Page() {
           </span>
         </Link>
 
-        {/* Recent — live from git history */}
-        <section className="flex flex-col gap-3">
-          <SectionHeader
-            title="Recent"
-            hint="latest changes across code, docs & design"
-          />
-          {recent.length === 0 ? (
-            <p className="text-muted-foreground rounded-lg border p-4 text-sm">
-              No dated activity yet — items appear here as they&rsquo;re committed.
-            </p>
-          ) : (
-            <div className="divide-y rounded-lg border">
-              {recent.map((item) => {
+        {/* New in the library — real rendered cards, straight to the doc page. */}
+        {newInLibrary.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader title="New in the library" hint="most recently touched items">
+              <Link
+                href={synclair("/components")}
+                className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              >
+                All components &rarr;
+              </Link>
+            </SectionHeader>
+            <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {newInLibrary.map((c) => (
+                <ComponentCard key={`${c.surface}:${c.name}`} component={c} usage={usage.get(c.name)} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* The daily catalog — what the team shipped, day by day, from git. */}
+        {commits.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <SectionHeader title="This week" hint="the daily catalog, live from git">
+              <Link
+                href={synclair("/github")}
+                className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              >
+                Full history &rarr;
+              </Link>
+            </SectionHeader>
+            <CommitLedger commits={commits} />
+          </section>
+        )}
+
+        {/* Around the foundation — recent non-library changes. */}
+        {foundationActivity.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <SectionHeader title="Around the foundation" hint="skills, agents, docs & design" />
+            <div className="bg-card divide-y rounded-lg border">
+              {foundationActivity.map((item) => {
                 const Icon = KIND_ICON[item.kind]
                 return (
                   <Link
@@ -253,14 +434,14 @@ export default async function Page() {
                 )
               })}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* What's next */}
+        {/* What's next — the curated queue (lib/synclair-data.ts), not derived. */}
         <section className="flex flex-col gap-3">
-          <SectionHeader title="What's next" hint="open questions and the queue" />
+          <SectionHeader title="What's next" hint="curated queue — lib/synclair-data.ts" />
           {openItems.length === 0 ? (
-            <p className="text-muted-foreground rounded-lg border p-4 text-sm">
+            <p className="text-muted-foreground bg-card rounded-lg border p-4 text-sm">
               No open items — add the project&rsquo;s next steps in{" "}
               <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
                 lib/synclair-data.ts
@@ -272,7 +453,7 @@ export default async function Page() {
             {nextGroups.map((group) => {
               const items = openItems.filter((i) => i.statusLabel === group.statusLabel)
               return (
-                <div key={group.label} className="flex flex-col gap-3 rounded-lg border p-4">
+                <div key={group.label} className="bg-card flex flex-col gap-3 rounded-lg border p-4">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={items[0]?.status ?? "neutral"}>
                       {group.label}
@@ -295,9 +476,9 @@ export default async function Page() {
         </section>
 
         <p className="text-muted-foreground/70 text-xs">
-          Counts and recent activity read live from the repo (registry, skills, agents, knowledge,
-          references) and the stored Figma manifest.
-          Curated notes (stack, methodology, MCP roles, the queue) live in{" "}
+          Counts, cards, and the daily catalog read live from the repo (registry, skills, agents,
+          knowledge, references, git history) and the stored Figma manifest. Curated notes (stack,
+          MCP roles, the What&rsquo;s-next queue) live in{" "}
           <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
             lib/synclair-data.ts
           </code>

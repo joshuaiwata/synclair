@@ -34,11 +34,15 @@ represents:
 
 ## What's in it
 
-Each tier is a **gallery** of card previews; each item has its own **doc page**
-(`/synclair/{tier}/[name]`) with:
+Each tier is a **gallery** of card previews — live thumbnails on a dot-grid stage —
+and each item has its own **doc page** (`/synclair/{tier}/[name]`) with:
 
-- **A live preview** — the real component rendering, not a screenshot. (In existing-app
-  mode, host components are documented from their source and tagged **"Host"**.)
+- **A preview stage** — the real component rendering (not a screenshot) on a
+  Storybook-style canvas: a device-width switcher on every tier (components get
+  desktop / 768 / 375; blocks and templates add wide and fullscreen), a stage
+  light/dark flip that previews the opposite theme without touching the page, and a
+  **Code** toggle with one-click copy. (In existing-app mode, host components are
+  documented from their source and tagged **"Host"**.)
 - **The API** — props, types, and variants, derived from the source.
 - **States & examples** — the meaningful variations, each rendered.
 - **UX documentation** — for blocks and templates: intent, an anatomy wireframe,

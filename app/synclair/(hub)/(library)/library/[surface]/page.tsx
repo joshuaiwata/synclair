@@ -52,9 +52,9 @@ export default async function SurfaceHomePage({
   )
 
   return (
-    <main className="flex max-w-3xl flex-col gap-6 p-6">
+    <div className="page-enter mx-auto w-full flex max-w-3xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-base font-semibold">{surfaceLabel(surfaceId)}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{surfaceLabel(surfaceId)}</h1>
         <p className="text-muted-foreground text-sm">
           {surfaceId === SHARED_SURFACE_ID
             ? "Monorepo packages consumed by several surfaces. Shared items also appear inside each surface's library, badged."
@@ -104,6 +104,6 @@ export default async function SurfaceHomePage({
           </TableBody>
         </Table>
       </div>
-    </main>
+    </div>
   )
 }

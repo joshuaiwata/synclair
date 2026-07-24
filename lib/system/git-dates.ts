@@ -46,8 +46,14 @@ export const getGitDates = cache(async (): Promise<Map<string, FileDates>> => {
         }
       }
     }
-  } catch {
-    // not a git repo / git missing — leave the map empty
+  } catch (err) {
+    // Not a git repo / git missing — an empty map is correct. Anything else
+    // (e.g. maxBuffer blown by a huge history) must not fail SILENTLY: every
+    // date in the hub would blank with no signal. Log it once per request.
+    const msg = err instanceof Error ? err.message : String(err)
+    if (!/not a git repository|ENOENT/i.test(msg)) {
+      console.error(`git-dates: date scan failed (dates will read unknown): ${msg}`)
+    }
   }
   return map
 })
@@ -66,7 +72,7 @@ export async function fileDates(file: string): Promise<FileDates> {
 export async function getLatestCommitDate(): Promise<string> {
   let latest = ""
   for (const { updatedAt } of (await getGitDates()).values()) {
-    if (updatedAt > latest) latest = updatedAt // ISO dates sort lexicographically
+    if (Date.parse(updatedAt) > (Date.parse(latest) || 0)) latest = updatedAt
   }
   return latest
 }

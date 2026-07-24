@@ -52,7 +52,7 @@ export default function ReferencesPage() {
     <HubPage
       title="References"
       meta={
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground font-mono text-xs">
           {references.length} reference{references.length === 1 ? "" : "s"}
         </span>
       }

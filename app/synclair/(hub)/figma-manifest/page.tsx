@@ -125,7 +125,7 @@ export default async function FigmaManifestPage() {
           />
         </div>
 
-        <Tabs defaultValue="changes">
+        <Tabs defaultValue="changes" className="gap-6">
           <TabsList>
             <TabsTrigger value="changes">
               <GitCompareArrows />

@@ -45,7 +45,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   // Blocks and templates are FLUID (panels, forms, layouts sized by their
   // container) — thumb LIVE previews of them on a logical stage width so they
   // lay out like a page column instead of collapsing to max-content (see
-  // CardThumb). Matches the doc view's framedByDefault tier split; components
+  // CardThumb). Matches the doc view's stage-mode tier split; components
   // stay 1:1 intrinsic, and image previews keep their natural size.
   const stageWidth = component.kind !== "component" ? 768 : undefined
   if (hostPreview) {
@@ -58,7 +58,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
       <Live />
     )
     return (
-      <div className="bg-muted/30 relative h-36 overflow-hidden border-b">
+      <div className="stage-canvas relative h-36 overflow-hidden border-b">
         <CardThumb stageWidth={stageWidth}>{node}</CardThumb>
       </div>
     )
@@ -85,7 +85,7 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   const preview = first ? adapterFor(component.surface).renderPreview(first) : null
 
   return (
-    <div className="bg-muted/30 relative flex h-36 items-center justify-center overflow-hidden border-b">
+    <div className="stage-canvas relative flex h-36 items-center justify-center overflow-hidden border-b">
       {preview ? (
         // Non-interactive, zoom-to-fit thumbnail (Storybook-canvas semantics).
         <CardThumb stageWidth={first && first.kind !== "image" ? stageWidth : undefined}>
@@ -133,11 +133,11 @@ export function ComponentCard({
     // real anchors (breadcrumb, filter chips) and HTML forbids <a> inside <a>
     // — as a sibling under the overlay the preview stays valid markup.
     <div className="group relative">
-      <Card className="group-hover:border-foreground/20 gap-0 overflow-hidden py-0 transition-colors">
+      <Card className="group-hover:border-foreground/20 card-lift gap-0 overflow-hidden py-0">
         <CardPreview component={component} />
         <div className="flex flex-col gap-1.5 p-4">
-          <div className="flex items-center gap-2">
-            <h3 className="flex-1 truncate text-sm font-medium">{component.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 className="mr-auto min-w-0 text-sm font-medium">{component.title}</h3>
             {chips?.map((chip) => (
               <Badge key={chip} variant="outline" className="text-muted-foreground text-3xs">
                 {chip}

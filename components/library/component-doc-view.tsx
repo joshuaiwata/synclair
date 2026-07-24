@@ -44,7 +44,7 @@ import {
 import { itemHref } from "@/lib/system/tiers"
 import { getUsageMap, routeLabel } from "@/lib/system/usage"
 import { getUxDocSync } from "@/lib/system/ux-docs"
-import { ViewportFrame } from "@/components/viewport-frame"
+import { COMPONENT_MODES, ViewportFrame } from "@/components/viewport-frame"
 import { cn } from "@/lib/utils"
 
 const STATUS_TONE: Record<ComponentStatus, "success" | "info" | "warning"> = {
@@ -64,7 +64,7 @@ function PreviewFrame({ children }: { children: React.ReactNode }) {
   return (
     // overflow-hidden: previews never paint outside their frame — a runaway
     // ticker or off-stage overlay clips here instead of over the page.
-    <div className="flex min-h-24 flex-wrap items-center justify-center gap-4 overflow-hidden rounded-lg border border-dashed bg-muted/40 p-6">
+    <div className="stage-canvas flex min-h-24 flex-wrap items-center justify-center gap-4 overflow-hidden rounded-lg border p-6">
       {children}
     </div>
   )
@@ -94,9 +94,9 @@ function ConceptPage({
 }) {
   const first = matches[0]
   return (
-    <main className="flex max-w-3xl flex-col gap-6 p-6">
+    <div className="page-enter mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 md:px-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-base font-semibold">{first.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{first.title}</h1>
         {/* Same pill diet as the doc header: tier is in the breadcrumb,
             categories are filter facets — the concept name stands alone. */}
         <div className="flex flex-wrap items-center gap-2">
@@ -135,7 +135,7 @@ function ConceptPage({
           </Link>
         ))}
       </div>
-    </main>
+    </div>
   )
 }
 
@@ -211,9 +211,11 @@ export async function ComponentDocView({
     !external && component.origin !== "native" && doc
       ? getUxDocSync(component.name, component.files, component.surface)
       : null
-  // Blocks and templates get the device-width switcher on previews by default;
-  // an example can override either way via `viewports`.
-  const framedByDefault = component.kind !== "component"
+  // Every rendered example gets the preview stage (device widths, stage theme
+  // flip, code toggle). Components skip the 1920 wide lane; an example can
+  // opt out of device widths via `viewports: false`.
+  const stageModes =
+    component.kind === "component" ? COMPONENT_MODES : undefined
   // Templates render whole app frames — a max-w-3xl column chokes them. Widen
   // the page to a max-w-6xl lane so the RENDER areas (Live preview, Examples)
   // can breathe, while every READING block (prose, tables, code, captions)
@@ -237,10 +239,10 @@ export async function ComponentDocView({
 
   return (
     <>
-      <main className={cn("flex w-full flex-col gap-8 p-6", isTemplate ? "max-w-6xl" : "max-w-3xl")}>
+      <div className={cn("page-enter mx-auto flex w-full flex-col gap-10 px-6 py-8 md:px-8", isTemplate ? "max-w-6xl" : "max-w-3xl")}>
         {/* Header meta */}
         <div className={cn("flex flex-col gap-3", readCol)}>
-          <h1 className="text-base font-semibold">{component.title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{component.title}</h1>
           {/* Signal-only pills: status, origin when it says something (host /
               shadcn / extended — "custom" is the default and reads as noise),
               and the docs-stale warning. Tier + surface live in the breadcrumb;
@@ -337,9 +339,9 @@ export async function ComponentDocView({
           <section className={cn("flex flex-col gap-4", readCol)}>
             <SectionHeader title="Preview" />
             {nativePreview ? (
-              <PreviewFrame>
+              <ViewportFrame modes={COMPONENT_MODES}>
                 {adapter.renderPreview(nativePreview)}
-              </PreviewFrame>
+              </ViewportFrame>
             ) : (
               <PreviewFrame>
                 <span className="font-mono text-xs text-muted-foreground">
@@ -393,7 +395,7 @@ export async function ComponentDocView({
               title="Live preview"
               hint="the host's actual component, imported"
             />
-            <PreviewFrame>
+            <ViewportFrame modes={stageModes} fullscreen={isTemplate}>
               {hostPreview.theme ? (
                 <ProductThemeScope theme={hostPreview.theme}>
                   <hostPreview.component />
@@ -401,7 +403,7 @@ export async function ComponentDocView({
               ) : (
                 <hostPreview.component />
               )}
-            </PreviewFrame>
+            </ViewportFrame>
           </section>
         ) : null}
 
@@ -419,22 +421,20 @@ export async function ComponentDocView({
                     </span>
                   )}
                 </div>
-                {ex.preview.kind !== "code" &&
-                  ((ex.viewports ?? framedByDefault) &&
-                  (ex.preview.kind === "live" ||
-                    ex.preview.kind === "embed") ? (
-                    <ViewportFrame fullscreen={component.kind === "template"}>
-                      {adapter.renderPreview(ex.preview)}
-                    </ViewportFrame>
-                  ) : (
-                    <PreviewFrame>
-                      {adapter.renderPreview(ex.preview)}
-                    </PreviewFrame>
-                  ))}
-                {ex.code && (
-                  <pre className={cn("overflow-x-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs", readCol)}>
-                    <code>{ex.code}</code>
-                  </pre>
+                {ex.preview.kind === "code" ? (
+                  ex.code && (
+                    <pre className={cn("overflow-x-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs", readCol)}>
+                      <code>{ex.code}</code>
+                    </pre>
+                  )
+                ) : (
+                  <ViewportFrame
+                    fullscreen={component.kind === "template"}
+                    modes={ex.viewports === false ? ["desktop"] : stageModes}
+                    code={ex.code}
+                  >
+                    {adapter.renderPreview(ex.preview)}
+                  </ViewportFrame>
                 )}
               </div>
             ))}
@@ -700,7 +700,7 @@ export async function ComponentDocView({
           </section>
         )}
         </div>
-      </main>
+      </div>
     </>
   )
 }

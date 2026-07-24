@@ -70,10 +70,10 @@ export default async function LibraryHomePage() {
     of.filter((c) => c.kind === kind).length
 
   return (
-    <main className="flex flex-col gap-4 p-6">
+    <div className="page-enter mx-auto w-full flex flex-col gap-4 p-6">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-base font-semibold">Library</h1>
-        <p className="text-muted-foreground max-w-2xl text-sm">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Library</h1>
+        <p className="text-body-content max-w-2xl text-base">
           This project ships {surfaces.length} app surfaces
           {sharedItems.length > 0 && " plus shared packages"}, each with its own component
           library. Enter one, or browse everything from the tree.
@@ -135,6 +135,6 @@ export default async function LibraryHomePage() {
           </span>
         ))}
       </p>
-    </main>
+    </div>
   )
 }

@@ -33,6 +33,10 @@ The single source of truth for the product's visual language, in three scales:
 
 - **The token vocabulary** (`lib/system/tokens.ts`) — the *semantic* names, their
   meaning, and the usage guidance. Platform-neutral.
+- **The motion vocabulary** — the Motion tab documents the sanctioned moves (a
+  page-level fade-rise, a short child stagger, hover and resize transitions) with
+  hover-to-replay specimens. Opacity and small translates only, and everything
+  flattens under `prefers-reduced-motion`.
 - **The brand values** (`lib/system/seed/`) — the actual ramps and theme values for
   *this* project. This is the "seed" you swap when you reskin.
 - **Foundation example tiles** — a small grid of the product's real UI patterns

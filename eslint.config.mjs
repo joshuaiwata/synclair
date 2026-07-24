@@ -59,13 +59,14 @@ const ROUTE_SELECTORS = [
 const SURFACE_SELECTORS = [
   {
     // A className that draws a box (rounded + standalone `border`) but sets no
-    // background. Doc previews render on the tinted canvas (bg-muted/40), so a
-    // transparent box inherits the canvas color and disappears — an item must
-    // never share its container's background.
+    // background. Doc previews render on the stage-canvas (bg-card + dot
+    // grid), so a transparent box inherits the stage color and reads as a
+    // bare outline over the dots — an item must never share its container's
+    // background.
     selector:
       "JSXAttribute[name.name='className'] Literal[value=/^(?=.*(?:^|\\s)rounded)(?=.*(?:^|\\s)border(?:\\s|$))(?!.*bg-).*$/]",
     message:
-      "Bordered demo box with no background — on the preview canvas (bg-muted/40) it inherits the canvas color and vanishes. Give it a surface token (bg-card for stand-ins, bg-muted for muted-state demos); use bg-transparent only if see-through is the point.",
+      "Bordered demo box with no background — on the dot-grid stage-canvas it inherits the stage color and reads as a bare outline. Give it a surface token (bg-background for stand-ins on the stage, bg-muted for muted-state demos); use bg-transparent only if see-through is the point.",
   },
 ];
 

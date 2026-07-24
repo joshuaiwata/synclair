@@ -27,12 +27,26 @@ export async function GET(
     )
   }
 
+  // Containment: registry.json is repo data, and this is the one
+  // unauthenticated file-reader — a crafted `path` must not escape the repo
+  // (same idiom as file-actions.ts / doc-actions.ts).
+  const root = process.cwd()
   const files = await Promise.all(
-    item.files.map(async (f) => ({
-      ...f,
-      content: await readFile(path.join(process.cwd(), f.path), "utf8"),
-    }))
-  )
+    item.files.map(async (f) => {
+      const resolved = path.resolve(root, f.path)
+      const rel = path.relative(root, resolved)
+      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+        throw new Error(`Registry entry "${item.name}" points outside the repo: ${f.path}`)
+      }
+      return { ...f, content: await readFile(resolved, "utf8") }
+    })
+  ).catch(() => null)
+  if (!files) {
+    return Response.json(
+      { error: `Registry item "${name}" has an unreadable or out-of-repo file path.` },
+      { status: 500 }
+    )
+  }
 
   return Response.json({
     $schema: "https://ui.shadcn.com/schema/registry-item.json",

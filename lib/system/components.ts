@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
@@ -110,7 +112,10 @@ const KIND_BY_TYPE: Record<string, ComponentKind> = {
   "registry:component": "component",
 }
 
-async function readItems(): Promise<RawItem[]> {
+/** Request-memoised — one build per render pass (react cache). */
+const readItems = cache(readItemsUncached)
+
+async function readItemsUncached(): Promise<RawItem[]> {
   try {
     const raw = await readFile(REGISTRY_PATH, "utf8")
     return (JSON.parse(raw).items ?? []) as RawItem[]
@@ -183,7 +188,10 @@ export async function getComponents(): Promise<RegistryComponent[]> {
  * this project catalog so the name resolves to exactly one entry (the host's).
  * New-project clones have no externals, so this reduces to registered > native.
  */
-export async function getCatalog(): Promise<RegistryComponent[]> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getCatalog = cache(getCatalogUncached)
+
+async function getCatalogUncached(): Promise<RegistryComponent[]> {
   const [registered, natives, externals, existingProject] = await Promise.all([
     getComponents(),
     getNativePrimitives(),

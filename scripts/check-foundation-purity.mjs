@@ -34,8 +34,15 @@ const SEALED_FILES = [
   "components/library/foundations.tsx",
   "components/library/tier-gallery.tsx",
   "components/library/component-doc-view.tsx",
+  "components/library/component-card.tsx",
+  "components/library/library-explorer.tsx",
+  "components/library/card-thumb.tsx",
   "components/viewport-frame.tsx",
   "components/embed-frame.tsx",
+  "components/tabs-nav.tsx",
+  "components/surface-switcher.tsx",
+  "components/hub-page.tsx",
+  "components/page-header.tsx",
 ];
 /** Whole Brain dirs to seal, minus the seed/knowledge/reference exclusions. */
 const SEALED_DIRS = ["lib/system"];

@@ -1,5 +1,5 @@
 import { SourceEditorProvider } from "@/components/blocks/source-editor"
-import { PageBody, PageLead } from "@/components/hub-page"
+import { PageBody, PageTitle } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
 import { StepLadder } from "@/components/step-ladder"
@@ -41,17 +41,22 @@ export default async function AiSetupPage() {
 
       <SourceEditorProvider>
         <PageBody>
-          <PageLead>
-            What your agents build with — this repo&rsquo;s skills, agents, connected services, and
-            the method they follow. Skills and agents read live from{" "}
-            <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">.claude/</code>; click
-            any row to read or edit its markdown in place. The{" "}
-            <span className="text-foreground font-medium">Origin</span> tag marks what ships with the
-            Synclair foundation (and syncs from upstream) vs. what&rsquo;s this repo&rsquo;s own —
-            personal &amp; global capabilities are on their own tab.
-          </PageLead>
+          <PageTitle
+            title="AI Setup"
+            lead={
+              <>
+                What your agents build with — this repo&rsquo;s skills, agents, connected services,
+                and the method they follow. Skills and agents read live from{" "}
+                <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">.claude/</code>;
+                click any row to read or edit its markdown in place. The{" "}
+                <span className="text-foreground font-medium">Origin</span> tag marks what ships
+                with the Synclair foundation (and syncs from upstream) vs. what&rsquo;s this
+                repo&rsquo;s own — personal &amp; global capabilities are on their own tab.
+              </>
+            }
+          />
 
-          <Tabs defaultValue="skills" className="gap-3">
+          <Tabs defaultValue="skills" className="gap-6">
             <TabsList>
               {[
                 { value: "skills", label: "Skills", count: skills.length },

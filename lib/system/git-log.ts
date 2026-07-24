@@ -73,6 +73,58 @@ export const getRecentCommits = cache(async (limit = 50): Promise<CommitSummary[
   }
 })
 
+export interface CommitStat extends CommitSummary {
+  filesChanged: number
+  insertions: number
+  deletions: number
+}
+
+/** Record separator opening each commit in --shortstat output; never in commit text. */
+const RS = "\x1e"
+
+/**
+ * Recent commits WITH churn (files / insertions / deletions) — one
+ * `git log --shortstat` pass, so a day-grouped ledger costs a single git call
+ * instead of a `git show` per commit. Memoised per request; empty when git is
+ * unavailable.
+ */
+export const getCommitStats = cache(async (limit = 60): Promise<CommitStat[]> => {
+  try {
+    const [out, unpushed] = await Promise.all([
+      git([
+        "log",
+        `-n${limit}`,
+        "--shortstat",
+        `--format=${RS}%H${SEP}%h${SEP}%an${SEP}%aI${SEP}%ar${SEP}%s`,
+      ]),
+      unpushedHashes(),
+    ])
+    return out
+      .split(RS)
+      .filter((block) => block.trim())
+      .map((block) => {
+        const [head, ...rest] = block.split("\n")
+        const [hash, shortHash, author, date, relativeDate, subject] = head.split(SEP)
+        const stat = rest.join(" ")
+        const num = (re: RegExp) => Number(stat.match(re)?.[1] ?? 0)
+        return {
+          hash,
+          shortHash,
+          author,
+          date,
+          relativeDate,
+          subject,
+          unpushed: unpushed.has(hash),
+          filesChanged: num(/(\d+) files? changed/),
+          insertions: num(/(\d+) insertions?\(\+\)/),
+          deletions: num(/(\d+) deletions?\(-\)/),
+        }
+      })
+  } catch {
+    return []
+  }
+})
+
 /** Turn an origin URL (ssh or https) into a browseable https URL, or null. */
 function toWebUrl(remote: string): string | null {
   const cleaned = remote.trim().replace(/\.git$/, "")

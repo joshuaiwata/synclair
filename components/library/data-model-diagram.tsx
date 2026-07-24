@@ -206,8 +206,8 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
               <text
                 x={p.x + NODE_W / 2}
                 y={p.y + NODE_H / 2}
-                text-anchor="middle"
-                dominant-baseline="central"
+                textAnchor="middle"
+                dominantBaseline="central"
                 className="fill-foreground font-mono text-2xs"
               >
                 {keyOf(entities[i].name)}

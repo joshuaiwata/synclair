@@ -28,7 +28,7 @@ import {
 } from "@/lib/system/host-hygiene"
 
 export const metadata: Metadata = {
-  title: "Foundation hygiene",
+  title: "Hygiene",
   description:
     "Where the host codebase steps outside its own design foundation — inline styles, raw colors, arbitrary values, bypassed primitives.",
 }
@@ -46,7 +46,7 @@ export default async function HygienePage() {
   if (!report) {
     return (
       <HubPage
-        title="Foundation hygiene"
+        title="Hygiene"
         lead={
           <>
             Where the codebase steps outside its own design foundation — inline
@@ -82,7 +82,7 @@ export default async function HygienePage() {
 
   return (
     <HubPage
-      title="Foundation hygiene"
+      title="Hygiene"
       meta={
         <span className="text-muted-foreground font-mono text-xs">
           {report.totals.findings} findings · {report.totals.files} of{" "}

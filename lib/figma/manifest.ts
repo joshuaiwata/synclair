@@ -160,15 +160,21 @@ async function readSnapshots(): Promise<Snapshot[]> {
   const entries = (await readdir(SNAPSHOT_DIR)).filter((f) =>
     /^\d{4}-\d{2}-\d{2}\.json$/.test(f)
   )
+  // Per-file tolerance: one corrupt day-file must not reject the whole
+  // Promise.all and silently blank the entire snapshot history.
   const snapshots = await Promise.all(
-    entries.map(
-      async (f) =>
-        JSON.parse(
-          await readFile(path.join(SNAPSHOT_DIR, f), "utf8")
-        ) as Snapshot
-    )
+    entries.map(async (f) => {
+      try {
+        return JSON.parse(await readFile(path.join(SNAPSHOT_DIR, f), "utf8")) as Snapshot
+      } catch {
+        console.error(`figma manifest: skipping corrupt snapshot ${f}`)
+        return null
+      }
+    })
   )
-  return snapshots.sort((a, b) => a.date.localeCompare(b.date))
+  return snapshots
+    .filter((s): s is Snapshot => s !== null)
+    .sort((a, b) => a.date.localeCompare(b.date))
 }
 
 /**
@@ -260,11 +266,17 @@ export async function getManifestReport({
   }
 
   // Persist: today's file always reflects the latest look at the workspace.
-  await mkdir(SNAPSHOT_DIR, { recursive: true })
-  await writeFile(
-    path.join(SNAPSHOT_DIR, `${live.date}.json`),
-    JSON.stringify(live, null, 2) + "\n"
-  )
+  // Best-effort — a read-only data/ dir (permissions, deployed env) must not
+  // 500 the page; the live report still renders from memory.
+  try {
+    await mkdir(SNAPSHOT_DIR, { recursive: true })
+    await writeFile(
+      path.join(SNAPSHOT_DIR, `${live.date}.json`),
+      JSON.stringify(live, null, 2) + "\n"
+    )
+  } catch (err) {
+    console.error(`figma manifest: could not persist snapshot: ${err instanceof Error ? err.message : err}`)
+  }
 
   return buildReport(live, history)
 }

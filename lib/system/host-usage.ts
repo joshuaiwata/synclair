@@ -3,6 +3,7 @@ import path from "node:path"
 import { cache } from "react"
 
 import { getExternalCatalog } from "./external"
+import { getSurface } from "./surfaces"
 
 /**
  * LIVE usage counts over the HOST's web source (companion mode) — the numbers
@@ -73,7 +74,12 @@ async function collect(root: string, dir: string, out: string[]): Promise<void> 
  */
 const getWebCorpus = cache(async (): Promise<CorpusFile[]> => {
   const catalog = await getExternalCatalog()
-  const hosts = (catalog.hosts ?? []).filter((h) => h.surface !== "mobile")
+  // Platform-derived, not a magic surface id: an RN surface named "app" must
+  // be excluded, a web surface named "mobile" must not be (same rule as
+  // host-scan.ts). Hosts without a declared surface default to web.
+  const hosts = (catalog.hosts ?? []).filter(
+    (h) => (getSurface(h.surface)?.platform ?? "web") === "web"
+  )
   const corpus: CorpusFile[] = []
   for (const host of hosts) {
     if (!host.root) continue
