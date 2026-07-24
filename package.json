@@ -20,6 +20,7 @@
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",
+    "check:knowledge": "node scripts/check-knowledge.mjs",
     "resolve:pages": "node scripts/resolve-page-items.mjs",
     "host:status": "node scripts/host-servers.mjs status",
     "host:up": "node scripts/host-servers.mjs up",
