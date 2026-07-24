@@ -161,21 +161,27 @@ export function LibraryExplorer({
                 </SelectContent>
               </Select>
             )}
-            <Select
-              value={activeKind}
-              onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
-            >
-              <SelectTrigger size="sm" className="bg-card w-full text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIERS.map((t) => (
-                  <SelectItem key={t.kind} value={t.kind} className="text-xs">
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Tier select only when surfaces exist: it composes with the
+                surface select (switch surface, keep tier). Single-surface
+                projects already switch tiers from the app sidebar and the
+                breadcrumb names the tier — a third control is redundant. */}
+            {tree.multiSurface && (
+              <Select
+                value={activeKind}
+                onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
+              >
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIERS.map((t) => (
+                    <SelectItem key={t.kind} value={t.kind} className="text-xs">
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="relative">
               <Input
                 ref={filterRef}
