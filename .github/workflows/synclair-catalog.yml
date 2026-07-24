@@ -173,7 +173,7 @@ jobs:
             to data/external-catalog.json, components/host-previews/,
             data/pages-map.json, data/host-hygiene.json, and
             lib/system/knowledge/sources.ts.
-          claude_args: "--max-turns 100"
+          claude_args: '--max-turns 100 --allowedTools "Bash,Read,Glob,Grep,Edit,MultiEdit,Write"'
 
       - name: Commit and push sync updates
         if: env.HAS_KEY == 'true'
