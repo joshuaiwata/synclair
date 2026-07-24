@@ -74,6 +74,11 @@ yet. Write-back is the second half of the same flywheel: when a later dig surfac
 something durable, the agent **refines the existing digest** — so the knowledge base
 converges on "what a builder routinely needs."
 
+And because the sources keep moving where they live, `npm run check:knowledge`
+probes each linked source's real last-modified against its `distilledAt` and flags
+digests whose upstream has moved — so a PRD edited in GitHub can't leave its digest
+silently lying. It's the knowledge-layer twin of the foundation's call-home check.
+
 ## How to act on it
 
 <AccordionGroup>
