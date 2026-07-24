@@ -173,6 +173,35 @@ export async function PageDocView({ id }: { id: string }) {
         )}
       </dl>
 
+      {/* Navigation edges — how this page ties to the others. Shown above the
+          composed items so the sitemap relationships read first. */}
+      {node.links && node.links.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Links to</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {node.links.map((route) => {
+              const targetId = routeToId.get(route)
+              return targetId ? (
+                <Link
+                  key={route}
+                  href={synclair(`/pages/${targetId}`)}
+                  className="hover:bg-muted bg-muted/50 rounded px-2 py-1 font-mono text-xs"
+                >
+                  {route}
+                </Link>
+              ) : (
+                <span
+                  key={route}
+                  className="text-muted-foreground bg-muted/30 rounded px-2 py-1 font-mono text-xs"
+                >
+                  {route}
+                </span>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Composed items, grouped by tier, linked into the library. */}
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold">
@@ -221,34 +250,6 @@ export async function PageDocView({ id }: { id: string }) {
           </div>
         )}
       </section>
-
-      {/* Navigation edges — how this page ties to the others. */}
-      {node.links && node.links.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Links to</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {node.links.map((route) => {
-              const targetId = routeToId.get(route)
-              return targetId ? (
-                <Link
-                  key={route}
-                  href={synclair(`/pages/${targetId}`)}
-                  className="hover:bg-muted bg-muted/50 rounded px-2 py-1 font-mono text-xs"
-                >
-                  {route}
-                </Link>
-              ) : (
-                <span
-                  key={route}
-                  className="text-muted-foreground bg-muted/30 rounded px-2 py-1 font-mono text-xs"
-                >
-                  {route}
-                </span>
-              )
-            })}
-          </div>
-        </section>
-      )}
       </PageBody>
     </>
   )

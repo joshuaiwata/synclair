@@ -103,6 +103,15 @@ const routeSourceExemption = {
   },
 };
 
+// .cjs files are CommonJS by contract (e.g. Turbopack loaders, which must be
+// require()-land) — the ESM-import rule doesn't apply to them.
+const commonJsExemption = {
+  files: ["**/*.cjs"],
+  rules: {
+    "@typescript-eslint/no-require-imports": "off",
+  },
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -110,6 +119,7 @@ const eslintConfig = defineConfig([
   docsSurfaceGuardrail,
   tokenSourceExemption,
   routeSourceExemption,
+  commonJsExemption,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

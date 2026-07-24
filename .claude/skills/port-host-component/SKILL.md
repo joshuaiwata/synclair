@@ -63,7 +63,47 @@ re-register the item — it stays `origin: "external"` with its hash anchor);
 props on its doc page are already derived live from the host source
 (lib/system/host-docgen.ts), so the entry needs no authored `props` refresh.
 
-### Path A patterns proven in the field
+## Path A — host-adaptation cases (a "fail" the gate can fix)
+
+Some hosts need one small, reusable adaptation before Path A works. Each is
+host-agnostic and ships in the foundation; wire only the ones a host needs.
+Proven on a re-platformed Next 16 / React 19 / shadcn host.
+
+### The host self-imports via the `@/` alias (shadcn convention)
+Symptom: `Can't resolve '@/components/ui'` (or `@/lib/utils`) when a host module
+is pulled in — inside the hub graph the host's `@/` resolves against the HUB's
+tsconfig (`@/* → ./*`, the hub root), colliding with the hub's own `@/`. A global
+alias can't fix it (the hub uses `@/components` / `@/lib` for its own code too).
+Fix: wire `scripts/host-self-alias-loader.cjs` in `next.config.ts`
+(`turbopack.rules`, keyed `*.ts`/`*.tsx` by basename). It rewrites a HOST file's
+own `@/x` → `@host/src/x`, which resolves to the host root via the `@host/*`
+alias, while the hub's own files (resourcePath-guarded no-op) are untouched.
+Clear `.next` after wiring. Hosts that self-reference via bare workspace
+specifiers (`@acme/ui`) don't need this.
+
+### The host shifted frameworks (stale preview wrappers)
+When an intake predates a host re-platform, preview wrappers can carry the old
+stack's providers. Vite + react-router → Next, for example: drop `MemoryRouter`
+(the Next host uses `usePathname` / `next/link`, which the hub — itself Next —
+already provides), and replace `<Routes><Route element={<Layout/>}>` (which fed
+react-router's `<Outlet/>`) with `<Layout>{children}</Layout>` (Next layouts take
+children). Re-derive each wrapper from what the CURRENT host component needs.
+
+### An overlay portals to `document.body` (Radix dialog/drawer/sheet)
+Symptom: an always-open overlay preview escapes its card and covers the gallery
+— a body portal isn't clipped by a `transform` stage. Fix: wrap the preview in
+`components/host-previews/_preview-stage.tsx` (`PreviewStage`) — a `transform`
+containing block that also provides its element via `PortalContainerContext`.
+Then route the host overlay into it:
+- **simple:** pass `container={…}` to the overlay (give the host's Dialog/Drawer
+  an optional `container?: HTMLElement | null` prop forwarded to `Portal container=`);
+- **deep** (a host SCREEN opens the overlay, no prop reaches it): have the host
+  overlay read the container from context — the clone bridges its host overlay to
+  `PortalContainerContext` (re-export/alias it from the host's own ui module so
+  the host stays decoupled from the hub). Bespoke `fixed` overlays (no portal) are
+  contained by the stage `transform` alone.
+
+### More Path A patterns proven in the field
 
 - **Session-wired hosts: render harness children CLIENT-side only.** If the
   host's session/mock store persists to `localStorage`, the server renders
