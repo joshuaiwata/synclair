@@ -363,12 +363,18 @@ Two different things, handled two different ways:
    ships five more (`codebase-surveyor`, `system-mapper`, `knowledge-harvester`,
    `token-archaeologist`, `component-cataloger`), orchestrated by the
    `existing-project-intake` skill to populate Synclair from a host codebase.
-5. **The flywheel** — write-back. When a digger surfaces something durable, it
-   **distills it back into the skill** (a domain advisor agent should carry
-   this instruction). First read of an area is expensive; after write-back it's a
-   cheap progressive-disclosure load. Over weeks the distilled brain converges on
-   "what a builder routinely needs," and raw sources are consulted only for novel
-   detail.
+5. **The flywheel** — distill at intake, then refine by write-back. **Linking a
+   source and distilling it are one act, not two**: adding an entry to the manifest
+   *includes* writing its digest and setting `distilledInto`/`distilledAt` (route by
+   kind — written docs → `product-spec`, Figma → `figma-distiller`). An entry with no
+   digest is unfinished work, so the KB is always a set of *digests with links back*,
+   never a bag of undigested links; the only exception is an explicit, `notes`-recorded
+   `TODO: distill …` deferral when the source is genuinely unreachable. **Write-back**
+   is the second half of the same wheel: when a build later surfaces something durable,
+   the digger *refines* the existing digest. Intake pays the first dig up front so no
+   builder ever hits a linked-but-undigested source; write-back keeps the digest true
+   over time. Over weeks the distilled brain converges on "what a builder routinely
+   needs," and raw sources are consulted only for novel detail.
 
 ### Synclair framing (why this belongs here)
 

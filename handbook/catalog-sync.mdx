@@ -52,8 +52,10 @@ Two skills do the cataloging; the checks tell you when to.
     npm run check:host
     ```
 
-    ```bash Coverage (rendering)
-    # cataloged entries with no live preview or screenshot
+    ```bash Coverage (rendering + gaps)
+    # entries with no live preview or screenshot, plus
+    # inline-invented components — files defining 2+ local,
+    # never-exported components the catalog can't see
     npm run check:coverage
     ```
     </CodeGroup>
@@ -92,11 +94,14 @@ two halves:
 ### Turning it on
 
 <Steps>
-  <Step title="Point the trigger at your host source">
+  <Step title="Put the workflow where GitHub runs it, pointed at your host source">
     In `synclair-catalog.yml`, add your host component path(s) to `paths:` (e.g.
     `- "src/**"` or `- "packages/ui/**"`) so host changes fire the gate. If
-    Synclair is embedded at `./synclair`, prefix the script and prompt paths with
-    `synclair/` (the script auto-detects the repo root — you only touch the YAML).
+    Synclair is embedded at `./synclair`, **copy the workflow to the HOST repo's
+    root `.github/workflows/`** — GitHub only runs workflows from the repo root,
+    so the copy shipped inside `synclair/.github/` never fires there — then
+    prefix the script and prompt paths with `synclair/` (the script auto-detects
+    the repo root — you only touch the YAML).
   </Step>
   <Step title="(Optional) add the API key to enable auto-cataloging">
     Add `ANTHROPIC_API_KEY` as a repository secret. Leave it off to keep the

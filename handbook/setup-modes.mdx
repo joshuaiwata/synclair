@@ -43,6 +43,55 @@ Because the two tugs point at different modes, topology is the one unambiguous a
 a clone is either *inside* the product repo or *beside* it. The sync trade-offs are a
 consequence of that choice, not the label.
 
+## Pros and cons
+
+### Embedded
+
+**Pros**
+
+- **Ambient guidance** — skills and knowledge are bridged to the repo root, so *any*
+  agent building in the product (Claude Code, Cursor, Copilot, Codex) gets the
+  guardrails and context automatically, without knowing Synclair exists.
+- **One clone, whole team** — whoever clones the product repo has the hub, the
+  skills, and the knowledge. Nothing extra to distribute or keep running.
+- **Knowledge versions with the code** — a catalog or digest update rides the **same
+  PR** as the code change it describes, so hub-vs-code drift is structurally harder.
+- **CI can hold the line** — the catalog gate comments on the product's own PRs, and
+  `verify-ui` runs beside the product's checks.
+
+**Cons**
+
+- **Foundation updates are heavier** — pulling upstream Synclair improvements means a
+  subtree-style merge into the product repo's history, not a clean, isolated pull.
+- **Isolation is on you** — the product's build/lint/typecheck/deploy must be walled
+  off from Synclair's so neither trips over the other. The `co-locate-synclair` skill
+  does this, but it's real setup and a standing surface to maintain.
+- **A footprint in the repo** — an extra app, its dependencies, and its history now
+  live in the product repo, and the team has to be okay with that.
+
+### Watcher
+
+**Pros**
+
+- **Zero footprint on the product** — nothing lands in the host repo. You can adopt
+  it on a codebase you don't own, can't commit to, or aren't ready to change — and
+  discard it just as freely.
+- **Clean foundation updates** — upstream Synclair improvements arrive as an ordinary
+  `git merge` in the clone's own repo, with no risk to the product's history or
+  tooling.
+- **A stakeholder view without touching the product** — the hub documents the app for
+  designers, PMs, and leadership with no change to the product's CI or deploys.
+
+**Cons**
+
+- **No ambient skills in the product repo** — agents working in the host don't get
+  Synclair's guidance automatically; the know-how sits in the clone next door.
+- **Sync is a check, not a guarantee** — the catalog describes code in *another*
+  repo, so staying current is a drift check (`check:host`, the catalog-gate CI)
+  rather than something the same PR enforces.
+- **One more thing to distribute** — teammates need the companion clone (or a hosted
+  hub) to see any of it.
+
 ## Which should I pick?
 
 <CardGroup cols={2}>
@@ -57,6 +106,12 @@ consequence of that choice, not the label.
     default for existing code.
   </Card>
 </CardGroup>
+
+<Note>
+Whichever you pick, **ask the topology question deliberately at intake** — don't let
+it fall out of which install doc you happened to open. New-vs-existing decides how the
+hub gets *seeded*, not where the clone *sits*.
+</Note>
 
 ## "Standalone" is not a third mode
 

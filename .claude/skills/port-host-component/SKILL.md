@@ -29,20 +29,31 @@ real look through a **scoped theme**, never by touching the hub.
    lookup; watcher clones need the component's deps importable — check its
    import list), styling that survives outside the host (Tailwind classes render
    via the hub's Tailwind; host CSS-module/global-CSS dependencies usually fail
-   honest). Fails any of these → Path B, or stay documented.
+   honest). One more: a host file that imports its OWN self-alias (`@/lib/…`)
+   may render in the dev server yet fail `tsc` — the hub's `@/*` maps to the hub
+   root, and verify-ui is the gate, not the browser. Either give the CLONE's
+   tsconfig `@/*` a fallback into the host root (`"@/*": ["./*", "<host.root>/src/*"]`)
+   or keep that item documented. Fails any of these → Path B, or stay documented.
 2. **One-time per clone:** add the alias `"@host/*": ["<host.root>/*"]` to the
    CLONE's tsconfig `paths` (never the mother repo's), pointing at the host root
    from `data/external-catalog.json`.
-3. **Write the preview module** `components/host-previews/<name>.preview.tsx`:
+3. **Per host tree you import from: add a Tailwind `@source`.** Tailwind v4
+   auto-scans only the hub's own tree, so utilities used ONLY by the imported
+   host files are otherwise never generated — the preview renders "almost
+   right" (common classes resolve, its unique ones silently no-op) with nothing
+   in the console. Add `@source "<relative host dir>";` to `app/globals.css`
+   next to the existing host `@source` lines. `check:previews` fails loudly on
+   any live-imported tree with no covering `@source`.
+4. **Write the preview module** `components/host-previews/<name>.preview.tsx`:
    `"use client"`, import the component from `@host/…`, default-export a
    zero-prop wrapper rendering it with representative sample data (variants
    welcome). Then register it in `components/host-previews/registry.tsx`:
    `hostPreviews["<name>"] = { component: <Name>Preview, theme: "theme-<product>" }`
    (key `"<surface>:<name>"` on multi-surface projects).
-4. **Scoped theme** (same rule as Path B): product tokens live in
+5. **Scoped theme** (same rule as Path B): product tokens live in
    `.theme-<product>` in `app/globals.css`; the registry's `theme` field applies
    it around the preview. NEVER restyle the hub.
-5. **Verify:** `npm run verify-ui` green (its `check:previews` counts a
+6. **Verify:** `npm run verify-ui` green (its `check:previews` counts a
    registered live import as covered), and the gallery card + doc page show the
    **live** badge rendering the real component at `/synclair/components/<name>`.
    Close with the `synclair-steward` loop (eyes on the page, not just checks).

@@ -71,7 +71,8 @@ async function ProjectShape() {
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader title="Project shape" hint="app surfaces & shared code" />
-      <div className="grid gap-3 md:grid-cols-2">
+      {/* 3+ surfaces sit one-per-column like the stat rows above; fewer keep 2-up. */}
+      <div className={surfaces.length >= 3 ? "grid gap-3 md:grid-cols-3" : "grid gap-3 md:grid-cols-2"}>
         {surfaces.map((s) => (
           <Link
             key={s.id}
