@@ -10,8 +10,25 @@ import { cn } from "@/lib/utils"
  * Storybook-canvas semantics. Replaces the old fixed `scale-90`, which clipped
  * any preview taller than the frame (sidebar, wireframes, definition lists).
  * Re-measures on resize so responsive galleries stay fitted.
+ *
+ * `stageWidth`: natural-size measurement happens in a max-content box, where a
+ * FLUID preview (`w-full` / `max-w-*` panels, forms, layouts) has no definite
+ * width to fill — percentages resolve to auto and the component collapses to
+ * its skinniest intrinsic layout, rendering as a narrow strip. Passing a stage
+ * width renders the preview into that fixed logical width instead (the thumb
+ * equivalent of EmbedFrame's logical device width), so fluid content lays out
+ * like it does on a real page before being scaled to fit. Leave unset for
+ * intrinsically-sized pieces (buttons, badges) so they measure 1:1.
  */
-export function CardThumb({ children, className }: { children: React.ReactNode; className?: string }) {
+export function CardThumb({
+  children,
+  className,
+  stageWidth,
+}: {
+  children: React.ReactNode
+  className?: string
+  stageWidth?: number
+}) {
   const outerRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
@@ -45,7 +62,17 @@ export function CardThumb({ children, className }: { children: React.ReactNode; 
         className
       )}
     >
-      <div ref={innerRef} className="flex w-max max-w-none items-center justify-center" style={{ transform: `scale(${scale})` }}>
+      <div
+        ref={innerRef}
+        className={cn(
+          "flex max-w-none items-center justify-center",
+          // shrink-0: the outer box is a flex container narrower than the
+          // stage — without it the stage flex-shrinks back to the card width
+          // and the fluid preview collapses again.
+          stageWidth ? "shrink-0" : "w-max"
+        )}
+        style={{ transform: `scale(${scale})`, width: stageWidth }}
+      >
         {children}
       </div>
     </div>

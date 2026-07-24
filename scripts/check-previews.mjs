@@ -218,6 +218,65 @@ for (const item of external.items ?? []) {
   }
 }
 
+// 4. Tailwind @source coverage for Path A live imports — the SILENT failure
+//    mode. Tailwind v4 auto-scans only the hub's own tree; a host file imported
+//    via @host/* lives outside it, so any utility class used ONLY there is
+//    never generated. The component still renders — common classes resolve —
+//    but its unique ones (centering, sizing, odd variants) no-op, and the
+//    preview looks "almost right" with nothing in the console. Field case: an
+//    avatar whose initials sat outside the circle because its absolute-centering
+//    classes were used nowhere else. The fix is one `@source "<dir>"` in
+//    app/globals.css per live-imported host tree; this check makes the gap loud.
+//    Scope: direct @host imports of preview scenes (transitive host-internal
+//    imports from a covered tree are almost always inside that same tree).
+const globalsPath = path.join(root, "app/globals.css");
+const globalsSource = existsSync(globalsPath) ? readFileSync(globalsPath, "utf8") : "";
+const sourceRoots = [...globalsSource.matchAll(/@source\s+"([^"]+)"/g)].map((m) => {
+  const beforeGlob = m[1].split(/[*{]/)[0]; // plain-dir prefix of any glob
+  return path.resolve(path.dirname(globalsPath), beforeGlob);
+});
+let hostAliasTargets = [];
+try {
+  const tsconfig = JSON.parse(readFileSync(path.join(root, "tsconfig.json"), "utf8"));
+  hostAliasTargets = (tsconfig.compilerOptions?.paths?.["@host/*"] ?? []).map((t) =>
+    path.resolve(root, t.replace(/\/?\*$/, ""))
+  );
+} catch {
+  /* no tsconfig / unparsable (jsonc comments): skip — typecheck owns that */
+}
+if (hostAliasTargets.length > 0 && existsSync(hostPreviewsDir)) {
+  const uncovered = new Map(); // dir → [preview files]
+  for (const f of readdirSync(hostPreviewsDir)) {
+    // Scenes only (the skill's convention) — registry.tsx holds an @host import
+    // in its doc comment, and comments aren't imports.
+    if (!/\.preview\.(tsx|ts)$/.test(f)) continue;
+    const src = readFileSync(path.join(hostPreviewsDir, f), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    for (const m of src.matchAll(/from\s+"@host\/([^"]+)"/g)) {
+      const resolved = path.resolve(hostAliasTargets[0], m[1]);
+      const dir = path.dirname(resolved);
+      if (dir.startsWith(root + path.sep)) continue; // hub tree: auto-scanned
+      // Dependencies are precompiled or the host build's concern — Tailwind
+      // deliberately never scans node_modules, so neither do we.
+      if (dir.split(path.sep).includes("node_modules")) continue;
+      const covered = sourceRoots.some(
+        (s) => dir === s || dir.startsWith(s + path.sep)
+      );
+      if (!covered) {
+        if (!uncovered.has(dir)) uncovered.set(dir, []);
+        if (!uncovered.get(dir).includes(f)) uncovered.get(dir).push(f);
+      }
+    }
+  }
+  for (const [dir, files] of uncovered) {
+    const suggestion = path.relative(path.dirname(globalsPath), dir);
+    errors.push(
+      `host-previews: ${files.length} scene(s) (${files.join(", ")}) live-import from ${dir}, but no @source in app/globals.css covers it — Tailwind never scans that tree, so utilities used only there silently drop and the preview renders half-styled. Add: @source "${suggestion}";`
+    );
+  }
+}
+
 if (errors.length > 0) {
   console.error(`Preview coverage — ${errors.length} problem(s):\n`);
   for (const e of errors) console.error(`  ✗ ${e}`);

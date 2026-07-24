@@ -1,0 +1,117 @@
+---
+title: "Using it day to day"
+description: "The practical loop — how you actually add a PRD, catalog a component, build a screen, and keep the hub honest, once Synclair is installed."
+---
+
+The docs so far explain what each section *is*. This page answers the question teams
+actually ask next: **"okay — so how do I use it?"**
+
+The non-obvious part is that you mostly **don't operate Synclair through its UI**. The
+hub is the *read* side — a rendering of files in your repo. The *write* side is your
+agent (Claude Code, Cursor, Copilot, …): you say what you want in plain language, the
+matching skill loads, and the agent writes the files the hub renders.
+
+<Note>
+The loop is always the same two motions: **tell your agent** (it writes files, in a
+reviewable diff) → **look at the hub** (it renders them). If a change deserves a commit
+message, it's a file in git — there's no admin panel to fill in.
+</Note>
+
+## "I have a new PRD / spec / deck"
+
+Paste the link and say so — *"add this PRD to knowledge"*. The agent does **two things
+in one pass**, because linking and distilling are one act, not two:
+
+<Steps>
+  <Step title="Link it">
+    An entry lands in the knowledge manifest (`lib/system/knowledge/sources.ts`) —
+    the doc stays canonical where it lives (Drive, Notion, GitHub), the repo holds
+    the link. It shows up on `/synclair/knowledge` immediately.
+  </Step>
+  <Step title="Distill it — same pass">
+    The agent (via the `product-spec` skill) reads the doc in a throwaway context and
+    writes the **digest** — the durable essentials, linked back to the source. That
+    digest is what every future build loads, instead of re-reading 40 pages.
+  </Step>
+</Steps>
+
+A manifest entry with no digest is treated as **unfinished work** — the only exception
+is an explicit `TODO: distill` note when the source genuinely can't be read yet (e.g.
+a connector isn't authorized). So the knowledge base stays *digests with links back*,
+never a bag of raw links.
+
+**Figma files work the same way** — *"add this Figma file to knowledge"* routes to the
+`figma-distiller` skill, which digests it page by page.
+
+## "Build this screen / feature"
+
+Just ask — *"build the change-orders view"*. You don't invoke anything by name: the
+build skills surface themselves. What that buys you over a bare agent:
+
+- It **reads the digest first** — the requirements you distilled above, plus the Figma
+  digest if there is one — so it builds from the spec, not from vibes.
+- It **reuses before it invents** — the component library is checked before any new UI
+  is hand-rolled.
+- It **styles with tokens** — and the lint guardrails reject raw hex/px with an error
+  message that says what to use instead.
+
+In embedded mode this guidance is **ambient**: the `building-in-this-repo` skill is
+bridged to the host repo's root, so anyone vibe-coding in the product app gets it
+without knowing Synclair exists.
+
+## "I made (or need) a new component"
+
+Say *"make this a shared component"* or *"we need a date-range picker"*. The
+`component-library` skill runs the ceremony: an **invention gate** (does something in
+the library already cover this?), then registration — so the component shows up in
+`/synclair/components` with a live preview and a docs page, not just in the code.
+
+In existing-app mode, when the **host** app grows or changes components, that's the
+catalog-sync loop — run the cataloger on demand or let the catalog-gate CI comment on
+every PR:
+
+<Card title="Keeping the catalog in sync" icon="arrows-rotate" href="/catalog-sync">
+  The two ways — manual cataloger vs. the PR gate — and how to turn the CI on.
+</Card>
+
+## Keeping it honest
+
+Everything in the hub is a **snapshot that claims to describe reality**, so each one
+ships with a check that tells you when reality has moved:
+
+| You want to know | Run |
+|---|---|
+| Does the library/registry still pass the rules? | `npm run verify-ui` |
+| Did host components change since cataloged? | `npm run check:host` |
+| Is anything documented but not rendered — or invented inline in a screen? | `npm run check:coverage` |
+| Where does host code step outside its design system? | `npm run scan:hygiene` |
+| Did the app's routes drift from the sitemap? | `npm run check:pages` |
+| Is this clone behind the upstream foundation? | `npm run call-home` |
+
+You don't need to remember these — the hub surfaces the same signals as stale badges,
+and `verify-ui` runs in CI. Reach for them when something looks off, or tell your
+agent *"refresh the catalog / sitemap / hygiene sweep"* and it runs the right one.
+
+## Onboarding someone (or a new agent)
+
+Point them at the hub. The **Summary tab** on `/synclair/knowledge` is the fastest way
+in — an audience-specific brief, generated from the same knowledge the agents use. A
+new agent needs even less: it reads `AGENTS.md` and the skills, which is the whole
+point — the context you curated is already there.
+
+## Cheat sheet — things you can just say
+
+| You say | What happens |
+|---|---|
+| "Add this PRD to knowledge" | Linked in the manifest **and** distilled into a digest, one pass |
+| "Add this Figma file to knowledge" | Distilled page-by-page via `figma-distiller` |
+| "Build the ___ view" | Built from the digests, reusing the library, on tokens |
+| "Make this a shared component" | Invention gate → registered → live in the gallery |
+| "Catalog the new host components" | Cataloger derives props/usage from host source |
+| "Map the codebase / the pages" | System Map / Sitemap regenerated from source |
+| "How's the build looking?" | Build report at `/synclair/reports`, with ranked next steps |
+| "Are we behind upstream?" | Call-home freshness check vs. the foundation repo |
+
+<Card title="Next: the capability set" icon="robot" href="/agents-and-skills">
+  Every skill and agent that ships, and how any AI tool — not just Claude — uses them.
+</Card>
