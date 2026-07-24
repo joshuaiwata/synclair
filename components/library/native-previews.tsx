@@ -1,3 +1,5 @@
+
+/** Registry-exempt (infra): the preview DATA map for vendored shadcn primitives — consumed by cards and doc pages, never composed into product UI. */
 import { Inbox } from "lucide-react"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"

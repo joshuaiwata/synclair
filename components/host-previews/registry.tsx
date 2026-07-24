@@ -1,3 +1,5 @@
+
+/** Registry-exempt (infra): the Path A live-import registry — per-clone wiring for ported host components (port-host-component skill), never product UI. */
 import type { ComponentType } from "react"
 
 /**

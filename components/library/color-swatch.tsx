@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils"
  * copy the hex. Rendered on the Foundations color page; the `bg` is the
  * token's own `bg-[#hex]` class so the swatch is self-contained data and never
  * restyles the hub. A hairline inset ring keeps pale swatches legible on white.
+ *
+ * SANCTIONED LITERALS: ring-black/10 and the bg-white/85 copy chip are
+ * deliberate — a hairline and an overlay control sitting ON an arbitrary
+ * swatch color must not shift with the theme, or they vanish on the very
+ * colors they exist to outline. The one place theme tokens are wrong.
  */
 export function ColorSwatch({
   name,
