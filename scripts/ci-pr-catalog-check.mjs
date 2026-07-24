@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * PR catalog gate (CI) — diff-aware companion to check-host-coverage.mjs, and
- * the automated half of the "keep the catalog in sync with the host code" story
- * (the manual half is the component-cataloger / existing-project-intake skills).
+ * PR sync gate (CI) — diff-aware companion to check-host-coverage.mjs /
+ * check-pages.mjs, and the automated half of the "keep the Synclair layer in
+ * sync with the host code" story (the manual half is the component-cataloger /
+ * page-mapper / knowledge-harvester / existing-project-intake skills).
  *
  * Given the list of files a PR changes, reports only the catalog work THIS PR
  * introduces (never the pre-existing backlog, which stays advisory in the hub):
@@ -13,6 +14,10 @@
  *      moment this merges — the cataloger should refresh them on this branch).
  *   3. Cataloged entries with neither a preview scene nor a screenshot
  *      (documented-but-not-rendered), flagged when PR-related.
+ *   4. Host route files (Next app-router page.*) the PR adds that data/
+ *      pages-map.json doesn't know, and mapped routes whose source it deletes.
+ *   5. Host docs (PRDs/specs/ADRs in doc-ish dirs) the PR adds/edits that the
+ *      knowledge manifest (lib/system/knowledge/sources.ts) doesn't reference.
  *
  * Topology-agnostic: it derives the Synclair app root from its own location and
  * the repo root from git (or $GITHUB_WORKSPACE in CI), so it works whether
@@ -116,21 +121,28 @@ for (const file of changed) {
   if (!existsSync(abs)) continue; // deleted in this PR
   const exportNames = exportsOf(abs);
   if (exportNames.length === 0) continue;
-  uncataloged.push({ hostRel, exports: exportNames });
+  uncataloged.push({ hostRel, file: norm(file), exports: exportNames });
 }
 
 // 2. Cataloged entries whose source this PR touches AND whose stored hash no
 // longer matches — a PR that already refreshed the entry (code + catalog in
-// the same branch) is in sync, not stale.
+// the same branch) is in sync, not stale. Each entry is matched against the
+// host prefix its file actually lives under, not just hosts[0].
 const changedSet = new Set(changed.map(norm));
-const staled = items.filter((it) => {
-  const prefix = hostPrefixes[0] ?? "";
-  if (!changedSet.has(norm(path.join(prefix, it.hostPath ?? "")))) return false;
-  const abs = path.join(repoRoot, prefix, it.hostPath ?? "");
-  if (!existsSync(abs)) return true; // source deleted but still cataloged
+const staled = [];
+for (const it of items) {
+  const rel = norm(it.hostPath ?? "");
+  const prefix = hostPrefixes.find((p) => changedSet.has(norm(path.join(p, rel))));
+  if (!prefix) continue;
+  const file = norm(path.join(prefix, rel));
+  const abs = path.join(repoRoot, file);
+  if (!existsSync(abs)) {
+    staled.push({ it, file }); // source deleted but still cataloged
+    continue;
+  }
   const hash = createHash("sha256").update(readFileSync(abs)).digest("hex");
-  return hash !== it.sourceHash;
-});
+  if (hash !== it.sourceHash) staled.push({ it, file });
+}
 
 // 3. Documented but not rendered (preview registry parse, comment-aware).
 const previewKeys = new Set();
@@ -149,16 +161,90 @@ const unrendered = items.filter((it) => {
   const hasScreenshot = (it.examples ?? []).some((ex) => ex.image);
   return !hasPreview && !hasScreenshot;
 });
-const unrenderedFromPr = unrendered.filter((it) => {
-  const prefix = hostPrefixes[0] ?? "";
-  return changedSet.has(norm(path.join(prefix, it.hostPath ?? "")));
-});
+const unrenderedFromPr = unrendered.filter((it) =>
+  hostPrefixes.some((p) => changedSet.has(norm(path.join(p, it.hostPath ?? "")))),
+);
+
+// 4. Route files this PR adds that the pages map doesn't know (Next app-router
+// convention — the page-mapper agent's enumeration rule), plus mapped routes
+// whose source file this PR deletes. Dormant when there's no pages map yet.
+const pagesMapPath = path.join(synclairRoot, "data", "pages-map.json");
+const unmappedPages = [];
+const removedPages = [];
+{
+  let pagesMap = null;
+  try {
+    if (existsSync(pagesMapPath)) pagesMap = JSON.parse(readFileSync(pagesMapPath, "utf8"));
+  } catch {
+    pagesMap = null; // unreadable map — the pages check stays quiet
+  }
+  const pages = Array.isArray(pagesMap?.pages) ? pagesMap.pages : [];
+  let pagesPrefix = hostPrefixes[0] ?? "";
+  if (pagesMap?.repo?.root) {
+    const rel = path
+      .relative(repoRoot, path.resolve(synclairRoot, pagesMap.repo.root))
+      .split(path.sep)
+      .join("/");
+    if (rel && !rel.startsWith("..")) pagesPrefix = rel;
+  }
+  if (pages.length > 0 && pagesPrefix) {
+    const mappedFiles = new Set(pages.map((p) => norm(p.file ?? "")));
+    const PAGE_FILE = /(^|\/)app\/(.+\/)?page\.(tsx|ts|jsx|js)$/;
+    for (const file of changed) {
+      if (!file.startsWith(pagesPrefix + "/")) continue;
+      const hostRel = file.slice(pagesPrefix.length + 1);
+      if (!PAGE_FILE.test(hostRel)) continue;
+      if (mappedFiles.has(norm(hostRel))) continue;
+      if (!existsSync(path.join(repoRoot, file))) continue; // deleted in this PR
+      const segs = hostRel.replace(/^(src\/)?app\//, "").split("/");
+      segs.pop(); // page.*
+      const route = "/" + segs.filter((s) => !(s.startsWith("(") && s.endsWith(")"))).join("/");
+      unmappedPages.push({ hostRel, file: norm(file), route: route === "//" ? "/" : route });
+    }
+    for (const p of pages) {
+      const f = norm(`${pagesPrefix}/${p.file ?? ""}`);
+      if (changedSet.has(f) && !existsSync(path.join(repoRoot, f)))
+        removedPages.push(p.route ?? p.id ?? "<unnamed>");
+    }
+  }
+}
+
+// 5. Docs this PR adds/edits in doc-ish host dirs that the knowledge manifest
+// never references (by host-relative path or basename). Boilerplate and agent
+// context files are skipped — they're not knowledge sources.
+const sourcesPath = path.join(synclairRoot, "lib", "system", "knowledge", "sources.ts");
+const sourcesText = existsSync(sourcesPath) ? readFileSync(sourcesPath, "utf8") : "";
+const DOC_DIR_SEGMENTS = new Set([
+  "docs", "_docs", "doc", "adr", "adrs", "decisions", "specs", "spec",
+  "prd", "prds", "product", "rfc", "rfcs", "wiki", "handbook",
+]);
+const SKIP_DOC = /^(readme|changelog|contributing|license|code_of_conduct|security|claude|agents)\b/i;
+const unregisteredDocs = [];
+for (const file of changed) {
+  const prefix = hostPrefixes.find((p) => file.startsWith(p + "/"));
+  if (!prefix) continue;
+  const hostRel = file.slice(prefix.length + 1);
+  if (!/\.(md|mdx)$/i.test(hostRel)) continue;
+  const segs = hostRel.split("/");
+  const base = segs[segs.length - 1];
+  if (SKIP_DOC.test(base)) continue;
+  if (!segs.slice(0, -1).some((s) => DOC_DIR_SEGMENTS.has(s.toLowerCase()))) continue;
+  if (!existsSync(path.join(repoRoot, file))) continue;
+  if (sourcesText.includes(hostRel) || sourcesText.includes(base)) continue;
+  unregisteredDocs.push({ hostRel, file: norm(file) });
+}
 
 // --- report ------------------------------------------------------------------
-const hasGaps = uncataloged.length > 0 || staled.length > 0 || unrenderedFromPr.length > 0;
-const lines = ["## Synclair catalog gate", ""];
+const hasGaps =
+  uncataloged.length > 0 ||
+  staled.length > 0 ||
+  unrenderedFromPr.length > 0 ||
+  unmappedPages.length > 0 ||
+  removedPages.length > 0 ||
+  unregisteredDocs.length > 0;
+const lines = ["## Synclair sync gate", ""];
 if (!hasGaps) {
-  lines.push("✅ **Catalog in sync with this PR** — no new component files, no cataloged sources touched.");
+  lines.push("✅ **Synclair layer in sync with this PR** — no uncataloged components, no unmapped routes, no unregistered docs, no cataloged sources touched.");
 } else {
   if (uncataloged.length > 0) {
     lines.push(`**This PR introduces ${uncataloged.length} uncataloged component file(s):**`);
@@ -167,7 +253,7 @@ if (!hasGaps) {
   }
   if (staled.length > 0) {
     lines.push(`**This PR touches ${staled.length} cataloged source(s)** — their entries go stale on merge:`);
-    for (const it of staled) lines.push(`- \`${it.name}\` (\`${it.hostPath}\`)`);
+    for (const { it } of staled) lines.push(`- \`${it.name}\` (\`${it.hostPath}\`)`);
     lines.push("");
   }
   if (unrenderedFromPr.length > 0) {
@@ -175,7 +261,22 @@ if (!hasGaps) {
     for (const it of unrenderedFromPr) lines.push(`- \`${it.name}\` — no preview scene or screenshot`);
     lines.push("");
   }
-  lines.push("_The catalog job on this workflow runs the cataloger agent on this branch and pushes the catalog + preview commit here — no action needed. (If it was skipped, add the `ANTHROPIC_API_KEY` repo secret to enable it, or catalog manually with the `component-cataloger` skill.)_");
+  if (unmappedPages.length > 0) {
+    lines.push(`**This PR adds ${unmappedPages.length} route(s) missing from the pages map:**`);
+    for (const p of unmappedPages) lines.push(`- \`${p.route}\` (\`${p.hostRel}\`)`);
+    lines.push("");
+  }
+  if (removedPages.length > 0) {
+    lines.push(`**This PR deletes the source of ${removedPages.length} mapped route(s)** — drop them from \`data/pages-map.json\`:`);
+    for (const r of removedPages) lines.push(`- \`${r}\``);
+    lines.push("");
+  }
+  if (unregisteredDocs.length > 0) {
+    lines.push(`**This PR touches ${unregisteredDocs.length} doc(s) the knowledge manifest doesn't reference:**`);
+    for (const d of unregisteredDocs) lines.push(`- \`${d.hostRel}\``);
+    lines.push("");
+  }
+  lines.push("_The sync job on this workflow runs the sync agent on this branch and pushes the catalog / pages-map / knowledge commit here — no action needed. (If it was skipped, add the `ANTHROPIC_API_KEY` repo secret to enable it, or fix manually: `component-cataloger` skill for components, `page-mapper` for routes, `knowledge-harvester` for docs.)_");
 }
 if (unrendered.length > unrenderedFromPr.length) {
   lines.push("", `<sub>Pre-existing backlog (not this PR): ${unrendered.length - unrenderedFromPr.length} entr(y/ies) documented-but-not-rendered repo-wide — see \`npm run check:coverage\`.</sub>`);
@@ -186,13 +287,20 @@ console.log(body);
 writeFileSync("/tmp/synclair-catalog-comment.md", body);
 
 if (process.env.GITHUB_OUTPUT) {
-  const withPrefix = (p) => (hostPrefixes[0] ? path.join(hostPrefixes[0], p) : p);
   const gapFiles = [
-    ...uncataloged.map((c) => withPrefix(c.hostRel)),
-    ...staled.map((it) => withPrefix(it.hostPath)),
+    ...uncataloged.map((c) => c.file),
+    ...staled.map((s) => s.file),
   ];
   appendFileSync(process.env.GITHUB_OUTPUT, `has_gaps=${hasGaps}\n`);
   appendFileSync(process.env.GITHUB_OUTPUT, `gap_files=${[...new Set(gapFiles)].join(",")}\n`);
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `page_gaps=${[...new Set(unmappedPages.map((p) => p.file))].join(",")}\n`,
+  );
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `knowledge_gaps=${[...new Set(unregisteredDocs.map((d) => d.file))].join(",")}\n`,
+  );
   // Whether this repo even has a host catalog — the workflow guard uses this to
   // stay dormant in new-project / blank clones (and in the foundation itself).
   appendFileSync(process.env.GITHUB_OUTPUT, `has_catalog=${hostPrefixes.length > 0}\n`);

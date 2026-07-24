@@ -1,6 +1,6 @@
 ---
 title: "Keeping the catalog in sync"
-description: "In existing-project mode the hub documents your real components — here are the two ways to keep that catalog current as the host code changes: run the cataloger yourself, or let the catalog-gate CI do it on every PR."
+description: "In existing-project mode the hub documents your real components, routes, and knowledge — here are the two ways to keep that current as the host code changes: run the cataloging skills yourself, or let the sync-gate CI do it on every PR."
 ---
 
 In **existing-project mode**, Synclair catalogs the components your host app
@@ -67,7 +67,7 @@ Two skills do the cataloging; the checks tell you when to.
   </Step>
 </Steps>
 
-## Way 2 — the catalog-gate CI
+## Way 2 — the sync-gate CI
 
 The workflow (`.github/workflows/synclair-catalog.yml`) runs on every PR and has
 two halves:
@@ -79,17 +79,25 @@ two halves:
 
     - **uncataloged** component files the PR adds,
     - cataloged entries whose source the PR **touches** (they'd go stale on merge),
-    - entries that are **documented but not rendered**.
+    - entries that are **documented but not rendered**,
+    - **routes missing from the pages map** (new `page.*` files
+      `data/pages-map.json` doesn't know, and mapped routes whose source the PR
+      deletes),
+    - **docs the knowledge manifest doesn't reference** (PRDs/specs/ADRs added
+      or edited in doc dirs with no `lib/system/knowledge/sources.ts` entry).
 
     It never nags about the pre-existing backlog, and it exits cleanly (posting
     nothing) in a repo with no host catalog yet — so it's safe to ship dormant.
   </Accordion>
-  <Accordion title="The cataloger (opt-in) — auto-commits the catalog" icon="wand-magic-sparkles">
+  <Accordion title="The sync agent (opt-in) — auto-commits the fixes" icon="wand-magic-sparkles">
     When there are gaps **and** you've added an `ANTHROPIC_API_KEY` repository
-    secret, the workflow runs the cataloger agent on the PR branch and pushes a
-    commit with the new entries and preview scenes — so the hub shows the
-    components before the PR merges. Without the secret this half simply skips,
-    and the gate comment still tells a human what to catalog.
+    secret, the workflow runs the sync agent on the PR branch and pushes one
+    commit with the fixes — catalog entries + preview scenes (per
+    `component-cataloger`), pages-map nodes (per `page-mapper`),
+    knowledge-manifest entries (per `knowledge-harvester`), and a hygiene
+    refresh — so the hub shows it all before the PR merges. Without the secret
+    this half simply skips, and the gate comment still tells a human what to
+    fix and which skill fixes it.
   </Accordion>
 </AccordionGroup>
 
