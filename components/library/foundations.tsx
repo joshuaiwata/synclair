@@ -26,7 +26,7 @@ import { Markdown } from "@/components/markdown"
 import { ColorSwatch } from "@/components/library/color-swatch"
 import { cn } from "@/lib/utils"
 
-function ColorGroupBlock({ group }: { group: ColorGroup }) {
+export function ColorGroupBlock({ group }: { group: ColorGroup }) {
   return (
     <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
       <header className="flex flex-col gap-1">

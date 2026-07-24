@@ -32,8 +32,8 @@
     },
     {
       "name": "foundations-sections",
-      "sourceHash": "5d8d685895ef0f6c317c5953e0db4dc2bbba341b8989301238c1d235263fe0f1",
-      "anchoredAt": "2026-07-20T17:55:20.563Z"
+      "sourceHash": "c533d9fe643a994534b3deb6bd3e80cf742736ce70584cce1f53c6769bce55f1",
+      "anchoredAt": "2026-07-22T06:43:36.651Z"
     },
     {
       "name": "hub-page",
@@ -42,8 +42,8 @@
     },
     {
       "name": "library-explorer",
-      "sourceHash": "086463168e212950fadf3aa38ba937f3a36b5804dd0305afc56e271e0def7d7d",
-      "anchoredAt": "2026-07-16T17:24:48.649Z"
+      "sourceHash": "5ab49bc9fc8ea30da3d37ddc8af5bba3426d81551a8351993576ad590333fab3",
+      "anchoredAt": "2026-07-22T06:43:36.437Z"
     },
     {
       "name": "library-tier-page",
@@ -102,8 +102,8 @@
     },
     {
       "name": "tier-gallery",
-      "sourceHash": "cbcfdb072fcf15711efd5bcb8eee7bffd2293ec7e5239f9746b6d6bf307435d3",
-      "anchoredAt": "2026-07-17T21:34:51.356Z"
+      "sourceHash": "da041b05fc97c00e9fa60f393da4ce27a5c75a690eb13ce8251ac0dd4338242b",
+      "anchoredAt": "2026-07-22T06:43:36.544Z"
     },
     {
       "name": "viewport-frame",

@@ -83,13 +83,28 @@ export interface HostCoverage {
   truncated: boolean
 }
 
+// UI-holding directory segments. Beyond the DS-convention `components/`/`ui/`,
+// this includes the feature-organized locations where apps commonly keep
+// reusable UI — `screens/`, `views/`, `features/`, plus the app `shell/` and
+// explicit `blocks/`/`layouts/`. Coverage is ADVISORY TRIAGE (candidates → a
+// human/digger sorts real blocks from page one-offs), so it is far better to
+// over-surface a feature tree than to leave it invisible: an app that keeps its
+// UI in `src/screens/` must not read as "fully covered" just because the scan
+// only looked at `src/components/`. `lib/`, `hooks/`, and route files still
+// export PascalCase things and are still excluded.
+const UI_DIR_SEGMENTS = new Set([
+  "components",
+  "ui",
+  "shell",
+  "screens",
+  "views",
+  "features",
+  "blocks",
+  "layouts",
+])
+
 function isComponentDir(rel: string): boolean {
-  // Only files under a `components/` or `ui/` directory count as candidates —
-  // pages, routes, lib code, and hooks export PascalCase things too, but they
-  // aren't the design system. Hosts that keep components elsewhere still get
-  // cataloged by the digger; this scan only claims the conventional locations.
-  const segs = rel.split(path.sep)
-  return segs.includes("components") || segs.includes("ui")
+  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg))
 }
 
 async function walk(

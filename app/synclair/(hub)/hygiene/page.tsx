@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { ShieldCheck } from "lucide-react"
 
+import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -44,15 +45,16 @@ export default async function HygienePage() {
 
   if (!report) {
     return (
-      <main className="flex flex-col gap-8 p-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold">Foundation hygiene</h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
+      <HubPage
+        title="Foundation hygiene"
+        lead={
+          <>
             Where the codebase steps outside its own design foundation — inline
             styles, raw hex colors, arbitrary Tailwind values, native elements
             where a design-system primitive exists.
-          </p>
-        </div>
+          </>
+        }
+      >
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -66,7 +68,7 @@ export default async function HygienePage() {
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      </main>
+      </HubPage>
     )
   }
 
@@ -79,24 +81,28 @@ export default async function HygienePage() {
   }
 
   return (
-    <main className="flex max-w-4xl flex-col gap-8 p-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-base font-semibold">Foundation hygiene</h1>
-          <span className="text-muted-foreground font-mono text-xs">
-            {report.totals.findings} findings · {report.totals.files} of{" "}
-            {report.totals.scannedFiles} scanned files · scanned{" "}
-            {formatDay(report.scannedAt)}
-            {report.hosts.map((h) => (h.commit ? ` · ${h.name}@${h.commit}` : ` · ${h.name}`))}
-          </span>
-        </div>
-        <p className="text-muted-foreground max-w-2xl text-sm">
+    <HubPage
+      title="Foundation hygiene"
+      meta={
+        <span className="text-muted-foreground font-mono text-xs">
+          {report.totals.findings} findings · {report.totals.files} of{" "}
+          {report.totals.scannedFiles} scanned files · {formatDay(report.scannedAt)}
+        </span>
+      }
+      lead={
+        <>
           Where the codebase steps outside its own design foundation. Advisory —
           a readout for the team, not a build gate. Re-run with{" "}
-          <code>npm run scan:hygiene</code> after the host moves.
-        </p>
-      </div>
-
+          <code>npm run scan:hygiene</code> after the host moves. Scanned:{" "}
+          <span className="font-mono text-xs">
+            {report.hosts
+              .map((h) => (h.commit ? `${h.name}@${h.commit}` : h.name))
+              .join(" · ")}
+          </span>
+          .
+        </>
+      }
+    >
       {/* Per-rule summary tiles */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {report.rules.map((r) => {
@@ -188,6 +194,6 @@ export default async function HygienePage() {
             })}
         </div>
       </section>
-    </main>
+    </HubPage>
   )
 }

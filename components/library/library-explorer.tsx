@@ -134,7 +134,10 @@ export function LibraryExplorer({
                   router.push(tierHref(v === "all" ? undefined : v, activeKind))
                 }
               >
-                <SelectTrigger size="sm" className="w-full text-xs">
+                {/* bg-background: the panel is bg-sidebar — transparent controls
+                    read as same-color-on-same-color, so fields sit on the page
+                    ground instead. */}
+                <SelectTrigger size="sm" className="bg-background w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,7 +159,7 @@ export function LibraryExplorer({
               value={activeKind}
               onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
             >
-              <SelectTrigger size="sm" className="w-full text-xs">
+              <SelectTrigger size="sm" className="bg-background w-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -174,7 +177,7 @@ export function LibraryExplorer({
                 onChange={(e) => setFilter(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && setFilter("")}
                 placeholder="Filter…"
-                className="h-7 pr-7 text-xs"
+                className="bg-background h-7 pr-7 text-xs"
               />
               <kbd className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 font-mono text-3xs">
                 /

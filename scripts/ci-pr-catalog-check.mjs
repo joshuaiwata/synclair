@@ -95,10 +95,13 @@ function exportsOf(abs) {
     return [];
   }
 }
-const isComponentDir = (rel) => {
-  const segs = rel.split("/");
-  return segs.includes("components") || segs.includes("ui");
-};
+// Keep in sync with lib/system/host-scan.ts + check-host-coverage.mjs. Feature-
+// organized UI (screens/views/features/shell/blocks/layouts) counts too — the
+// catalog gate must not go blind to a whole UI tree kept outside components/.
+const UI_DIR_SEGMENTS = new Set([
+  "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+]);
+const isComponentDir = (rel) => rel.split("/").some((seg) => UI_DIR_SEGMENTS.has(seg));
 
 // 1. Uncataloged candidates introduced/edited by this PR.
 const uncataloged = [];

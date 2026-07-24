@@ -2,6 +2,7 @@
 name: project-identity
 category: knowledge
 layer: foundation
+ambient: true
 description: What THIS project is — the product being built — and how to keep the Synclair foundation out of the answer. Use whenever the user asks what the project/repo is, what's being built, for an executive summary / overview / brief, about scope, goals, or roadmap, to onboard onto the project, or "what does <product> do". The default lens for any question about the project as a subject. NOT for maintaining Synclair itself (use the `synclair` skill for that).
 ---
 
