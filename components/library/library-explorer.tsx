@@ -85,21 +85,21 @@ export function LibraryExplorer({
 }) {
   const router = useRouter()
   const { pathname, scopeId, tier } = useLocation(tree)
-  const [filter, setFilter] = React.useState("")
-  const filterRef = React.useRef<HTMLInputElement>(null)
+  const [query, setQuery] = React.useState("")
+  const searchRef = React.useRef<HTMLInputElement>(null)
 
   // The active tier drives both the select value and the list; default to the
   // first tier so a surface home (no tier in the path) still shows something.
   const activeKind: ComponentKind = tier?.kind ?? TIERS[0].kind
 
-  // "/" focuses the filter from anywhere in the explorer.
+  // "/" focuses the search from anywhere in the explorer.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return
       e.preventDefault()
-      filterRef.current?.focus()
+      searchRef.current?.focus()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -116,7 +116,7 @@ export function LibraryExplorer({
     ? [scopedRoot, ...tree.roots.filter((r) => r.id === "shared" && r.id !== scopedRoot.id)]
     : tree.roots
 
-  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, filter.trim().toLowerCase())
+  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, query.trim().toLowerCase())
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -184,11 +184,11 @@ export function LibraryExplorer({
             )}
             <div className="relative">
               <Input
-                ref={filterRef}
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setFilter("")}
-                placeholder="Filter…"
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+                placeholder="Search…"
                 className="bg-card h-7 pr-7 text-xs"
               />
               <kbd className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 font-mono text-3xs">
