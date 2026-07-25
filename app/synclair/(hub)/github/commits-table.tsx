@@ -28,7 +28,7 @@ export function CommitsTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border">
+      <div className="bg-card overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>

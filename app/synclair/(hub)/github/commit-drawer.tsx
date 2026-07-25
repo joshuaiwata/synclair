@@ -107,7 +107,7 @@ export function CommitDrawer({
                 <pre className="bg-muted/40 overflow-x-auto rounded-md border p-3 font-mono text-xs leading-relaxed">
                   {detail.stat}
                 </pre>
-                <div className="overflow-x-auto rounded-md border p-3">
+                <div className="bg-muted/40 overflow-x-auto rounded-md border p-3">
                   <pre className="font-mono text-xs leading-relaxed">
                     {detail.patch.split("\n").map((line, i) => (
                       <div key={i} className={diffLineClass(line)}>

@@ -27,7 +27,7 @@ export interface DefinitionListProps {
 
 export function DefinitionList({ items, termWidth = "11rem", className }: DefinitionListProps) {
   return (
-    <dl className={cn("divide-y rounded-lg border", className)}>
+    <dl className={cn("bg-card divide-y rounded-lg border", className)}>
       {items.map((item, i) => (
         <div
           key={i}

@@ -20,6 +20,6 @@ export default async function ScopedTierPage({
   const t = tierBySlug(tierSeg)
   if (!t) notFound()
   if (!getSurface(surface) && surface !== SHARED_SURFACE_ID) notFound()
-  const { origin, usage } = await searchParams
-  return <TierGallery kind={t.kind} filters={{ origin, usage }} scope={surface} />
+  const { origin, usage, group } = await searchParams
+  return <TierGallery kind={t.kind} filters={{ origin, usage, group }} scope={surface} />
 }

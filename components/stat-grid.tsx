@@ -28,7 +28,7 @@ export function StatGrid({ items, className }: StatGridProps) {
   return (
     <dl
       className={cn(
-        "grid grid-cols-2 gap-x-6 gap-y-5 rounded-lg border p-5 sm:grid-cols-3 lg:grid-cols-4",
+        "bg-card grid grid-cols-2 gap-x-6 gap-y-5 rounded-lg border p-5 sm:grid-cols-3 lg:grid-cols-4",
         className
       )}
     >

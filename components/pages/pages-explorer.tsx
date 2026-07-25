@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { FileWarning, Search, X } from "lucide-react"
+import { FileWarning } from "lucide-react"
 
+import { SectionToolbar } from "@/components/section-toolbar"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { PageThumb } from "@/components/pages/page-thumb"
 import { SitemapTree, type SitemapDatum } from "@/components/pages/sitemap-tree"
 import { synclair } from "@/lib/system/routes"
@@ -22,7 +23,8 @@ export interface FlatPage {
 }
 
 /**
- * The Pages overview body: a scoped search box over the sitemap. Empty query →
+ * The Pages overview body: the shared SectionToolbar (tabs + search) over the
+ * sitemap. Empty query →
  * the three browsing views (collapsible tree / branched chart / live-thumbnail
  * gallery). A query → a flat, ranked list of matching pages so you can jump
  * straight to one. The chart is a server-rendered SVG passed in as a prop.
@@ -47,41 +49,26 @@ export function PagesExplorer({
   }, [q, pages])
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="relative max-w-md">
-        <Search className="text-muted-foreground/60 pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search pages by name or route…"
-          aria-label="Search pages"
-          className="border-input bg-card focus-visible:ring-ring/50 h-9 w-full rounded-md border pr-9 pl-9 text-sm outline-none focus-visible:ring-2"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
-            className="text-muted-foreground/60 hover:text-foreground absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded"
-          >
-            <X className="size-4" />
-          </button>
-        )}
-      </div>
-
+    // The shared combo toolbar (tabs + search on one bar). A query swaps the
+    // tab PANELS for the flat ranked result list; the bar itself stays put.
+    <Tabs defaultValue="sitemap" className="gap-5">
+      <SectionToolbar
+        tabs={[
+          { value: "sitemap", label: "Sitemap" },
+          { value: "chart", label: "Chart" },
+          { value: "gallery", label: "Gallery", count: pages.length },
+        ]}
+        search={{
+          value: query,
+          onValueChange: setQuery,
+          placeholder: "Search pages by name or route…",
+          label: "Search pages",
+        }}
+      />
       {q ? (
         <Results matches={matches} total={pages.length} />
       ) : (
-        <Tabs defaultValue="sitemap" className="gap-5">
-          <TabsList>
-            <TabsTrigger value="sitemap">Sitemap</TabsTrigger>
-            <TabsTrigger value="chart">Chart</TabsTrigger>
-            <TabsTrigger value="gallery">
-              Gallery
-              <span className="text-muted-foreground ml-1.5 text-xs tabular-nums">{pages.length}</span>
-            </TabsTrigger>
-          </TabsList>
+        <>
           <TabsContent value="sitemap" className="mt-0">
             <div className="rounded-lg border bg-card p-3">
               <SitemapTree nodes={tree} />
@@ -93,9 +80,9 @@ export function PagesExplorer({
           <TabsContent value="gallery" className="mt-0">
             <Gallery pages={[...pages].sort((a, b) => a.route.localeCompare(b.route))} />
           </TabsContent>
-        </Tabs>
+        </>
       )}
-    </div>
+    </Tabs>
   )
 }
 
@@ -106,7 +93,7 @@ function Results({ matches, total }: { matches: FlatPage[]; total: number }) {
         {matches.length} of {total} {matches.length === 1 ? "page" : "pages"}
       </p>
       {matches.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
+        <p className="text-muted-foreground bg-card rounded-lg border border-dashed p-6 text-sm">
           No pages match. Try a name (&ldquo;System Map&rdquo;) or a route fragment
           (&ldquo;/components&rdquo;).
         </p>

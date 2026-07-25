@@ -62,6 +62,118 @@ const MODES: { mode: ViewportMode; label: string; icon: React.ComponentType<{ cl
 export const COMPONENT_MODES: ViewportMode[] = ["desktop", "tablet", "mobile"]
 
 /**
+ * Logical stage width for the fluid modes (desktop/fullscreen) when `zoom` is
+ * on — matches EmbedFrame's logical desktop so an inline block and an embedded
+ * route read as the same "desktop" on a doc page.
+ */
+const LOGICAL_DESKTOP = 1280
+
+/**
+ * Zoom-to-fit stage for inline previews — the JSX edition of EmbedFrame's
+ * scaling (which only works for `embed`/iframe previews). The stage lays the
+ * children out at a stage width and scales down (never up) to fit the doc
+ * column, so a whole workspace block reads as a zoomed-out screen instead of
+ * cramming into the column, and "Wide (1920px)" genuinely imitates a
+ * widescreen layout rather than growing a horizontal scrollbar.
+ *
+ * The zoom is CONDITIONAL — small pieces don't need it:
+ * - Explicit device modes (wide/tablet/mobile) always lay out at the device
+ *   width — picking "wide" means "show me the 1920 layout", scaled to fit.
+ * - The fluid modes (desktop/fullscreen) first probe the content's natural
+ *   (max-content) width. Content that FITS the column renders plain — no
+ *   blow-up, no transform, natural height — identical to the normal stage.
+ *   Only a layout that wants MORE width than the column gets the stage
+ *   treatment: laid out at its natural width (capped at the 1280 logical
+ *   desktop) and scaled down.
+ * The stage box is height-cropped to `natural × scale` only when actually
+ * scaled, so the frame hugs the content instead of reserving dead space.
+ */
+function ZoomStage({
+  mode,
+  children,
+}: {
+  mode: ViewportMode
+  children: React.ReactNode
+}) {
+  const measureRef = React.useRef<HTMLDivElement>(null)
+  const innerRef = React.useRef<HTMLDivElement>(null)
+  // stageW null = plain flow (content fits — no fixed width, no transform).
+  const [stage, setStage] = React.useState<{
+    stageW: number | null
+    scale: number
+    innerH: number | null
+  }>({ stageW: null, scale: 1, innerH: null })
+
+  const device = VIEWPORT_WIDTHS[mode]
+  const fluid = device === "100%"
+
+  React.useLayoutEffect(() => {
+    const measure = measureRef.current
+    const inner = innerRef.current
+    if (!measure || !inner) return
+    const fit = () => {
+      const containerW = measure.clientWidth
+      let stageW: number | null
+      if (fluid) {
+        // Probe the natural (max-content) width. The mutation is reverted
+        // synchronously before this frame paints, so ResizeObserver never
+        // sees it (no observe-mutate loop) and nothing flickers.
+        const prev = inner.style.width
+        inner.style.width = "max-content"
+        const naturalW = inner.scrollWidth
+        inner.style.width = prev
+        // 1.2: fluid content within ~20% of the column compresses gracefully
+        // (text wraps a little more) and stays crisp at 1:1 — only a layout
+        // meaningfully wider than the column is worth shrinking to fit.
+        stageW =
+          naturalW > containerW * 1.2
+            ? Math.min(naturalW, LOGICAL_DESKTOP)
+            : null
+      } else {
+        stageW = device
+      }
+      const scale = stageW ? Math.min(1, containerW / stageW) : 1
+      // Natural content height, independent of the transform — when scaled,
+      // the sized box crops to height × scale so the stage doesn't reserve
+      // the unscaled height as empty space.
+      setStage({ stageW, scale, innerH: inner.scrollHeight })
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(measure)
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [fluid, device])
+
+  const { stageW, scale, innerH } = stage
+  const scaled = stageW !== null && scale < 1
+
+  return (
+    <div ref={measureRef} className="w-full">
+      <div
+        className={cn("mx-auto", scaled && "overflow-hidden")}
+        style={{
+          width: stageW ? stageW * scale : undefined,
+          height: scaled && innerH ? innerH * scale : undefined,
+        }}
+      >
+        <div
+          ref={innerRef}
+          className="flex min-h-24 origin-top-left flex-wrap items-center justify-center gap-4"
+          style={
+            stageW
+              ? { width: stageW, transform: scaled ? `scale(${scale})` : undefined }
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
  * The documentation preview stage — Storybook canvas semantics for doc pages:
  * a toolbar (device-width switcher, stage light/dark toggle, code toggle) above
  * a dot-grid stage that renders the real thing. One component, so every doc's
@@ -73,12 +185,16 @@ export const COMPONENT_MODES: ViewportMode[] = ["desktop", "tablet", "mobile"]
  *   scoping a `.dark` wrapper — the stage flips, the page doesn't.
  * - `modes` narrows the device set (components use COMPONENT_MODES — a 1920px
  *   lane says nothing about a button).
+ * - `zoom` swaps the width-clamp mechanism for ZoomStage's lay-out-then-scale-
+ *   down-to-fit (conditional: content that fits the column renders plain) —
+ *   for blocks/templates, mirroring how the sitemap zooms whole pages.
  */
 export function ViewportFrame({
   children,
   defaultMode = "desktop",
   fullscreen = false,
   modes: allowedModes,
+  zoom = false,
   code,
   themeToggle = true,
   className,
@@ -89,6 +205,11 @@ export function ViewportFrame({
   fullscreen?: boolean
   /** Narrow the device set (e.g. COMPONENT_MODES). Default: all widths. */
   modes?: ViewportMode[]
+  /** Zoom-to-fit (ZoomStage): device modes lay out at the device width and
+      scale down to fit the column; the fluid desktop mode does so only when
+      the content's natural width outgrows the column — small pieces render
+      plain. For blocks/templates. */
+  zoom?: boolean
   /** The example's source — adds the Code toggle + copy button. */
   code?: string
   /** Offer the stage light/dark flip (default on). */
@@ -203,11 +324,24 @@ export function ViewportFrame({
             stageFlipped && (stageDark ? "dark" : "light"),
             mode === "mobile" || mode === "tablet" ? "max-h-[70vh] min-h-48" : "min-h-24"
           )}
-          style={{ width: width === "100%" ? "100%" : width, maxWidth: "100%" }}
+          style={{
+            width: zoom || width === "100%" ? "100%" : width,
+            maxWidth: "100%",
+          }}
         >
-          <div className="text-foreground flex min-h-24 flex-wrap items-center justify-center gap-4 p-6">
-            <ViewportModeContext.Provider value={mode}>{children}</ViewportModeContext.Provider>
-          </div>
+          {zoom ? (
+            // Zoom-to-fit: the stage stays column-width; ZoomStage lays the
+            // preview out at the logical device width and scales it down.
+            <div className="text-foreground p-6">
+              <ViewportModeContext.Provider value={mode}>
+                <ZoomStage mode={mode}>{children}</ZoomStage>
+              </ViewportModeContext.Provider>
+            </div>
+          ) : (
+            <div className="text-foreground flex min-h-24 flex-wrap items-center justify-center gap-4 p-6">
+              <ViewportModeContext.Provider value={mode}>{children}</ViewportModeContext.Provider>
+            </div>
+          )}
         </div>
       </div>
       {code && showCode && (

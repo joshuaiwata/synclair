@@ -87,7 +87,7 @@ const doc: ComponentDoc = {
     { name: "system", type: "TokenSystem", description: "One parallel token system (lib/system/token-systems.ts), from the seed." },
   ],
   notes:
-    "Exports TokenSystemView (one system's sheet) and DriftView (the Compare tab — same design slots side by side across systems). Data is seed (lib/system/seed/token-systems.ts), captured by the token dig during intake; single-vocabulary projects never see these views.",
+    "Exports the per-category System*Block pieces (Colors/Typography/Spacing/Shape/Motion/Notes — the scoped Foundations view tabs them), TokenSystemView (the same blocks stacked as one sheet), and DriftView (the Compare table — same design slots side by side across systems, living on the Foundations landing). Data is seed (lib/system/seed/token-systems.ts), captured by the token dig during intake; single-vocabulary projects never see these views.",
 }
 
 export default doc

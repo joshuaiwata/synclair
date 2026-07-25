@@ -19,6 +19,7 @@ import markdown from "@/components/markdown.docs"
 import pageHeader from "@/components/page-header.docs"
 import pillToggle from "@/components/pill-toggle.docs"
 import sectionHeader from "@/components/section-header.docs"
+import sectionToolbar from "@/components/section-toolbar.docs"
 import statCard from "@/components/stat-card.docs"
 import statGrid from "@/components/stat-grid.docs"
 import statusBadge from "@/components/status-badge.docs"
@@ -45,6 +46,7 @@ export const docs: Record<string, ComponentDoc> = {
   "step-ladder": stepLadder,
   "stat-card": statCard,
   "section-header": sectionHeader,
+  "section-toolbar": sectionToolbar,
   "page-header": pageHeader,
   "hub-page": hubPage,
   "pill-toggle": pillToggle,

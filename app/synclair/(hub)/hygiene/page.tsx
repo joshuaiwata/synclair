@@ -3,8 +3,7 @@ import { ShieldCheck } from "lucide-react"
 
 import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { StatCard } from "@/components/stat-card"
 import {
   Empty,
   EmptyDescription,
@@ -104,25 +103,19 @@ export default async function HygienePage() {
       }
     >
       {/* Per-rule summary tiles */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Numeric census — the standard StatCard row (same unit as the Pages
+          and Figma Manifest summaries). Each rule's DESCRIPTION lives with its
+          findings below, where the samples give it meaning. */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {report.rules.map((r) => {
           const meta = ruleMeta(r.rule)
           return (
-            <Card key={r.rule} className="gap-1.5 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">{meta.label}</h3>
-                <Badge
-                  variant={r.count > 0 ? "secondary" : "outline"}
-                  className="font-mono text-xs"
-                >
-                  {r.count}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-xs">{meta.description}</p>
-              <p className="text-muted-foreground/70 text-2xs">
-                {r.files} file{r.files === 1 ? "" : "s"}
-              </p>
-            </Card>
+            <StatCard
+              key={r.rule}
+              value={String(r.count)}
+              label={meta.label}
+              note={`${r.files} file${r.files === 1 ? "" : "s"}`}
+            />
           )
         })}
       </section>
@@ -177,6 +170,9 @@ export default async function HygienePage() {
                     </span>
                   </summary>
                   <div className="flex flex-col gap-1 px-3 pb-3">
+                    {meta.description && (
+                      <p className="text-muted-foreground pb-1 text-xs">{meta.description}</p>
+                    )}
                     {findings.map((f, i) => (
                       <div
                         key={`${f.hostPath}:${f.line}:${i}`}

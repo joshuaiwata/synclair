@@ -63,7 +63,7 @@ export function HostStatus({
   }
 
   return (
-    <div className="text-muted-foreground flex flex-wrap items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs">
+    <div className="text-muted-foreground bg-card flex flex-wrap items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs">
       <Info className="size-4 shrink-0" />
       <span>
         Live route previews are off — declare this host&rsquo;s dev server in{" "}

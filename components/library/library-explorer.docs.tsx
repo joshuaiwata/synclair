@@ -21,17 +21,35 @@ return <LibraryExplorer tree={tree}>{children}</LibraryExplorer>`,
   interactions: [
     {
       trigger: "Pick a tier (or surface) in the selects",
-      behavior: "Navigates to that scope's route; the item list re-groups.",
+      behavior:
+        "Navigates to that scope's route; the item list re-groups. The surface select offers surfaces only — back to the library home (or all-surfaces views) via the breadcrumb.",
       result: "Scope is in the URL path — shareable.",
     },
     {
+      trigger: "Click a group header",
+      behavior:
+        "Collapses/expands the group (chevron rotates). Groups over 10 items start collapsed — except the one holding the current page's item — and a manual choice sticks while browsing.",
+    },
+    {
+      trigger: "Switch the grouping (By function / By app area)",
+      behavior:
+        "Regroups the rail AND the tier gallery — function is the shadcn category taxonomy, app area derives from source paths (features/<area>, screens/<area>). Scoped views only; the all-surfaces list already groups by surface.",
+      result: "Grouping is ?group=area in the URL — shareable.",
+    },
+    {
       trigger: "Type in the filter",
-      behavior: "Narrows the item list live; matching group headers stay.",
+      behavior:
+        "Narrows the item list live (name, title, categories, area); matching group headers stay.",
       keyboard: "/ focuses the filter",
     },
     {
       trigger: "Click an item",
       behavior: "Routes to its doc page inside the same shell; the item takes the active dot.",
+    },
+    {
+      trigger: "Scan for the right-side blue dot on an item",
+      behavior:
+        "Marks items that entered the catalog in the last 48 hours (day-precision addedAt), alongside the status dots (beta/deprecated).",
     },
   ],
   states: [
@@ -56,7 +74,7 @@ return <LibraryExplorer tree={tree}>{children}</LibraryExplorer>`,
     { name: "children", type: "ReactNode", description: "The routed page rendered beside the rail." },
   ],
   notes:
-    "Mounted once in `app/synclair/(library)/layout.tsx`; all ten library routes render inside it. Opts out of HubPage deliberately — it owns its own breadcrumb shell.",
+    "Mounted once in `app/synclair/(library)/layout.tsx`; all ten library routes render inside it. Opts out of HubPage deliberately — it owns its own breadcrumb shell. On the multi-surface library HOME the rail is hidden: that page is the surface-picker dashboard, so a second sidebar beside it would be noise.",
 }
 
 export default doc

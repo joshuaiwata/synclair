@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 const stepLadderVariants = cva("", {
   variants: {
     orientation: {
-      vertical: "flex flex-col divide-y rounded-lg border",
+      vertical: "bg-card flex flex-col divide-y rounded-lg border",
       horizontal: "grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-flow-col sm:auto-cols-fr",
     },
   },
