@@ -2,7 +2,6 @@ import Link from "next/link"
 
 import { HubPage, PageBody, PageTitle } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
-import { SectionHeader } from "@/components/section-header"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { synclair } from "@/lib/system/routes"
@@ -25,14 +24,18 @@ import {
 import {
   DriftView,
   SystemColorsBlock,
-  SystemExamplesBlock,
+  SystemIconsBlock,
   SystemMotionBlock,
   SystemNotesBlock,
+  SystemScalingBlock,
   SystemShapeBlock,
   SystemSpacingBlock,
   SystemTypographyBlock,
   systemHas,
 } from "@/components/library/token-systems"
+import { SystemThemeBlock } from "@/components/library/system-theme"
+import { NotesSections } from "@/components/library/notes-sections"
+import { SummaryShell } from "@/components/summary-shell"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Markdown } from "@/components/markdown"
 import { isExistingProjectMode } from "@/lib/system/external"
@@ -165,14 +168,15 @@ export default async function FoundationsPage({
       : undefined
 
     if (scopedSystem) {
-      // The SAME per-category tab set a single-vocabulary Foundations page
-      // gets — Colors / Typography / Spacing / Shape / Motion — scoped to
-      // this system; a category tab only renders when the dig captured it.
+      // Six tabs, scoped to this system: Theme · Colors · Typography ·
+      // Scale & motion · Iconography · Notes. Each renders only when the token
+      // dig actually captured that category, so an absent tab is a finding
+      // rather than an oversight.
       const sysTabs: FoundationTab[] = [
-        // Examples leads — seeing the vocabulary COMPOSED beats reading
-        // swatches (the companion-mode ordering, per system here).
-        ...(systemHas(scopedSystem, "examples")
-          ? [{ value: "examples", label: "Examples", bare: true, content: <SystemExamplesBlock system={scopedSystem} /> }]
+        // Theme leads: seeing the vocabulary composed as a screen beats reading
+        // swatches, and it's the only tab that shows how the system FEELS.
+        ...(systemHas(scopedSystem, "theme")
+          ? [{ value: "theme", label: "Theme", bare: true, content: <SystemThemeBlock system={scopedSystem} /> }]
           : []),
         ...(systemHas(scopedSystem, "colors")
           ? [{ value: "colors", label: "Colors", bare: true, content: <SystemColorsBlock system={scopedSystem} /> }]
@@ -180,14 +184,29 @@ export default async function FoundationsPage({
         ...(systemHas(scopedSystem, "typography")
           ? [{ value: "typography", label: "Typography", bare: true, content: <SystemTypographyBlock system={scopedSystem} /> }]
           : []),
-        ...(systemHas(scopedSystem, "spacing")
-          ? [{ value: "spacing", label: "Spacing", bare: true, content: <SystemSpacingBlock system={scopedSystem} /> }]
+        // Everything dimensional in ONE tab. Colour, type, and icons each carry
+        // a tab's worth of material; spacing, radius/elevation, motion, alpha,
+        // and breakpoints are all small — a tab apiece made the rail long and
+        // each destination nearly empty. They read better stacked as sections.
+        ...(systemHas(scopedSystem, "scale")
+          ? [
+              {
+                value: "scale",
+                label: "Scale & motion",
+                bare: true,
+                content: (
+                  <div className="flex flex-col gap-6">
+                    <SystemSpacingBlock system={scopedSystem} />
+                    <SystemShapeBlock system={scopedSystem} />
+                    <SystemMotionBlock system={scopedSystem} />
+                    <SystemScalingBlock system={scopedSystem} />
+                  </div>
+                ),
+              },
+            ]
           : []),
-        ...(systemHas(scopedSystem, "shape")
-          ? [{ value: "shape", label: "Shape & elevation", bare: true, content: <SystemShapeBlock system={scopedSystem} /> }]
-          : []),
-        ...(systemHas(scopedSystem, "motion")
-          ? [{ value: "motion", label: "Motion", bare: true, content: <SystemMotionBlock system={scopedSystem} /> }]
+        ...(systemHas(scopedSystem, "icons")
+          ? [{ value: "iconography", label: "Iconography", bare: true, content: <SystemIconsBlock system={scopedSystem} /> }]
           : []),
         ...(scopedSystem.notes
           ? [{ value: "notes", label: "Notes", content: <SystemNotesBlock system={scopedSystem} /> }]
@@ -328,20 +347,24 @@ export default async function FoundationsPage({
               )
             })}
           </div>
+          {/* Compare wears the same doc frame as Notes — it's the page's
+              central argument (which system should win), so it reads as a
+              titled document rather than a bare table under a small heading. */}
           {TOKEN_DRIFT.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <SectionHeader title="Compare" hint="the same design slot across every system" />
+            <SummaryShell
+              fallbackTitle="Compare"
+              meta="the same design slot across every system"
+            >
               <DriftView systems={TOKEN_SYSTEMS} sections={TOKEN_DRIFT} />
-            </section>
+            </SummaryShell>
           )}
-          {PROJECT_FOUNDATION.sections.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <SectionHeader title="Notes" />
-              <div className="bg-card rounded-lg border p-6">
-                <SectionsView sections={PROJECT_FOUNDATION.sections} />
-              </div>
-            </section>
-          )}
+          {/* Notes carry this surface's densest findings, so they wear the hub's
+              long-form doc treatment (SummaryShell — same as the System Map
+              overview and the Knowledge briefs), not a text-xs label in a box. */}
+          <NotesSections
+            sections={PROJECT_FOUNDATION.sections}
+            meta="what the token dig found, in prose"
+          />
         </PageBody>
       </>
     )

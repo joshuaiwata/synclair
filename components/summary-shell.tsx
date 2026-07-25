@@ -24,13 +24,22 @@ export function SummaryShell({
   fallbackTitle,
   meta,
   html = false,
+  children,
 }: {
-  content: string
+  /** Markdown body. Omit when passing `children` instead. */
+  content?: string
   fallbackTitle?: string
   meta?: React.ReactNode
   html?: boolean
+  /**
+   * Rendered in place of the markdown body, so a surface whose content is JSX
+   * (a comparison table, a chart) wears the SAME doc frame as the prose ones.
+   * One component owns the treatment; the alternative was a second hand-rolled
+   * panel that drifts from this one the first time either is touched.
+   */
+  children?: React.ReactNode
 }) {
-  const { title, body } = splitLeadingTitle(content)
+  const { title, body } = splitLeadingTitle(content ?? "")
   const finalTitle = title ?? fallbackTitle
   return (
     <div className="rounded-lg border bg-card p-5">
@@ -40,7 +49,7 @@ export function SummaryShell({
           {meta && <div className="text-muted-foreground mt-1 font-mono text-xs">{meta}</div>}
         </div>
       )}
-      <Markdown html={html}>{body}</Markdown>
+      {children ?? <Markdown html={html}>{body}</Markdown>}
     </div>
   )
 }

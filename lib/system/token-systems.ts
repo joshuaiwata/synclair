@@ -1,6 +1,7 @@
 import type { ColorGroup } from "./tokens"
 import type {
   FoundationFont,
+  FoundationIcons,
   FoundationMotion,
   FoundationScaleStep,
   FoundationShadowStep,
@@ -45,7 +46,15 @@ export interface TokenSystem {
   spacing?: FoundationScaleStep[]
   elevation?: FoundationShadowStep[]
   motion?: FoundationMotion
-  /** The Examples frame — this system's values mapped into the STANDARD
+  /** Alpha steps the system defines — text emphasis, state overlays. Rendered
+   *  as live chips over a patterned ground so the alpha is actually visible. */
+  opacity?: SystemAlphaStep[]
+  /** Responsive breakpoints, rendered as a proportional ladder. */
+  breakpoints?: SystemBreakpoint[]
+  /** The system's icon set — brand mark plus sample glyphs, rendered as live
+   *  inline SVG rather than described. Absent → no Iconography tab. */
+  icons?: FoundationIcons
+  /** The Theme frame — this system's values mapped into the STANDARD
    *  `--sys-*` slots SystemExamplesBlock composes (copied verbatim from the
    *  system's source). Absent → no Examples tab for the system. */
   sample?: SystemSample
@@ -54,17 +63,67 @@ export interface TokenSystem {
 }
 
 /**
- * The Examples frame for one system. `vars` fills the standard slots the
- * generic composed layout reads: --sys-primary / --sys-on-primary /
- * --sys-primary-soft / --sys-bg / --sys-surface / --sys-line / --sys-text /
- * --sys-text-muted / --sys-info / --sys-danger / --sys-danger-soft /
- * --sys-radius / --sys-shadow. Missing slots fall back to sibling slots in
- * the layout — fill only what the system truly defines.
+ * A named alpha step. `value` is a bare CSS opacity (`"0.45"`) or a percentage
+ * (`"12%"`) — whatever the system itself writes, rendered verbatim.
+ */
+export interface SystemAlphaStep {
+  name: string
+  value: string
+  usage?: string
+}
+
+/** A responsive breakpoint. `min` is the CSS min-width the system declares. */
+export interface SystemBreakpoint {
+  name: string
+  min: string
+  usage?: string
+}
+
+/**
+ * The Theme frame for one system. `vars` fills the standard slots the
+ * generic composed screen reads: --sys-primary / --sys-on-primary /
+ * --sys-primary-soft / --sys-accent / --sys-on-accent / --sys-bg /
+ * --sys-surface / --sys-sunken / --sys-line / --sys-text / --sys-text-muted /
+ * --sys-info / --sys-danger / --sys-danger-soft / --sys-ok / --sys-ok-soft /
+ * --sys-radius / --sys-shadow. Missing slots fall back to sibling slots in the
+ * layout — fill only what the system truly defines.
+ *
+ * `--sys-primary` is the system's PRIMARY ACTION fill, not its brand hue. When
+ * a system's brand color is an accent rather than its button fill (a gold brand
+ * with ink buttons, say), put the button fill in `--sys-primary` and the brand
+ * hue in `--sys-accent` — otherwise every system's screen renders the same
+ * brand-colored button and the comparison shows nothing.
  */
 export interface SystemSample {
   vars: Record<string, string>
+  /** The same slots at the system's own DARK values. Present only for systems
+   *  that genuinely define a dark theme — it drives the Theme tab's light/dark
+   *  toggle, so an absent set means the toggle is correctly hidden. */
+  darkVars?: Record<string, string>
   /** Font stack applied within the frame (degrades to system sans). */
   fontFamily?: string
+  /**
+   * RECIPE CSS — the part of a system's look that a color slot cannot carry.
+   * A highlighter swipe behind a heading, a glass bar, a chamfered corner, a
+   * neumorphic press are `background-image` / `box-shadow` / `clip-path`
+   * structures, not values; skinning a generic layout with hexes reproduces a
+   * system's palette while losing its signature. Copy the rules VERBATIM from
+   * the system's own stylesheet and they render here for real.
+   *
+   * Injected into the Theme frame as-is, so the selectors must be the system's
+   * OWN prefixed classes (`.ds-highlight`, never a bare `.highlight`) — an
+   * unprefixed rule here could collide with the hub's chrome. The frame carries
+   * `data-theme="light|dark"`, so a rule the source already scopes that way
+   * (`[data-theme='dark'] .ds-highlight { … }`) keeps working unchanged.
+   */
+  css?: string
+  /** Which classes from `css` to hang on the composed screen's named slots. */
+  classes?: {
+    /** The page's H1 — e.g. a highlighter swipe. */
+    heading?: string
+    /** Small uppercase section labels. */
+    kicker?: string
+  }
 }
 
 /** One cell of the Compare table. `hex` renders a swatch beside `text`. */

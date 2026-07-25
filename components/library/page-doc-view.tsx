@@ -163,8 +163,11 @@ export async function PageDocView({ id }: { id: string }) {
         )}
         {node.previewUrl && (
           <Fact label="Live route">
+            {/* Host routes carry a SERVER-RELATIVE previewUrl ("/marketplace"),
+                so it needs the host's origin — bare, it resolved against the
+                hub and sent you to the hub's own route instead of the app. */}
             <a
-              href={node.previewUrl}
+              href={hostServer?.url ? `${hostServer.url}${node.previewUrl}` : node.previewUrl}
               target="_blank"
               rel="noreferrer"
               className="text-foreground inline-flex items-center gap-1 underline underline-offset-2"

@@ -26,7 +26,7 @@ import { project } from "@/lib/system/seed/project"
 import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
 import { ColorSwatch } from "@/components/library/color-swatch"
-import { fontStack, specimenSize } from "@/components/library/font-stack"
+import { fontStack } from "@/components/library/font-stack"
 import { SpecimenFonts } from "@/components/library/specimen-fonts"
 import { cn } from "@/lib/utils"
 
@@ -139,17 +139,15 @@ export function ProjectTypography() {
           </div>
           <div className="flex flex-col divide-y">
             {roles.map((r) => {
-              const display = specimenSize(r.size)
               return (
               <div
                 key={r.role}
                 className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-4"
               >
                 <p
-                  className="min-w-0 flex-1 truncate"
-                  title={display.capped ? `Shown at reduced size — true size ${r.size}` : undefined}
+                  className="min-w-0 flex-1 break-words"
                   style={{
-                    fontSize: display.fontSize,
+                    fontSize: r.size,
                     lineHeight: r.line,
                     fontWeight: r.weight
                       ? (Number(r.weight) as React.CSSProperties["fontWeight"])

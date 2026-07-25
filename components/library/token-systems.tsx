@@ -7,10 +7,10 @@
  * design slot across every system, the page's decision aid for converging on
  * one. Both are data-driven from the seed; nothing here names a project.
  */
-import { Fragment, type CSSProperties } from "react"
+import { Fragment } from "react"
 
 import { Markdown } from "@/components/markdown"
-import { fontStack, specimenSize } from "@/components/library/font-stack"
+import { fontStack } from "@/components/library/font-stack"
 import { SpecimenFonts } from "@/components/library/specimen-fonts"
 import { ColorGroupBlock } from "@/components/library/foundations"
 import {
@@ -38,10 +38,19 @@ function SystemSectionHeader({ label, hint }: { label: string; hint?: string }) 
 /** Does a system carry anything for a given category? Drives which tabs render. */
 export function systemHas(
   system: TokenSystem,
-  category: "examples" | "colors" | "typography" | "spacing" | "shape" | "motion"
+  category:
+    | "theme"
+    | "colors"
+    | "typography"
+    | "spacing"
+    | "shape"
+    | "motion"
+    | "icons"
+    | "depth"
+    | "scale"
 ): boolean {
   switch (category) {
-    case "examples":
+    case "theme":
       return Boolean(system.sample)
     case "colors":
       return system.ramps.length > 0
@@ -53,152 +62,20 @@ export function systemHas(
       return Boolean(system.radii?.length || system.elevation?.length)
     case "motion":
       return Boolean(system.motion)
+    case "icons":
+      return Boolean(system.icons?.markSvg || system.icons?.glyphs?.length)
+    case "depth":
+      return Boolean(system.opacity?.length || system.breakpoints?.length)
+    // The combined dimensional tab — spacing, shape, motion, alpha,
+    // breakpoints. Any one of them is enough to earn it.
+    case "scale":
+      return (
+        systemHas(system, "spacing") ||
+        systemHas(system, "shape") ||
+        systemHas(system, "motion") ||
+        systemHas(system, "depth")
+      )
   }
-}
-
-/* ------------------------- Examples (composed layout) ---------------------- */
-
-const exTile: CSSProperties = {
-  background: "var(--sys-surface)",
-  border: "1px solid var(--sys-line)",
-  borderRadius: "var(--sys-radius)",
-  boxShadow: "var(--sys-shadow, none)",
-  color: "var(--sys-text)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  padding: 16,
-}
-
-const exLabel: CSSProperties = {
-  color: "var(--sys-text-muted)",
-  fontSize: 11,
-  fontWeight: 500,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-}
-
-function exPill(fg: string, bg: string): CSSProperties {
-  return {
-    background: bg,
-    borderRadius: 999,
-    color: fg,
-    fontSize: 12,
-    fontWeight: 600,
-    padding: "2px 10px",
-  }
-}
-
-/**
- * The system's vocabulary COMPOSED — a basic layout (page header, button
- * hierarchy, status pills, card + field) built from the STANDARD `--sys-*`
- * slots the seed's `sample` fills with the system's verbatim values. One
- * generic layout in the Brain; every system renders it in its own skin, so
- * the same patterns become directly comparable across systems.
- */
-export function SystemExamplesBlock({ system }: { system: TokenSystem }) {
-  const sample = system.sample
-  if (!sample) return null
-  const family = sample.fontFamily?.split(",")[0]?.replace(/["']/g, "").trim()
-  const frame: CSSProperties = {
-    ...(sample.vars as CSSProperties),
-    fontFamily: sample.fontFamily,
-  }
-  return (
-    <div className="flex flex-col gap-3">
-      <SpecimenFonts families={[family]} />
-      <p className="text-muted-foreground max-w-2xl text-xs">
-        The system&rsquo;s tokens applied to the same basic patterns every
-        system renders — a sandboxed preview scoped to this frame, not the
-        hub&rsquo;s own styling.
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2" style={frame}>
-        {/* Page header — title on the app ground, primary CTA. */}
-        <div style={{ ...exTile, background: "var(--sys-bg, var(--sys-surface))" }}>
-          <span style={exLabel}>Page header</span>
-          <div style={{ alignItems: "center", display: "flex", gap: 12, justifyContent: "space-between" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 20, fontWeight: 600 }}>Overview</span>
-              <span style={{ color: "var(--sys-text-muted)", fontSize: 13 }}>
-                12 active · 3 pending this week
-              </span>
-            </div>
-            <button
-              type="button"
-              style={{
-                background: "var(--sys-primary)",
-                border: "none",
-                borderRadius: "var(--sys-radius)",
-                color: "var(--sys-on-primary, var(--sys-text))",
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "8px 14px",
-              }}
-            >
-              New item
-            </button>
-          </div>
-        </div>
-
-        {/* Button hierarchy — primary, outline, ghost, link. */}
-        <div style={exTile}>
-          <span style={exLabel}>Buttons</span>
-          <div style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <button type="button" style={{ background: "var(--sys-primary)", border: "none", borderRadius: "var(--sys-radius)", color: "var(--sys-on-primary, var(--sys-text))", fontSize: 13, fontWeight: 600, padding: "8px 14px" }}>
-              Primary
-            </button>
-            <button type="button" style={{ background: "var(--sys-surface)", border: "1px solid var(--sys-line)", borderRadius: "var(--sys-radius)", color: "var(--sys-text)", fontSize: 13, fontWeight: 500, padding: "8px 14px" }}>
-              Secondary
-            </button>
-            <button type="button" style={{ background: "transparent", border: "none", borderRadius: "var(--sys-radius)", color: "var(--sys-text-muted)", fontSize: 13, fontWeight: 500, padding: "8px 14px" }}>
-              Ghost
-            </button>
-            <span style={{ color: "var(--sys-info, var(--sys-text))", fontSize: 13, fontWeight: 500 }}>Link →</span>
-          </div>
-        </div>
-
-        {/* Status vocabulary. */}
-        <div style={exTile}>
-          <span style={exLabel}>Status</span>
-          <div style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <span style={exPill("var(--sys-on-primary, var(--sys-text))", "var(--sys-primary-soft, var(--sys-bg))")}>Featured</span>
-            <span style={exPill("var(--sys-text-muted)", "var(--sys-bg, var(--sys-surface))")}>Neutral</span>
-            <span style={exPill("var(--sys-danger, var(--sys-text))", "var(--sys-danger-soft, var(--sys-bg))")}>Error</span>
-            <span style={exPill("var(--sys-info, var(--sys-text))", "var(--sys-bg, var(--sys-surface))")}>Info</span>
-          </div>
-        </div>
-
-        {/* Card + field. */}
-        <div style={exTile}>
-          <span style={exLabel}>Card · field</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>Label</span>
-            <div
-              style={{
-                alignItems: "center",
-                background: "var(--sys-surface)",
-                border: "1px solid var(--sys-line)",
-                borderRadius: "var(--sys-radius)",
-                color: "var(--sys-text-muted)",
-                display: "flex",
-                fontSize: 13,
-                justifyContent: "space-between",
-                padding: "8px 10px",
-              }}
-            >
-              Placeholder value
-              <span style={exPill("var(--sys-on-primary, var(--sys-text))", "var(--sys-primary-soft, var(--sys-bg))")}>
-                hint
-              </span>
-            </div>
-            <span style={{ color: "var(--sys-text-muted)", fontSize: 12 }}>
-              Helper text under the field.
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 /** The system's color ramps — each ramp its own card (bare, no extra panel). */
@@ -244,14 +121,12 @@ export function SystemTypographyBlock({ system }: { system: TokenSystem }) {
             <SystemSectionHeader label="Type specimen" hint="semantic roles — headers, body, captions" />
             <div className="flex flex-col divide-y">
               {system.typeRoles.map((r) => {
-                const display = specimenSize(r.size)
                 return (
                 <div key={r.role} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:gap-4">
                   <p
-                    className="min-w-0 flex-1 truncate"
-                    title={display.capped ? `Shown at reduced size — true size ${r.size}` : undefined}
+                    className="min-w-0 flex-1 break-words"
                     style={{
-                      fontSize: display.fontSize,
+                      fontSize: r.size,
                       lineHeight: r.line,
                       fontWeight: r.weight ? (Number(r.weight) as React.CSSProperties["fontWeight"]) : undefined,
                       fontFamily: fontStack(r.mono ? monoFamily : sansFamily, r.mono),
@@ -280,7 +155,7 @@ export function SystemTypographyBlock({ system }: { system: TokenSystem }) {
             <div className="flex flex-col divide-y">
               {system.type.map((t) => (
                 <div key={t.name} className="flex items-baseline gap-4 py-3">
-                  <p className="min-w-0 flex-1 truncate font-medium" style={{ fontSize: specimenSize(t.size).fontSize, lineHeight: t.line, fontFamily: fontStack(sansFamily) }}>
+                  <p className="min-w-0 flex-1 break-words font-medium" style={{ fontSize: t.size, lineHeight: t.line, fontFamily: fontStack(sansFamily) }}>
                     The quick brown fox
                   </p>
                   <code className="shrink-0 font-mono text-2xs text-muted-foreground">{t.name}</code>
@@ -356,32 +231,184 @@ export function SystemShapeBlock({ system }: { system: TokenSystem }) {
   )
 }
 
-/** The system's motion vocabulary, paneled. */
+/**
+ * The system's motion vocabulary, shown IN ACTION — one live eased demo per
+ * duration at the system's own timing function, so a 140ms and a 320ms are
+ * distinguishable by eye rather than by reading two numbers. CSS-only and
+ * flattened under prefers-reduced-motion, which is itself part of the spec.
+ */
 export function SystemMotionBlock({ system }: { system: TokenSystem }) {
-  if (!system.motion) return null
+  const motion = system.motion
+  if (!motion) return null
+  const ease = motion.ease[0]?.value ?? "ease"
   return (
-        <section className="bg-card flex flex-col gap-3 rounded-xl border p-5 shadow-sm">
-          <SystemSectionHeader label="Motion" />
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-            {system.motion.ease.map((e) => (
-              <span key={e.name}>
-                <code className="font-mono text-2xs font-medium">{e.name}</code>{" "}
-                <span className="text-muted-foreground font-mono text-2xs">{e.value}</span>
-              </span>
-            ))}
-            {system.motion.durations.map((d) => (
-              <span key={d.name}>
-                <code className="font-mono text-2xs font-medium">{d.name}</code>{" "}
-                <span className="text-muted-foreground font-mono text-2xs">{d.ms}ms</span>
-              </span>
+        <section className="bg-card flex flex-col gap-5 rounded-xl border p-5 shadow-sm">
+          {/* Scoped demo keyframes — a bounded slide, never hub chrome. */}
+          <style>{`
+            @keyframes tbs-motion-slide { from { left: 0; } to { left: calc(100% - 1.25rem); } }
+            .tbs-motion-dot { animation-name: tbs-motion-slide; animation-iteration-count: infinite; animation-direction: alternate; }
+            @media (prefers-reduced-motion: reduce) { .tbs-motion-dot { animation: none !important; } }
+          `}</style>
+          <div className="flex flex-col gap-3">
+            <SystemSectionHeader
+              label="Easing × duration"
+              hint={`${motion.ease.map((e) => e.name).join(", ")} · ${ease}`}
+            />
+            {motion.durations.map((d) => (
+              <div key={d.name} className="flex items-center gap-4">
+                <code className="w-24 shrink-0 font-mono text-2xs text-muted-foreground">
+                  {d.name}
+                </code>
+                <div className="bg-muted relative h-5 flex-1 rounded-full">
+                  <span
+                    className="tbs-motion-dot bg-primary absolute top-1/2 size-5 -translate-y-1/2 rounded-full"
+                    style={{ animationDuration: `${d.ms}ms`, animationTimingFunction: ease }}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right font-mono text-2xs text-muted-foreground">
+                  {d.ms}ms
+                </span>
+              </div>
             ))}
           </div>
-          {system.motion.moves && system.motion.moves.length > 0 && (
-            <p className="text-2xs text-muted-foreground">
-              Moves: {system.motion.moves.map((m) => m.name).join(" · ")}
-            </p>
+          {motion.moves && motion.moves.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <SystemSectionHeader label="Named moves" hint="defined in the system's own CSS" />
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {motion.moves.map((m) => (
+                  <div key={m.name} className="flex flex-col gap-0.5 rounded-lg border p-3">
+                    <code className="font-mono text-2xs font-medium">{m.name}</code>
+                    <span className="text-2xs text-muted-foreground">{m.usage}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </section>
+  )
+}
+
+/**
+ * The system's icon set, RENDERED — the brand mark at a legible size plus the
+ * glyph grid, from inline SVG in the seed. `currentColor` markup inherits the
+ * hub's text color, so a set authored for theming proves it here.
+ */
+export function SystemIconsBlock({ system }: { system: TokenSystem }) {
+  const icons = system.icons
+  if (!icons) return null
+  return (
+    <div className="flex flex-col gap-6">
+      {icons.markSvg && (
+        <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
+          <SystemSectionHeader label="Brand mark" hint={icons.markLabel} />
+          <div
+            className="[&>svg]:h-16 [&>svg]:w-auto"
+            /* Seed-authored inline SVG — trusted project data, not user input. */
+            dangerouslySetInnerHTML={{ __html: icons.markSvg }}
+          />
+        </section>
+      )}
+      {icons.glyphs && icons.glyphs.length > 0 && (
+        <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
+          <SystemSectionHeader
+            label="Glyphs"
+            hint={`${icons.glyphs.length} shown · currentColor`}
+          />
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            {icons.glyphs.map((g) => (
+              <div
+                key={g.name}
+                className="flex flex-col items-center gap-2 rounded-lg border p-3 text-center"
+              >
+                <span
+                  className="[&>svg]:size-6"
+                  dangerouslySetInnerHTML={{ __html: g.svg }}
+                />
+                <code className="font-mono text-2xs text-muted-foreground break-all">
+                  {g.name}
+                </code>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Alpha steps and breakpoints — the two "how it scales" categories. Alpha chips
+ * sit over a checkerboard so the transparency is actually visible instead of
+ * being a number; breakpoints render as a proportional ladder.
+ */
+export function SystemScalingBlock({ system }: { system: TokenSystem }) {
+  const { opacity, breakpoints } = system
+  const widest = Math.max(...(breakpoints ?? []).map((b) => parseFloat(b.min) || 0), 1)
+  return (
+    <div className="flex flex-col gap-6">
+      {opacity && opacity.length > 0 && (
+        <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
+          <SystemSectionHeader label="Alpha" hint="text emphasis · state overlays" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {opacity.map((o) => (
+              <div key={o.name} className="flex flex-col gap-2">
+                {/* Checkerboard ground — alpha is meaningless over flat white. */}
+                <div
+                  className="h-14 overflow-hidden rounded-lg border"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(45deg, var(--muted) 25%, transparent 25% 75%, var(--muted) 75%), linear-gradient(45deg, var(--muted) 25%, transparent 25% 75%, var(--muted) 75%)",
+                    backgroundPosition: "0 0, 8px 8px",
+                    backgroundSize: "16px 16px",
+                  }}
+                >
+                  <div className="bg-foreground size-full" style={{ opacity: o.value }} />
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <code className="font-mono text-2xs font-medium">{o.name}</code>
+                  <span className="font-mono text-2xs text-muted-foreground">{o.value}</span>
+                </div>
+                {o.usage && (
+                  <span className="text-2xs text-muted-foreground">{o.usage}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {breakpoints && breakpoints.length > 0 && (
+        <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
+          <SystemSectionHeader label="Breakpoints" hint="min-width, to scale" />
+          <div className="flex flex-col gap-2">
+            {breakpoints.map((b) => (
+              <div key={b.name} className="flex items-center gap-3">
+                <code className="w-24 shrink-0 font-mono text-2xs font-medium">{b.name}</code>
+                <div className="flex-1">
+                  <span
+                    className="bg-primary/70 block h-3 rounded-sm"
+                    style={{ width: `${((parseFloat(b.min) || 0) / widest) * 100}%` }}
+                  />
+                </div>
+                <span className="w-16 shrink-0 text-right font-mono text-2xs text-muted-foreground">
+                  {b.min}
+                </span>
+              </div>
+            ))}
+          </div>
+          {breakpoints.some((b) => b.usage) && (
+            <div className="flex flex-col gap-1">
+              {breakpoints
+                .filter((b) => b.usage)
+                .map((b) => (
+                  <span key={b.name} className="text-2xs text-muted-foreground">
+                    <code className="font-mono">{b.name}</code> — {b.usage}
+                  </span>
+                ))}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
   )
 }
 

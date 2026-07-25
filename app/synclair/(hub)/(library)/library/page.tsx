@@ -11,6 +11,8 @@ import {
 } from "@/lib/system/components"
 import { isNewlyAdded, itemArea } from "@/lib/system/item-meta"
 import { synclair } from "@/lib/system/routes"
+import { NotesSections } from "@/components/library/notes-sections"
+import { SURFACE_NOTES } from "@/lib/system/seed/surface-notes"
 import {
   defaultSurfaceId,
   getSurfaces,
@@ -191,6 +193,15 @@ export default async function LibraryHomePage() {
           </span>
         ))}
       </p>
+
+      {/* Multi-surface only: two disjoint component sets look like a mistake
+          until the gate between them is stated. */}
+      {surfaces.length > 1 && (
+        <NotesSections
+          sections={SURFACE_NOTES.library}
+          meta="why the surfaces don't share"
+        />
+      )}
     </div>
   )
 }

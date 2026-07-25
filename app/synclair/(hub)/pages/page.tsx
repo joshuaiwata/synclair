@@ -20,6 +20,8 @@ import { HostStatus } from "@/components/pages/host-status"
 import { formatDay } from "@/lib/system/format-date"
 import { getPagesMap, hasPagesMap, type PageNode } from "@/lib/system/pages-map"
 import { synclair } from "@/lib/system/routes"
+import { NotesSections } from "@/components/library/notes-sections"
+import { SURFACE_NOTES } from "@/lib/system/seed/surface-notes"
 import { getSurfaces, PLATFORM_BADGE, surfaceLabel } from "@/lib/system/surfaces"
 import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
@@ -231,6 +233,15 @@ export default async function PagesOverview({
             </Link>
             .
           </p>
+          {/* Multi-surface only: with several frontends the counts stop
+              speaking for themselves — an unmapped surface reads the same as
+              an empty one unless the intent is written down. */}
+          {surfaces.length > 1 && (
+            <NotesSections
+              sections={SURFACE_NOTES.pages}
+              meta="how coverage and previews work here"
+            />
+          )}
         </PageBody>
       </>
     )
