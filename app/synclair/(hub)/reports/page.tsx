@@ -146,12 +146,17 @@ export default async function ReportsPage({
             a report reads like an article with a headline, dek, and stat strip;
             the hub scale would flatten it. The one sanctioned exception. */}
         <section className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="gap-1.5">
-              <ClipboardList className="size-3" />
+          {/* Kicker — flat mono, deliberately NOT a Badge. A filled Badge here is
+              byte-identical to PillToggle's active pill, so it read as a second
+              selected archive tab. On this page a pill means "switchable run";
+              report metadata stays unpilled so only the archive looks clickable. */}
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs">
+            <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
+              <ClipboardList className="size-3" aria-hidden="true" />
               {r.type}
-            </Badge>
-            <span className="text-muted-foreground font-mono text-xs">
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
               subject: {r.subject}
               {r.lens ? ` · ${r.lens}` : ""} · {r.date}
             </span>

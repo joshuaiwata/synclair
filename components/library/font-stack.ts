@@ -9,16 +9,8 @@ export function fontStack(family?: string, mono = false): string | undefined {
   return `"${family}", ${mono ? "ui-monospace, SFMono-Regular, monospace" : "ui-sans-serif, system-ui, sans-serif"}`
 }
 
-/** Specimens render at most this size — labels keep carrying the TRUE value. */
-const SPECIMEN_MAX_PX = 44
-
 /**
- * Display size for a type specimen row. Values are honest data (a Figma guide
- * really does define a 96px H1), but rendering display sizes literally blows
- * the row out — cap the RENDERED size and say so, never the labeled value.
+ * Specimens render at their TRUE size — a 96px H1 is shown at 96px. Scaling a
+ * type specimen down defeats its purpose: the whole point is to feel the size.
+ * Rows wrap rather than clip, so a display face is allowed to be big.
  */
-export function specimenSize(size?: string): { fontSize?: string; capped: boolean } {
-  const n = parseFloat(size ?? "")
-  if (!Number.isFinite(n) || n <= SPECIMEN_MAX_PX) return { fontSize: size, capped: false }
-  return { fontSize: `${SPECIMEN_MAX_PX}px`, capped: true }
-}
