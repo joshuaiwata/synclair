@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -30,6 +31,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { PageHeader } from "@/components/page-header"
+import { isNewlyAdded } from "@/lib/system/item-meta"
 import type {
   LibraryTreeData,
   TreeLeaf,
@@ -85,6 +87,10 @@ export function LibraryExplorer({
 }) {
   const router = useRouter()
   const { pathname, scopeId, tier } = useLocation(tree)
+  const searchParams = useSearchParams()
+  // Grouping is URL state (?group=area) like every other explorer choice, so
+  // the rail and the gallery page regroup together and views stay shareable.
+  const groupMode: GroupMode = searchParams.get("group") === "area" ? "area" : "function"
   const [query, setQuery] = React.useState("")
   const searchRef = React.useRef<HTMLInputElement>(null)
 
@@ -116,7 +122,18 @@ export function LibraryExplorer({
     ? [scopedRoot, ...tree.roots.filter((r) => r.id === "shared" && r.id !== scopedRoot.id)]
     : tree.roots
 
-  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, query.trim().toLowerCase())
+  const groups = buildGroups(
+    visibleRoots,
+    activeKind,
+    scopedRoot?.id,
+    query.trim().toLowerCase(),
+    groupMode
+  )
+
+  // The multi-surface library HOME is the overview dashboard — the page IS
+  // the surface picker, so a second sidebar beside it reads as noise. The
+  // rail appears once a surface (or an all-surfaces tier) is entered.
+  const isOverview = tree.multiSurface && pathname === LIBRARY_BASE
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -129,35 +146,64 @@ export function LibraryExplorer({
         {/* top-14/-3.5rem pairs with the sticky ExplorerHeader (h-14): the rail
             is always fully visible, so the item list scrolls INTERNALLY
             instead of running below the fold. */}
+        {!isOverview && (
         <aside className="sticky top-14 flex max-h-[calc(100svh-3.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             {tree.multiSurface && (
               <Select
-                value={scopeId ?? "all"}
+                value={scopeId ?? ""}
                 // Switching surface keeps the tier you're on so the two selects compose.
+                // The dropdown offers SURFACES only — back to the library home
+                // (or the all-surfaces views) via the breadcrumb, not the select.
                 onValueChange={(v) =>
-                  router.push(tierHref(v === "all" ? undefined : v, activeKind))
+                  router.push(withGroup(tierHref(v, activeKind), groupMode))
                 }
               >
-                {/* bg-card: on the tinted canvas (background == sidebar tint
+                {/* The PARENT select — a workspace-switcher, not a field: a
+                    taller two-line trigger (surface name over its census) so
+                    it reads a level above the tier/group selects below it.
+                    bg-card: on the tinted canvas (background == sidebar tint
                     since the facelift) a bg-background control is same-color-
                     on-same-color — fields sit one step ABOVE their surface,
                     which is bg-card now. */}
-                <SelectTrigger size="sm" className="bg-card w-full text-xs">
-                  <SelectValue />
+                <SelectTrigger
+                  size="sm"
+                  className="bg-card w-full py-1.5 text-left text-xs data-[size=sm]:h-auto *:data-[slot=select-value]:line-clamp-none"
+                >
+                  {/* Unscoped tier routes (/synclair/blocks) have no selected
+                      surface — the placeholder names the view instead. */}
+                  <SelectValue
+                    placeholder={
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium">All surfaces</span>
+                        <span className="text-muted-foreground text-2xs">
+                          every surface at once
+                        </span>
+                      </span>
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">
-                    All surfaces
-                  </SelectItem>
-                  {tree.scopes.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="text-xs">
-                      {s.label}
-                      {s.badge && (
-                        <span className="text-muted-foreground font-mono text-3xs">{s.badge}</span>
-                      )}
-                    </SelectItem>
-                  ))}
+                  {tree.scopes.map((s) => {
+                    const root = tree.roots.find((r) => r.id === s.id)
+                    return (
+                      <SelectItem key={s.id} value={s.id} className="py-2 text-xs">
+                        <span className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            {s.label}
+                            {s.badge && (
+                              <span className="text-muted-foreground font-mono text-3xs">
+                                {s.badge}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-muted-foreground text-2xs font-normal">
+                            {root?.count ?? 0} items
+                          </span>
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             )}
@@ -168,7 +214,9 @@ export function LibraryExplorer({
             {tree.multiSurface && (
               <Select
                 value={activeKind}
-                onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
+                onValueChange={(v) =>
+                  router.push(withGroup(tierHref(scopeId, v as ComponentKind), groupMode))
+                }
               >
                 <SelectTrigger size="sm" className="bg-card w-full text-xs">
                   <SelectValue />
@@ -179,6 +227,29 @@ export function LibraryExplorer({
                       {t.label}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            )}
+            {/* Grouping axis — only inside a surface scope: the all-surfaces
+                list groups by surface, which IS its axis. Changing it lands on
+                the tier gallery so rail and page regroup together. */}
+            {scopedRoot && (
+              <Select
+                value={groupMode}
+                onValueChange={(v) =>
+                  router.push(withGroup(tierHref(scopeId, activeKind), v as GroupMode))
+                }
+              >
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="function" className="text-xs">
+                    By function
+                  </SelectItem>
+                  <SelectItem value="area" className="text-xs">
+                    By app area
+                  </SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -200,9 +271,15 @@ export function LibraryExplorer({
               reliably clamp to a flexed max-height parent, which left this
               list unscrollable. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ItemList groups={groups} pathname={pathname} tier={tier ?? TIERS.find((t) => t.kind === activeKind)!} />
+            <ItemList
+              groups={groups}
+              pathname={pathname}
+              tier={tier ?? TIERS.find((t) => t.kind === activeKind)!}
+              filtering={query.trim().length > 0}
+            />
           </div>
         </aside>
+        )}
 
         <div className="min-w-0 flex-1">{children}</div>
       </div>
@@ -211,6 +288,14 @@ export function LibraryExplorer({
 }
 
 /* --------------------------------- grouping -------------------------------- */
+
+/** The rail's grouping axis: shadcn-style categories, or app areas. */
+type GroupMode = "function" | "area"
+
+/** Append the grouping to a nav href; "function" is the default and stays clean. */
+function withGroup(href: string, mode: GroupMode): string {
+  return mode === "area" ? `${href}?group=area` : href
+}
 
 interface ItemGroup {
   key: string
@@ -224,7 +309,9 @@ const byTitle = (a: TreeLeaf, b: TreeLeaf) => a.title.localeCompare(b.title)
 
 /**
  * Bucket the selected tier's items for the list. Entered a surface: its OWN
- * items grouped by CATEGORY, then a distinct "Shared" group for the packages
+ * items grouped by CATEGORY (function, the default) or by APP AREA
+ * (`groupMode` — derived from source paths, item-meta), then a distinct
+ * "Shared" group for the packages
  * every surface inherits (matches the gallery, which shows own + shared badged)
  * — kept as its own labeled group so switching surfaces reads clearly instead
  * of looking like one undifferentiated list. All-surfaces: one group per
@@ -234,7 +321,8 @@ function buildGroups(
   roots: TreeRootNode[],
   kind: ComponentKind,
   scopeId: string | undefined,
-  filter: string
+  filter: string,
+  groupMode: GroupMode = "function"
 ): ItemGroup[] {
   const match = (i: TreeLeaf) => !filter || i.terms.includes(filter)
   const leavesOf = (root: TreeRootNode | undefined) =>
@@ -242,12 +330,25 @@ function buildGroups(
 
   if (scopeId) {
     const groups: ItemGroup[] = []
-    // The entered surface's own items, grouped by category.
+    // The entered surface's own items, grouped by category or by app area.
     const own = roots.find((r) => r.id === scopeId)
     const ownTier = own?.tiers.find((t) => t.kind === kind)
-    for (const cat of ownTier?.categories ?? []) {
-      const items = cat.items.filter(match).sort(byTitle)
-      if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+    if (groupMode === "area") {
+      const byArea = new Map<string, TreeLeaf[]>()
+      for (const leaf of (ownTier?.categories ?? []).flatMap((c) => c.items)) {
+        const list = byArea.get(leaf.area) ?? []
+        list.push(leaf)
+        byArea.set(leaf.area, list)
+      }
+      for (const [area, leaves] of byArea) {
+        const items = leaves.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `area:${area}`, label: area, items })
+      }
+    } else {
+      for (const cat of ownTier?.categories ?? []) {
+        const items = cat.items.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+      }
     }
     groups.sort((a, b) => a.label.localeCompare(b.label))
     // Shared packages, inherited by platform-compatible surfaces only (a web
@@ -277,15 +378,26 @@ function buildGroups(
 
 /* ---------------------------------- list ----------------------------------- */
 
+/** Groups larger than this start collapsed — scanning headers beats scrolling. */
+const COLLAPSE_OVER = 10
+
 function ItemList({
   groups,
   pathname,
   tier,
+  filtering,
 }: {
   groups: ItemGroup[]
   pathname: string
   tier: TierMeta
+  /** A rail filter is active — force groups open so matches stay visible. */
+  filtering: boolean
 }) {
+  // Manual open/close choices, kept across navigation (the explorer layout
+  // stays mounted). Everything without an override derives: big groups start
+  // collapsed, except the group holding the current page's item.
+  const [openOverrides, setOpenOverrides] = React.useState<Record<string, boolean>>({})
+
   if (groups.length === 0) {
     return (
       <p className="text-muted-foreground px-4 py-6 text-xs">
@@ -295,19 +407,35 @@ function ItemList({
   }
   return (
     <div className="py-1">
-      {groups.map((group) => (
+      {groups.map((group) => {
+        const hasActive = group.items.some((i) => i.href === pathname)
+        const open = filtering
+          ? true
+          : (openOverrides[group.key] ??
+            (group.items.length <= COLLAPSE_OVER || hasActive))
+        return (
         <SidebarGroup key={group.key} className="py-1">
-          <SidebarGroupLabel className="gap-1.5 text-3xs tracking-wide uppercase">
-            <span className="truncate">{group.label}</span>
-            {group.badge && (
-              <Badge variant="outline" className="text-muted-foreground px-1 text-3xs">
-                {group.badge}
-              </Badge>
-            )}
-            <span className="text-muted-foreground/70 ml-auto font-mono text-2xs normal-case">
-              {group.items.length}
-            </span>
+          <SidebarGroupLabel asChild className="gap-1.5 text-3xs tracking-wide uppercase">
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpenOverrides((o) => ({ ...o, [group.key]: !open }))}
+            >
+              <ChevronRight
+                className={cn("!size-3 shrink-0 transition-transform", open && "rotate-90")}
+              />
+              <span className="truncate">{group.label}</span>
+              {group.badge && (
+                <Badge variant="outline" className="text-muted-foreground px-1 text-3xs">
+                  {group.badge}
+                </Badge>
+              )}
+              <span className="text-muted-foreground/70 ml-auto font-mono text-2xs normal-case">
+                {group.items.length}
+              </span>
+            </button>
           </SidebarGroupLabel>
+          {open && (
           <SidebarGroupContent>
             <SidebarMenu>
               {group.items.map((item) => (
@@ -326,14 +454,24 @@ function ItemList({
                       {item.status === "beta" && (
                         <span className="bg-info ml-auto size-1.5 shrink-0 rounded-full" title="beta" />
                       )}
+                      {/* Right-side blue dot = recency (new to the catalog).
+                          ml-auto collapses when a status dot already pushed. */}
+                      {isNewlyAdded(item.addedAt) && (
+                        <span
+                          className="bg-info ml-auto size-1.5 shrink-0 rounded-full"
+                          title="Added in the last 48 hours"
+                        />
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+          )}
         </SidebarGroup>
-      ))}
+        )
+      })}
     </div>
   )
 }

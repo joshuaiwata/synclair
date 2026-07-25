@@ -216,6 +216,11 @@ export async function ComponentDocView({
   // opt out of device widths via `viewports: false`.
   const stageModes =
     component.kind === "component" ? COMPONENT_MODES : undefined
+  // Blocks and templates render whole surfaces — at natural size they cram
+  // into the doc column (and "wide" just grows a scrollbar). Zoom the stage
+  // like the sitemap's page embeds: lay out at the logical device width,
+  // scale down to fit, so wide genuinely imitates a 1920 screen.
+  const zoomStage = component.kind !== "component"
   // Templates render whole app frames — a max-w-3xl column chokes them. Widen
   // the page to a max-w-6xl lane so the RENDER areas (Live preview, Examples)
   // can breathe, while every READING block (prose, tables, code, captions)
@@ -395,7 +400,7 @@ export async function ComponentDocView({
               title="Live preview"
               hint="the host's actual component, imported"
             />
-            <ViewportFrame modes={stageModes} fullscreen={isTemplate}>
+            <ViewportFrame modes={stageModes} fullscreen={isTemplate} zoom={zoomStage}>
               {hostPreview.theme ? (
                 <ProductThemeScope theme={hostPreview.theme}>
                   <hostPreview.component />
@@ -431,6 +436,7 @@ export async function ComponentDocView({
                   <ViewportFrame
                     fullscreen={component.kind === "template"}
                     modes={ex.viewports === false ? ["desktop"] : stageModes}
+                    zoom={zoomStage}
                     code={ex.code}
                   >
                     {adapter.renderPreview(ex.preview)}

@@ -1,12 +1,5 @@
 import { revalidatePath } from "next/cache"
-import {
-  AlertTriangle,
-  Camera,
-  FileStack,
-  FolderKanban,
-  GitCompareArrows,
-  RefreshCw,
-} from "lucide-react"
+import { AlertTriangle, GitCompareArrows, RefreshCw } from "lucide-react"
 
 import { synclair } from "@/lib/system/routes"
 
@@ -102,12 +95,10 @@ export default async function FigmaManifestPage() {
           <StatCard
             value={String(report.files.length)}
             label="Files"
-            icon={FileStack}
           />
           <StatCard
             value={String(report.projects.length)}
             label="Projects"
-            icon={FolderKanban}
           />
           <StatCard
             value={String(changeCount)}
@@ -116,29 +107,18 @@ export default async function FigmaManifestPage() {
                 ? `Changes vs ${report.diff.baseDate}`
                 : "Edited in last 7 days"
             }
-            icon={GitCompareArrows}
           />
           <StatCard
             value={String(report.history.length)}
             label="Snapshots kept"
-            icon={Camera}
           />
         </div>
 
         <Tabs defaultValue="changes" className="gap-6">
           <TabsList>
-            <TabsTrigger value="changes">
-              <GitCompareArrows />
-              Changes
-            </TabsTrigger>
-            <TabsTrigger value="files">
-              <FileStack />
-              All files
-            </TabsTrigger>
-            <TabsTrigger value="snapshots">
-              <Camera />
-              Snapshots
-            </TabsTrigger>
+            <TabsTrigger value="changes">Changes</TabsTrigger>
+            <TabsTrigger value="files">All files</TabsTrigger>
+            <TabsTrigger value="snapshots">Snapshots</TabsTrigger>
           </TabsList>
 
           <TabsContent value="changes" className="flex flex-col gap-3">
@@ -179,61 +159,63 @@ export default async function FigmaManifestPage() {
               title="Snapshot history"
               hint="data/figma-manifest/"
             />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-36">Date</TableHead>
-                  <TableHead className="w-40">Taken</TableHead>
-                  <TableHead className="w-24">Files</TableHead>
-                  <TableHead>Changes vs previous snapshot</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {report.history.map((s, i) => (
-                  <TableRow key={s.date}>
-                    <TableCell className="font-mono text-xs font-medium">
-                      {s.date}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {shortDateTime(s.takenAt)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {s.fileCount}
-                    </TableCell>
-                    <TableCell>
-                      {i === report.history.length - 1 ? (
-                        <span className="text-xs text-muted-foreground">
-                          baseline
-                        </span>
-                      ) : (
-                        <div className="flex gap-1.5">
-                          {s.added > 0 && (
-                            <StatusBadge status="success">
-                              +{s.added} added
-                            </StatusBadge>
-                          )}
-                          {s.modified > 0 && (
-                            <StatusBadge status="info">
-                              ~{s.modified} modified
-                            </StatusBadge>
-                          )}
-                          {s.removed > 0 && (
-                            <StatusBadge status="warning">
-                              −{s.removed} removed
-                            </StatusBadge>
-                          )}
-                          {s.added + s.modified + s.removed === 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              no changes
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </TableCell>
+            <div className="bg-card overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-36">Date</TableHead>
+                    <TableHead className="w-40">Taken</TableHead>
+                    <TableHead className="w-24">Files</TableHead>
+                    <TableHead>Changes vs previous snapshot</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {report.history.map((s, i) => (
+                    <TableRow key={s.date}>
+                      <TableCell className="font-mono text-xs font-medium">
+                        {s.date}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {shortDateTime(s.takenAt)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {s.fileCount}
+                      </TableCell>
+                      <TableCell>
+                        {i === report.history.length - 1 ? (
+                          <span className="text-xs text-muted-foreground">
+                            baseline
+                          </span>
+                        ) : (
+                          <div className="flex gap-1.5">
+                            {s.added > 0 && (
+                              <StatusBadge status="success">
+                                +{s.added} added
+                              </StatusBadge>
+                            )}
+                            {s.modified > 0 && (
+                              <StatusBadge status="info">
+                                ~{s.modified} modified
+                              </StatusBadge>
+                            )}
+                            {s.removed > 0 && (
+                              <StatusBadge status="warning">
+                                −{s.removed} removed
+                              </StatusBadge>
+                            )}
+                            {s.added + s.modified + s.removed === 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                no changes
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             <p className="text-xs text-muted-foreground/70">
               The manifest live-syncs at most once an hour on load (and writes a
               snapshot when it does); hit Refresh to sync now. This keeps the view
@@ -262,50 +244,52 @@ function ChangesTable({ changes }: { changes: FileChange[] }) {
     )
   }
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-28">Change</TableHead>
-          <TableHead>File</TableHead>
-          <TableHead className="w-48">Project</TableHead>
-          <TableHead className="w-40">Modified</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {changes.map((c) => {
-          const meta = changeStatus[c.kind]
-          return (
-            <TableRow key={`${c.kind}-${c.file.key}`}>
-              <TableCell>
-                <StatusBadge status={meta.status}>{meta.label}</StatusBadge>
-              </TableCell>
-              <TableCell className="font-medium">
-                {c.kind === "removed" ? (
-                  c.file.name
-                ) : (
-                  <a
-                    href={`https://www.figma.com/design/${c.file.key}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline"
-                  >
-                    {c.file.name}
-                  </a>
-                )}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {c.file.projectName}
-              </TableCell>
-              <TableCell
-                className="text-muted-foreground"
-                title={new Date(c.file.lastModified).toLocaleString()}
-              >
-                {relativeTime(c.file.lastModified)}
-              </TableCell>
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
+    <div className="bg-card overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-28">Change</TableHead>
+            <TableHead>File</TableHead>
+            <TableHead className="w-48">Project</TableHead>
+            <TableHead className="w-40">Modified</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {changes.map((c) => {
+            const meta = changeStatus[c.kind]
+            return (
+              <TableRow key={`${c.kind}-${c.file.key}`}>
+                <TableCell>
+                  <StatusBadge status={meta.status}>{meta.label}</StatusBadge>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {c.kind === "removed" ? (
+                    c.file.name
+                  ) : (
+                    <a
+                      href={`https://www.figma.com/design/${c.file.key}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:underline"
+                    >
+                      {c.file.name}
+                    </a>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {c.file.projectName}
+                </TableCell>
+                <TableCell
+                  className="text-muted-foreground"
+                  title={new Date(c.file.lastModified).toLocaleString()}
+                >
+                  {relativeTime(c.file.lastModified)}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

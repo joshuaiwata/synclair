@@ -7,7 +7,7 @@ import { live, scene, type ComponentDoc } from "@/lib/system/doc-types"
  */
 const doc: ComponentDoc = {
   intent:
-    "The card gallery a library tier page renders: a display-scale title with mono counts, the SurfaceSwitcher rail (multi-surface projects), filter chips, and category-grouped cards — dot-grid stage-canvas thumbnails with live zoom-to-fit previews (a registered item may opt into a screenshot thumb via meta.previewImage), status/origin badges, a hover lift, and a staggered entrance. Companion mode adds the host-coverage strip (uncataloged files, unused entries, and documented-but-not-rendered entries missing a preview scene); empty states educate. It exists so all three tiers (and every surface scope) present the catalog identically — one gallery, parameterized by tier.",
+    "The card gallery a library tier page renders: a display-scale title with mono counts, filter chips, and category-grouped cards — dot-grid stage-canvas thumbnails with live zoom-to-fit previews (a registered item may opt into a screenshot thumb via meta.previewImage), status/origin badges, a hover lift, and a staggered entrance. Scoped galleries count the surface's OWN items only — 0 is an honest census; inherited shared packages appear as a pointer line under the header (and the rail's badged Shared group), never in the numbers. Companion mode adds the host-coverage strip (uncataloged files, unused entries, and documented-but-not-rendered entries missing a preview scene); empty states educate. It exists so all three tiers (and every surface scope) present the catalog identically — one gallery, parameterized by tier.",
   examples: [
     {
       title: "Live",
@@ -20,8 +20,15 @@ const doc: ComponentDoc = {
   interactions: [
     {
       trigger: "Click a filter chip",
-      behavior: "Toggles that facet's query param, preserving the others.",
+      behavior:
+        "Toggles that facet's query param, preserving the others (including the ?group=area grouping).",
       result: "A shareable filtered URL.",
+    },
+    {
+      trigger: "Switch the explorer rail's grouping to By app area",
+      behavior:
+        "Sections regroup from shadcn categories to app areas derived from source paths (features/<area>, screens/<area>, shell) — same axis, rail and gallery together. Cards for items cataloged in the last 48 hours carry a blue recency dot at the right of the title row.",
+      result: "?group=area — shareable.",
     },
     {
       trigger: "Click a card",

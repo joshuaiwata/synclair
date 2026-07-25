@@ -25,44 +25,38 @@ import { sanitizeSvg } from "@/lib/system/sanitize-svg"
 import { project } from "@/lib/system/seed/project"
 import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
-import { ColorSwatch, RampStrip } from "@/components/library/color-swatch"
+import { ColorSwatch } from "@/components/library/color-swatch"
+import { fontStack, specimenSize } from "@/components/library/font-stack"
+import { SpecimenFonts } from "@/components/library/specimen-fonts"
 import { cn } from "@/lib/utils"
 
 export function ColorGroupBlock({ group }: { group: ColorGroup }) {
-  // Step-scaled ramps (50…950) render as ONE continuous strip — the
-  // Storybook/Radix idiom — instead of a wall of per-step cards. Discrete
-  // semantic/status/chart tokens keep individual (compact) chips, where the
-  // name matters more than the position in a scale.
-  const isRamp =
-    group.tokens.length >= 6 &&
-    group.tokens.every((t) => /^\d{2,4}$/.test(t.name.split("-").pop() ?? ""))
+  // ONE treatment for every group — labeled swatch chips on the same grid,
+  // so name + hex are always visible and step-scaled ramps read the same as
+  // semantic groups. (The old continuous-strip special case for numeric ramps
+  // made sibling cards render two different ways.) The header bead still
+  // previews the group as a ramp at a glance.
   return (
     <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-2.5">
-          {!isRamp && (
-            /* A continuous ramp bead — reads the group at a glance. */
-            <span className="flex h-4 overflow-hidden rounded-full ring-1 ring-black/10 ring-inset">
-              {group.tokens.map((t) => (
-                <span key={t.name} className={cn("w-4", t.bg)} />
-              ))}
-            </span>
-          )}
+          {/* A continuous ramp bead — reads the group at a glance. */}
+          <span className="flex h-4 overflow-hidden rounded-full ring-1 ring-black/10 ring-inset">
+            {group.tokens.map((t) => (
+              <span key={t.name} className={cn("w-4", t.bg)} />
+            ))}
+          </span>
           <h3 className="text-sm font-semibold tracking-tight">{group.label}</h3>
         </div>
         {group.hint && (
           <p className="text-muted-foreground max-w-3xl text-xs leading-relaxed">{group.hint}</p>
         )}
       </header>
-      {isRamp ? (
-        <RampStrip tokens={group.tokens} />
-      ) : (
-        <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
-          {group.tokens.map((t) => (
-            <ColorSwatch key={t.name} name={t.name} value={t.value} usage={t.usage} bg={t.bg} />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
+        {group.tokens.map((t) => (
+          <ColorSwatch key={t.name} name={t.name} value={t.value} usage={t.usage} bg={t.bg} />
+        ))}
+      </div>
     </section>
   )
 }
@@ -132,6 +126,9 @@ export function ProjectTypography() {
     return <NotCaptured what="typography" />
   return (
     <div className="flex flex-col gap-8">
+      {/* Load the REAL faces for the specimens — a bare fontFamily of an
+          unbundled font silently rendered the browser's default serif. */}
+      <SpecimenFonts families={fonts.map((f) => f.family)} />
       {roles.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline gap-2">
@@ -141,20 +138,23 @@ export function ProjectTypography() {
             </span>
           </div>
           <div className="flex flex-col divide-y">
-            {roles.map((r) => (
+            {roles.map((r) => {
+              const display = specimenSize(r.size)
+              return (
               <div
                 key={r.role}
                 className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-4"
               >
                 <p
                   className="min-w-0 flex-1 truncate"
+                  title={display.capped ? `Shown at reduced size — true size ${r.size}` : undefined}
                   style={{
-                    fontSize: r.size,
+                    fontSize: display.fontSize,
                     lineHeight: r.line,
                     fontWeight: r.weight
                       ? (Number(r.weight) as React.CSSProperties["fontWeight"])
                       : undefined,
-                    fontFamily: r.mono ? monoFamily : sansFamily,
+                    fontFamily: fontStack(r.mono ? monoFamily : sansFamily, r.mono),
                   }}
                 >
                   {r.sample ?? "The quick brown fox"}
@@ -175,7 +175,8 @@ export function ProjectTypography() {
                   )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -192,7 +193,7 @@ export function ProjectTypography() {
                   {f.family}
                 </span>
               </div>
-              <p className="text-2xl" style={{ fontFamily: f.family }}>
+              <p className="text-2xl" style={{ fontFamily: fontStack(f.family, /mono/i.test(f.role)) }}>
                 Ag 123
               </p>
               {f.usage && (

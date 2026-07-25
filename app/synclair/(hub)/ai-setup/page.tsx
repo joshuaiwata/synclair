@@ -93,28 +93,30 @@ export default async function AiSetupPage() {
             </TabsContent>
 
             <TabsContent value="mcp" className="flex flex-col gap-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-52">Server</TableHead>
-                    <TableHead className="w-32">Status</TableHead>
-                    <TableHead>Role in the flow</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mcpServers.map((row) => (
-                    <TableRow key={row.name}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-normal">
-                        {row.role}
-                      </TableCell>
+              <div className="bg-card overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-52">Server</TableHead>
+                      <TableHead className="w-32">Status</TableHead>
+                      <TableHead>Role in the flow</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {mcpServers.map((row) => (
+                      <TableRow key={row.name}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-normal">
+                          {row.role}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </TabsContent>
 
             <TabsContent value="method" className="flex flex-col gap-4">
@@ -141,30 +143,32 @@ export default async function AiSetupPage() {
             </TabsContent>
 
             <TabsContent value="global" className="flex flex-col gap-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-52">Name</TableHead>
-                    <TableHead className="w-24">Kind</TableHead>
-                    <TableHead>Purpose</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {global.map((row) => (
-                    <TableRow key={`${row.kind}-${row.name}`}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.kind === "plugin" ? "secondary" : "outline"}>
-                          {row.kind}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-normal">
-                        {row.purpose}
-                      </TableCell>
+              <div className="bg-card overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-52">Name</TableHead>
+                      <TableHead className="w-24">Kind</TableHead>
+                      <TableHead>Purpose</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {global.map((row) => (
+                      <TableRow key={`${row.kind}-${row.name}`}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.kind === "plugin" ? "secondary" : "outline"}>
+                            {row.kind}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-normal">
+                          {row.purpose}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <p className="text-muted-foreground/70 text-xs">
                 Personal skills from{" "}
                 <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">~/.claude/skills/</code>{" "}

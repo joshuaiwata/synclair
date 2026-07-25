@@ -10,8 +10,8 @@ export default async function Page({
 }: {
   searchParams: Promise<GalleryFilters>
 }) {
-  const { origin, usage, surface } = await searchParams
+  const { origin, usage, group, surface } = await searchParams
   // Legacy deep links from the first-pass ?surface= UI land on the scoped path.
   if (surface && surface !== "all") redirect(synclair(`/library/${surface}/components`))
-  return <TierGallery kind="component" filters={{ origin, usage }} />
+  return <TierGallery kind="component" filters={{ origin, usage, group }} />
 }

@@ -14,6 +14,7 @@ import type {
   RegistryComponent,
 } from "@/lib/system/components"
 import { getDoc } from "@/lib/system/docs"
+import { isNewlyAdded } from "@/lib/system/item-meta"
 import type { HostUsage } from "@/lib/system/host-usage"
 import { itemHref } from "@/lib/system/tiers"
 import type { ItemUsage } from "@/lib/system/usage"
@@ -168,6 +169,13 @@ export function ComponentCard({
               <StatusBadge status={STATUS_TONE[component.status]} className="text-3xs">
                 {component.status}
               </StatusBadge>
+            )}
+            {/* Rightmost blue dot = recency (entered the catalog < 48h ago). */}
+            {isNewlyAdded(component.addedAt) && (
+              <span
+                className="bg-info size-1.5 shrink-0 rounded-full"
+                title="Added in the last 48 hours"
+              />
             )}
           </div>
           <p className="text-muted-foreground line-clamp-2 text-xs">{component.description}</p>

@@ -112,7 +112,7 @@ export async function PageDocView({ id }: { id: string }) {
       {previewSrc ? (
         <PageViewport url={previewSrc} route={node.route} />
       ) : (
-        <div className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
+        <div className="text-muted-foreground bg-card rounded-lg border border-dashed p-6 text-sm">
           {hostDown ? (
             <>
               Preview paused — the host{" "}
@@ -143,7 +143,7 @@ export async function PageDocView({ id }: { id: string }) {
       )}
 
       {/* Source + gating facts. */}
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 sm:grid-cols-2">
+      <dl className="bg-card grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 sm:grid-cols-2">
         <Fact label="Source">
           <code className="text-xs">{node.file || "—"}</code>
         </Fact>

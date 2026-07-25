@@ -12,18 +12,18 @@
     },
     {
       "name": "component-doc-view",
-      "sourceHash": "033df2a98edf17fe7bee535772d0881f2267f65676e1a9fa4d014b416ca91483",
-      "anchoredAt": "2026-07-24T01:00:02.377Z"
+      "sourceHash": "6494352bb4bcf69fb734ec652f516676e0994aa6f848939f6aec6b27a2c8a21b",
+      "anchoredAt": "2026-07-25T00:12:16.195Z"
     },
     {
       "name": "data-model-diagram",
-      "sourceHash": "5ecbb49ffe21f532372085a33fbfea60998b75655f80eb02457f14fbba9c650e",
-      "anchoredAt": "2026-07-24T01:00:02.376Z"
+      "sourceHash": "fca84ffbe40538da526916ab5fb24083cf62d0e8dd91e56cefc9e70fc3214fda",
+      "anchoredAt": "2026-07-25T00:12:15.842Z"
     },
     {
       "name": "definition-list",
-      "sourceHash": "44c049e34c0671efa58d2b72de1f6070c378e010845076ed6d4e209f9df08c63",
-      "anchoredAt": "2026-07-14T19:51:20.495Z"
+      "sourceHash": "fc4be596e2ad9b2269ae427247e91ae550d4ecaf10ee55be614c137d541b1056",
+      "anchoredAt": "2026-07-25T00:12:15.482Z"
     },
     {
       "name": "embed-frame",
@@ -37,8 +37,8 @@
     },
     {
       "name": "foundations-sections",
-      "sourceHash": "87e1cecc90ba595dcf9e3a0dc5d0b0899c2fd92123fc648431233cf874524052",
-      "anchoredAt": "2026-07-24T04:58:27.545Z"
+      "sourceHash": "7e4e0580077a9d375629897bb7ed293f9615da1745d6e4038be97de2a8bddd7b",
+      "anchoredAt": "2026-07-25T00:12:16.320Z"
     },
     {
       "name": "hub-page",
@@ -47,13 +47,13 @@
     },
     {
       "name": "library-explorer",
-      "sourceHash": "9f386d5fa46bbe0c318455a164a9fb6f10d64b1c21e1d6b6a3e5e6a978213cdc",
-      "anchoredAt": "2026-07-24T04:58:27.544Z"
+      "sourceHash": "8ea37efe551b4d375ef5e644b91e51adbc2f1da894ad483b8e6372573b9eafc9",
+      "anchoredAt": "2026-07-25T00:12:15.962Z"
     },
     {
       "name": "library-tier-page",
-      "sourceHash": "6efef7f9ce5b8127da095f28bd21717ba71991a3361ad021ae8889ba06180110",
-      "anchoredAt": "2026-07-16T21:43:19.672Z"
+      "sourceHash": "81712599430f1b3ba3e725e75d082ecf8b3b28010b0515f6dfabc8adcbfa1f91",
+      "anchoredAt": "2026-07-25T00:12:16.440Z"
     },
     {
       "name": "markdown",
@@ -67,8 +67,8 @@
     },
     {
       "name": "pages-explorer",
-      "sourceHash": "2f01dfca3c080746dce7550a5f33d20c55b52bb56a7a8256d3a362a98dc27bb4",
-      "anchoredAt": "2026-07-24T04:58:27.545Z"
+      "sourceHash": "d20666afcc0a604b34da0e208a37b848032237946c4913532f577342265630ef",
+      "anchoredAt": "2026-07-25T00:12:16.556Z"
     },
     {
       "name": "pill-toggle",
@@ -81,19 +81,24 @@
       "anchoredAt": "2026-07-24T01:00:02.375Z"
     },
     {
+      "name": "section-toolbar",
+      "sourceHash": "d50960a48fe2a7896d18fbea3ea1a2172b37e75bdc01f67905dc296cabe0d314",
+      "anchoredAt": "2026-07-25T00:12:16.791Z"
+    },
+    {
       "name": "source-editor",
       "sourceHash": "461684d87815afe5b16b82ec56824e94ef682788c46c067cc60793bc036dd4e9",
       "anchoredAt": "2026-07-16T17:24:48.649Z"
     },
     {
       "name": "stat-card",
-      "sourceHash": "d8910e0ade76199c03971f82c98a1d6fb206e5a21a0033df96b7573beb5b1c2b",
-      "anchoredAt": "2026-07-12T08:30:54.046Z"
+      "sourceHash": "bfd2861abdcf3d7bb2348dd9b1d65d288882fc14c72c5c17e92ebf7463988e46",
+      "anchoredAt": "2026-07-25T00:12:15.364Z"
     },
     {
       "name": "stat-grid",
-      "sourceHash": "c22c371ca77459e91d40055141f0576c144266da9fa17f625d5127e444468d4f",
-      "anchoredAt": "2026-07-14T19:51:20.495Z"
+      "sourceHash": "550119d32b6d91c1465bb9b5c2b079b2be4ed02e7bf9922e3197b302e063cece",
+      "anchoredAt": "2026-07-25T00:12:15.603Z"
     },
     {
       "name": "status-badge",
@@ -102,8 +107,8 @@
     },
     {
       "name": "step-ladder",
-      "sourceHash": "a1ac3c70ef659c06ccf972021ac3a80c18ca224b831e26e6d6a8b8c7bce11709",
-      "anchoredAt": "2026-07-12T08:30:54.046Z"
+      "sourceHash": "c1bd9f29ea16f336f63bedddaf1eab999ddaa301721aec21eda66b7e612a4972",
+      "anchoredAt": "2026-07-25T00:12:15.247Z"
     },
     {
       "name": "summary-shell",
@@ -122,18 +127,18 @@
     },
     {
       "name": "tier-gallery",
-      "sourceHash": "2e6d7b41f268e6d99167775eb04cfa557ea187e35e0fd8b1d5adcd67ee565426",
-      "anchoredAt": "2026-07-24T02:11:09.876Z"
+      "sourceHash": "adb82a24a1c245813e51b9d451018f93d4c240918ac24884fb629ee61d50469a",
+      "anchoredAt": "2026-07-25T00:12:16.077Z"
     },
     {
       "name": "token-systems",
-      "sourceHash": "2aa920b903185a53274701f4363d8b34b6ac195d455b4a43446d8ff7eb61faf3",
-      "anchoredAt": "2026-07-24T04:58:27.545Z"
+      "sourceHash": "deab4d16c54518f4aaac7a4c4d38b8434ad0cdb8faadabf6792e64afb030b378",
+      "anchoredAt": "2026-07-25T00:12:16.674Z"
     },
     {
       "name": "viewport-frame",
-      "sourceHash": "eded983cdfaba658fe2a15776d9ffc426e98f3f06e0486192e7fac97dc1e4eef",
-      "anchoredAt": "2026-07-24T02:11:09.874Z"
+      "sourceHash": "6d50cfeddb4ab99849147001491a3dca2b1febcf714755db2fadda58028940db",
+      "anchoredAt": "2026-07-25T00:12:15.723Z"
     },
     {
       "name": "wireframe-kit",

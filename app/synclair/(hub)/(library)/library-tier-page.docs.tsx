@@ -86,7 +86,7 @@ const doc: ComponentDoc = {
         "The running view itself, embedded via route(): the same screen serves /synclair/components, /synclair/blocks, and /synclair/templates.",
       preview: route(synclair("/components"), { height: 560 }),
       code: `// app/synclair/(hub)/(library)/<tier>/page.tsx — the whole instantiation:
-<TierGallery kind="component" filters={{ origin, usage }} />`,
+<TierGallery kind="component" filters={{ origin, usage, group }} />`,
     },
   ],
   interactions: [

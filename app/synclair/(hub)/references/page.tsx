@@ -99,7 +99,7 @@ export default function ReferencesPage() {
                 title={CATEGORY_LABEL[group.category]}
                 hint={`${group.items.length}`}
               />
-              <div className="overflow-hidden rounded-lg border">
+              <div className="bg-card overflow-hidden rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow>

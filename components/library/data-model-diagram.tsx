@@ -146,7 +146,7 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border p-4">
+    <div className="bg-card overflow-x-auto rounded-lg border p-4">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         width={width}

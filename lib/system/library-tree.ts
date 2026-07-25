@@ -1,4 +1,5 @@
 import { isLibraryVisible, type RegistryComponent } from "./components"
+import { itemArea } from "./item-meta"
 import { synclair } from "./routes"
 import {
   defaultSurfaceId,
@@ -26,7 +27,11 @@ export interface TreeLeaf {
   href: string
   surface: string
   status?: string
-  /** Filterable haystack: name + title + categories. */
+  /** App area derived from the item's primary source file (item-meta). */
+  area: string
+  /** Catalog entry date (day precision) — drives the recency dot. */
+  addedAt?: string
+  /** Filterable haystack: name + title + categories + area. */
   terms: string
 }
 
@@ -72,6 +77,7 @@ function tiersFor(items: RegistryComponent[], scopeId: string, scoped: boolean):
     const byCategory = new Map<string, TreeLeaf[]>()
     for (const c of ofTier) {
       const label = c.categories[0] ? prettyCategory(c.categories[0]) : "Other"
+      const area = itemArea(c.files)
       const list = byCategory.get(label) ?? []
       list.push({
         name: c.name,
@@ -79,7 +85,9 @@ function tiersFor(items: RegistryComponent[], scopeId: string, scoped: boolean):
         href: scoped ? synclair(`/library/${scopeId}/${tierSlug(t.kind)}/${c.name}`) : `${t.path}/${c.name}`,
         surface: c.surface ?? scopeId,
         status: c.status,
-        terms: `${c.name} ${c.title} ${c.categories.join(" ")}`.toLowerCase(),
+        area,
+        addedAt: c.addedAt || undefined,
+        terms: `${c.name} ${c.title} ${c.categories.join(" ")} ${area}`.toLowerCase(),
       })
       byCategory.set(label, list)
     }

@@ -26,6 +26,29 @@ const doc: ComponentDoc = {
       viewports: false,
     },
     {
+      title: "Zoom-to-fit (blocks and templates)",
+      description:
+        "With `zoom`, a layout that outgrows the doc column is laid out at its full width — capped at the 1280 logical desktop; 1920 in wide mode — and scaled down to fit, so a whole workspace reads as a zoomed-out screen (the sitemap's page-embed treatment) instead of cramming, and wide genuinely imitates a widescreen layout. The zoom is conditional: content that FITS the column renders plain at natural size.",
+      code: `<ViewportFrame zoom>
+  <WholeWorkspaceBlock />
+</ViewportFrame>`,
+      preview: live(
+        <div className="w-full">
+          <ViewportFrame zoom>
+            <WireframeFrame
+              label="Whole-surface block — wider than the column, scaled to fit"
+              solid
+              className="w-full min-w-[80rem]"
+            >
+              <SkeletonRow />
+              <SkeletonRow widths={["w-1/2", "w-1/5"]} />
+            </WireframeFrame>
+          </ViewportFrame>
+        </div>
+      ),
+      viewports: false,
+    },
+    {
       title: "With a code toggle",
       description:
         "Pass the example's source via `code` — it lives behind the toolbar's Code button with one-click copy, instead of permanently below the preview.",
@@ -50,7 +73,8 @@ const doc: ComponentDoc = {
   interactions: [
     {
       trigger: "Click a device icon",
-      behavior: "Frame animates to that viewport width; the embedded tree reflows.",
+      behavior:
+        "Frame animates to that viewport width; the embedded tree reflows. With `zoom`, the stage instead lays out at that mode's logical width and rescales to fit.",
       result: "Compact modes cap height at 70vh and scroll internally.",
     },
     {
@@ -90,6 +114,13 @@ const doc: ComponentDoc = {
       default: "all widths",
       description:
         "Narrow the device set — components pass COMPONENT_MODES (desktop / tablet / mobile).",
+    },
+    {
+      name: "zoom",
+      type: "boolean",
+      default: "false",
+      description:
+        "Zoom-to-fit: device modes (wide 1920 / tablet / mobile) lay out at the device width and scale down to fit the column; desktop zooms only when the content's natural width outgrows the column (capped at the 1280 logical desktop) — smaller pieces render plain. Doc pages set it for every non-component tier.",
     },
     {
       name: "code",

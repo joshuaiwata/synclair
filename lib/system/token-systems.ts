@@ -45,8 +45,26 @@ export interface TokenSystem {
   spacing?: FoundationScaleStep[]
   elevation?: FoundationShadowStep[]
   motion?: FoundationMotion
+  /** The Examples frame — this system's values mapped into the STANDARD
+   *  `--sys-*` slots SystemExamplesBlock composes (copied verbatim from the
+   *  system's source). Absent → no Examples tab for the system. */
+  sample?: SystemSample
   /** Markdown — caveats/flags specific to this system. */
   notes?: string
+}
+
+/**
+ * The Examples frame for one system. `vars` fills the standard slots the
+ * generic composed layout reads: --sys-primary / --sys-on-primary /
+ * --sys-primary-soft / --sys-bg / --sys-surface / --sys-line / --sys-text /
+ * --sys-text-muted / --sys-info / --sys-danger / --sys-danger-soft /
+ * --sys-radius / --sys-shadow. Missing slots fall back to sibling slots in
+ * the layout — fill only what the system truly defines.
+ */
+export interface SystemSample {
+  vars: Record<string, string>
+  /** Font stack applied within the frame (degrades to system sans). */
+  fontFamily?: string
 }
 
 /** One cell of the Compare table. `hex` renders a swatch beside `text`. */
