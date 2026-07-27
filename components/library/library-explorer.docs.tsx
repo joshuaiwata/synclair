@@ -33,7 +33,7 @@ return <LibraryExplorer tree={tree}>{children}</LibraryExplorer>`,
     {
       trigger: "Switch the grouping (By function / By app area)",
       behavior:
-        "Regroups the rail AND the tier gallery — function is the shadcn category taxonomy, app area derives from source paths (features/<area>, screens/<area>). Scoped views only; the all-surfaces list already groups by surface.",
+        "Regroups the rail AND the tier gallery — function is the shadcn category taxonomy, app area derives from source paths (features/<area>, screens/<area>). Applies to scoped views and to single-surface projects; only a MULTI-surface list with nothing entered groups by surface instead, since that axis is the salient one there. (With one surface it would put every item in a single group, so the rail falls through to this grouping.)",
       result: "Grouping is ?group=area in the URL — shareable.",
     },
     {

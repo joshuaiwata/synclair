@@ -214,7 +214,7 @@ const isWebSurface = (surfaceId) =>
 // shared library (lib/system/surfaces.ts) — exclude them when measuring shared
 // adoption, or their namesake local components (a local <Badge>) read as false
 // adopters of the shared one. Parsed from the surfaces seed, as check-previews.
-const surfacesSeedPath = path.join(root, "lib/system/seed/surfaces.ts");
+// (`surfacesSeedPath` is already bound above — reuse it, don't redeclare.)
 const standaloneSurfaces = new Set(
   existsSync(surfacesSeedPath)
     ? [...readFileSync(surfacesSeedPath, "utf8").matchAll(/id:\s*"([^"]+)"[^}]*standalone:\s*true/g)].map((m) => m[1])

@@ -365,7 +365,38 @@ function buildGroups(
     return groups
   }
 
-  // All-surfaces: one group per surface.
+  // Single surface: grouping by surface would put every item in ONE group, so
+  // the axis carries no information and the rail degrades to a flat list beside
+  // a gallery that IS grouped. Fall through to the same category/area grouping
+  // the scoped branch uses — library-tree's contract is that a single-surface
+  // project renders "without the root level", and this is that level collapsing.
+  // Hrefs are left alone: with no surface to enter, there is nothing to re-home.
+  if (roots.length === 1) {
+    const tier = roots[0].tiers.find((t) => t.kind === kind)
+    const groups: ItemGroup[] = []
+
+    if (groupMode === "area") {
+      const byArea = new Map<string, TreeLeaf[]>()
+      for (const leaf of (tier?.categories ?? []).flatMap((c) => c.items)) {
+        const list = byArea.get(leaf.area) ?? []
+        list.push(leaf)
+        byArea.set(leaf.area, list)
+      }
+      for (const [area, leaves] of byArea) {
+        const items = leaves.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `area:${area}`, label: area, items })
+      }
+    } else {
+      for (const cat of tier?.categories ?? []) {
+        const items = cat.items.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+      }
+    }
+
+    return groups.sort((a, b) => a.label.localeCompare(b.label))
+  }
+
+  // Multi-surface, nothing entered: one group per surface — the salient axis.
   return roots
     .map((root) => ({
       key: root.id,
