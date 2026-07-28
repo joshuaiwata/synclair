@@ -1,3 +1,6 @@
+import { Plus } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 import { SourceEditorProvider } from "@/components/blocks/source-editor"
 import { PageBody, PageTitle } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
@@ -37,7 +40,16 @@ export default async function AiSetupPage() {
 
   return (
     <>
-      <PageHeader title="AI Setup" />
+      <PageHeader title="AI Setup">
+        <AgentAsk
+          label="Add capability"
+          icon={<Plus />}
+          title="Add a skill or agent"
+          prompt="Add a new skill or agent to this project — check first that no existing capability already covers it."
+          note="synclair skill · capability gate"
+          align="end"
+        />
+      </PageHeader>
 
       <SourceEditorProvider>
         <PageBody>

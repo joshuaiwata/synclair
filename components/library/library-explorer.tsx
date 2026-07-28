@@ -3,7 +3,9 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, RefreshCw } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -573,6 +575,19 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
           </BreadcrumbList>
         </Breadcrumb>
       }
-    />
+    >
+      {/* The library's one agent action, declared here rather than per route:
+          this bar IS the chrome for every library page (home, scoped, each
+          tier gallery, each item), and the catalog they all read is written
+          by an agent, not by this UI. */}
+      <AgentAsk
+        label="Rescan"
+        icon={<RefreshCw />}
+        title="Rescan for components"
+        prompt="Rescan the codebase for components and update the library catalog."
+        note="component-library skill"
+        align="end"
+      />
+    </PageHeader>
   )
 }

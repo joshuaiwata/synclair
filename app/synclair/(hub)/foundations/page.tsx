@@ -1,3 +1,6 @@
+import { RefreshCw } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 import Link from "next/link"
 
 import { HubPage, PageBody, PageTitle } from "@/components/hub-page"
@@ -260,7 +263,16 @@ export default async function FoundationsPage({
 
     return (
       <>
-        <PageHeader title="Foundations" />
+        <PageHeader title="Foundations">
+          <AgentAsk
+            label="Re-dig tokens"
+            icon={<RefreshCw />}
+            title="Re-dig the design tokens"
+            prompt="Re-dig the design tokens from the codebase and refresh Foundations."
+            note="token-archaeologist"
+            align="end"
+          />
+        </PageHeader>
         <PageBody>
           <PageTitle
             title="Foundations"

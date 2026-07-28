@@ -15,6 +15,7 @@ import libraryExplorer from "@/components/library/library-explorer.docs"
 import pagesExplorer from "@/components/pages/pages-explorer.docs"
 import tierGallery from "@/components/library/tier-gallery.docs"
 import tokenSystems from "@/components/library/token-systems.docs"
+import agentAsk from "@/components/agent-ask.docs"
 import markdown from "@/components/markdown.docs"
 import pageHeader from "@/components/page-header.docs"
 import pillToggle from "@/components/pill-toggle.docs"
@@ -62,6 +63,7 @@ export const docs: Record<string, ComponentDoc> = {
   "command-palette": commandPalette,
   "markdown": markdown,
   "summary-shell": summaryShell,
+  "agent-ask": agentAsk,
   "filter-bar": filterBar,
   "data-model-diagram": dataModelDiagram,
   "library-explorer": libraryExplorer,

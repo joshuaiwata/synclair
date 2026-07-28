@@ -1,11 +1,13 @@
 import {
   ClipboardList,
   LayoutGrid,
+  Plus,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
 } from "lucide-react"
 
+import { AgentAsk } from "@/components/agent-ask"
 import { PageBody } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
 import { PillToggle } from "@/components/pill-toggle"
@@ -101,6 +103,14 @@ export default async function ReportsPage({
           {mismatches.length ? <ShieldAlert className="size-3" /> : <ShieldCheck className="size-3" />}
           {mismatches.length ? `${mismatches.length} count mismatch` : "verified"} · {r.date}
         </Badge>
+        <AgentAsk
+          label="New report"
+          icon={<Plus />}
+          title="Run a new build report"
+          prompt="Run a new build report for this project — a fresh dated run, with the open recommendations carried forward."
+          note="build-report skill"
+          align="end"
+        />
       </PageHeader>
 
       <PageBody className="gap-12">

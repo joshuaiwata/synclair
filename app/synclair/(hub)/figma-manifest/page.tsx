@@ -1,8 +1,6 @@
-import { revalidatePath } from "next/cache"
 import { AlertTriangle, GitCompareArrows, RefreshCw } from "lucide-react"
 
-import { synclair } from "@/lib/system/routes"
-
+import { AgentAsk } from "@/components/agent-ask"
 import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
 import { StatCard } from "@/components/stat-card"
@@ -15,7 +13,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -48,12 +45,6 @@ export default async function FigmaManifestPage() {
   const distillStatuses = await getFileDistillStatuses(report.files)
   const starred = await readStars()
 
-  async function refresh() {
-    "use server"
-    await getManifestReport({ force: true })
-    revalidatePath(synclair("/figma-manifest"))
-  }
-
   const syncedAt = new Date(report.takenAt).getTime()
   const recentlyEdited = report.files.filter(
     (f) => syncedAt - new Date(f.lastModified).getTime() < 7 * 24 * 3600 * 1000
@@ -65,6 +56,16 @@ export default async function FigmaManifestPage() {
   return (
     <HubPage
       title="Figma Manifest"
+      action={
+        <AgentAsk
+          label="Refresh"
+          icon={<RefreshCw />}
+          title="Re-sync the Figma manifest"
+          prompt="Re-sync the Figma manifest and tell me what changed."
+          note="figma-distiller skill"
+          align="end"
+        />
+      }
       meta={
         <>
           {report.takenAt && (
@@ -72,12 +73,6 @@ export default async function FigmaManifestPage() {
               synced {shortDateTime(report.takenAt)}
             </span>
           )}
-          <form action={refresh}>
-            <Button type="submit" variant="outline" size="sm">
-              <RefreshCw />
-              Refresh
-            </Button>
-          </form>
         </>
       }
     >
@@ -218,8 +213,9 @@ export default async function FigmaManifestPage() {
             </div>
             <p className="text-xs text-muted-foreground/70">
               The manifest live-syncs at most once an hour on load (and writes a
-              snapshot when it does); hit Refresh to sync now. This keeps the view
-              current without hammering Figma&rsquo;s rate limit.
+              snapshot when it does), which keeps the view current without
+              hammering Figma&rsquo;s rate limit. To sync sooner, ask your agent —
+              <strong> Refresh</strong> has the wording.
             </p>
           </TabsContent>
         </Tabs>

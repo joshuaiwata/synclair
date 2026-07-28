@@ -45,6 +45,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
@@ -221,6 +222,19 @@ const PREVIEWS: Record<string, Preview> = {
       </InputGroupAddon>
       <InputGroupInput placeholder="example.com" />
     </InputGroup>
+  ),
+  popover: live(
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline">
+          Open popover
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="text-sm">
+        Floating panel anchored to its trigger — non-modal, for secondary detail
+        and small controls.
+      </PopoverContent>
+    </Popover>
   ),
   "scroll-area": live(
     <ScrollArea className="h-28 w-48 rounded-md border p-3">

@@ -21,7 +21,11 @@ import { cn } from "@/lib/utils"
  */
 export interface HubPageProps {
   title: string
-  /** Right-aligned title slot — mono path text, a status badge, or an action. */
+  /** Right-aligned slot in the CHROME bar — the page's one agent action
+   *  (`AgentAsk`). It lives in chrome, not the title row, so every page keeps
+   *  it in the same place no matter how its body is laid out. */
+  action?: ReactNode
+  /** Right-aligned title slot — mono path text or a status badge. */
   meta?: ReactNode
   /** The single intro paragraph. One lead per page; sections carry their own headers. */
   lead?: ReactNode
@@ -30,10 +34,10 @@ export interface HubPageProps {
   className?: string
 }
 
-export function HubPage({ title, meta, lead, children, className }: HubPageProps) {
+export function HubPage({ title, action, meta, lead, children, className }: HubPageProps) {
   return (
     <>
-      <PageHeader title={title} />
+      <PageHeader title={title}>{action}</PageHeader>
       <PageBody className={className}>
         <PageTitle title={title} meta={meta} lead={lead} />
         {children}

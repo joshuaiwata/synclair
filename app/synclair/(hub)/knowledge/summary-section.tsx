@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { Archive, ArchiveRestore, FileText, History, MoreHorizontal, Plus, RefreshCw, Sparkles, X } from "lucide-react"
 
+import { AgentAsk } from "@/components/agent-ask"
 import { SummaryShell } from "@/components/summary-shell"
 import {
   DropdownMenu,
@@ -23,22 +24,20 @@ import {
 } from "@/components/ui/empty"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import {
-  createSummary,
   dequeueSummary,
   queueSummary,
   restoreSummary,
   setSummaryArchived,
 } from "@/lib/system/knowledge/summary-actions"
 import {
-  KIND_LABEL,
-  SUMMARY_KINDS,
   type SummaryKind,
   type SummaryVersion,
 } from "@/lib/system/knowledge/summary-types"
+
+/** The ask a user hands their agent to get a new summary. */
+const NEW_SUMMARY_PROMPT = `Add a new project summary to Synclair and write it from the project knowledge: [what it should cover, and who for]`
 
 /** One summary with everything the section needs, resolved server-side. */
 export interface SummaryItem {
@@ -68,16 +67,13 @@ export function SummarySection({ items }: { items: SummaryItem[] }) {
   const [pending, start] = useTransition()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const router = useRouter()
 
   const active = items.filter((s) => !s.archived)
   const archived = items.filter((s) => s.archived)
   const visible = showArchived ? [...active, ...archived] : active
-  const selected = creating
-    ? null
-    : (visible.find((s) => s.id === selectedId) ?? visible[0] ?? null)
+  const selected = visible.find((s) => s.id === selectedId) ?? visible[0] ?? null
 
   function run(action: () => Promise<unknown>) {
     start(async () => {
@@ -98,7 +94,6 @@ export function SummarySection({ items }: { items: SummaryItem[] }) {
             variant="ghost"
             className={chip(selected?.id === s.id, s.archived)}
             onClick={() => {
-              setCreating(false)
               setShowHistory(false)
               setSelectedId(s.id)
             }}
@@ -107,16 +102,17 @@ export function SummarySection({ items }: { items: SummaryItem[] }) {
             {s.queued && <span className="bg-info size-1.5 rounded-full" aria-hidden />}
           </Button>
         ))}
-        <Button
-          type="button"
-          size="sm"
+        {/* Not a form — the agent writes summaries (product-summary skill), so
+            the control hands over the ask instead of pretending to create one. */}
+        <AgentAsk
+          label="New"
+          icon={<Plus />}
           variant="ghost"
-          className={chip(creating)}
-          onClick={() => setCreating(true)}
-        >
-          <Plus />
-          New
-        </Button>
+          className="text-muted-foreground"
+          title="New summary"
+          prompt={NEW_SUMMARY_PROMPT}
+          note="product-summary skill"
+        />
         {archived.length > 0 && (
           <Button
             type="button"
@@ -179,14 +175,7 @@ export function SummarySection({ items }: { items: SummaryItem[] }) {
         )}
       </div>
 
-      {creating ? (
-        <CreateForm
-          onDone={(id) => {
-            setCreating(false)
-            if (id) setSelectedId(id)
-          }}
-        />
-      ) : selected ? (
+      {selected ? (
         <>
           {showHistory && (
             <div className="rounded-lg border bg-card">
@@ -258,96 +247,14 @@ export function SummarySection({ items }: { items: SummaryItem[] }) {
             </EmptyMedia>
             <EmptyTitle>No summaries yet</EmptyTitle>
             <EmptyDescription>
-              Create one with <strong>New</strong> — a brief for an audience, a
-              diagram, or any custom cut of the project knowledge. It queues for
-              an agent that writes it via the <code>product-summary</code> skill.
+              A summary is a brief for an audience, a diagram, or any custom cut
+              of the project knowledge — and an agent writes it, via the{" "}
+              <code>product-summary</code> skill. <strong>New</strong> gives you
+              the ask to hand over.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}
-    </div>
-  )
-}
-
-function CreateForm({ onDone }: { onDone: (id: string | null) => void }) {
-  const [pending, start] = useTransition()
-  const [title, setTitle] = useState("")
-  const [kind, setKind] = useState<SummaryKind>("brief")
-  const [instructions, setInstructions] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-
-  const placeholder: Record<SummaryKind, string> = {
-    brief:
-      "Who is this for and what should it cover? e.g. “New designers: the personas, the key surfaces, and where designs live.”",
-    diagram:
-      "What should the diagram show? e.g. “How the product areas fit together, or how a core record flows through the system.”",
-    custom:
-      "Describe the cut you want, e.g. “FAQ-only page for sales calls” or “glossary of domain terms.”",
-  }
-
-  function submit() {
-    setError(null)
-    start(async () => {
-      try {
-        const id = await createSummary({ title, kind, instructions })
-        router.refresh()
-        onDone(id)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to create summary")
-      }
-    })
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title — e.g. “For designers”, “Post lifecycle map”"
-          className="max-w-sm"
-        />
-        <div className="flex items-center gap-1">
-          {SUMMARY_KINDS.map((k) => (
-            <Button
-              key={k}
-              type="button"
-              size="sm"
-              variant="ghost"
-              className={chip(kind === k)}
-              onClick={() => setKind(k)}
-            >
-              {KIND_LABEL[k]}
-            </Button>
-          ))}
-        </div>
-      </div>
-      <Textarea
-        value={instructions}
-        onChange={(e) => setInstructions(e.target.value)}
-        placeholder={placeholder[kind]}
-        rows={3}
-      />
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={pending || !title.trim()}
-          onClick={submit}
-        >
-          <Sparkles />
-          Create &amp; queue
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => onDone(null)}>
-          Cancel
-        </Button>
-        {error && <span className="text-destructive text-xs">{error}</span>}
-        <span className="text-muted-foreground/70 ml-auto text-xs">
-          Generation runs in an agent (product-summary skill) — the queue is the ask.
-        </span>
-      </div>
     </div>
   )
 }
