@@ -1,6 +1,11 @@
 {
   "anchors": [
     {
+      "name": "agent-ask",
+      "sourceHash": "34a339ab1d87a573664040c8e5b0a3b238e0a639838a82413732c7cac2082539",
+      "anchoredAt": "2026-07-28T08:15:16.105Z"
+    },
+    {
       "name": "app-sidebar",
       "sourceHash": "e1ddcbafe44d57905d39f5208cab071da88daeb0212aeed4fc839cfa5bd91db3",
       "anchoredAt": "2026-07-20T18:20:28.817Z"
@@ -42,13 +47,13 @@
     },
     {
       "name": "hub-page",
-      "sourceHash": "12351a882ac5af398a0151613d4d47858f72ad9ac5c8e0b69869ae3d9f616b29",
-      "anchoredAt": "2026-07-24T01:00:02.376Z"
+      "sourceHash": "a1e814e8a939dad568061a3f85be639054dfc6512be3d8afc7c8f94a2abb38ab",
+      "anchoredAt": "2026-07-28T08:15:16.225Z"
     },
     {
       "name": "library-explorer",
-      "sourceHash": "8ea37efe551b4d375ef5e644b91e51adbc2f1da894ad483b8e6372573b9eafc9",
-      "anchoredAt": "2026-07-25T00:12:15.962Z"
+      "sourceHash": "754f42fd405cafced5dd9e2251ee08da58b00d0003200db6e421d69f15e0bd0f",
+      "anchoredAt": "2026-07-28T08:15:16.349Z"
     },
     {
       "name": "library-tier-page",

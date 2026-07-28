@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Map as MapIcon, TriangleAlert } from "lucide-react"
+import { Map as MapIcon, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { AgentAsk } from "@/components/agent-ask"
 import { HubPage, PageBody, PageTitle } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
@@ -163,7 +164,16 @@ export default async function PagesOverview({
     ).length
     return (
       <>
-        <PageHeader title="Pages" />
+        <PageHeader title="Pages">
+        <AgentAsk
+          label="Remap"
+          icon={<RefreshCw />}
+          title="Remap the app's pages"
+          prompt="Remap the app's pages — walk the routes and refresh the sitemap."
+          note="pages-map skill"
+          align="end"
+        />
+      </PageHeader>
         <PageBody>
           <PageTitle title="Pages" meta={repoMeta} lead={lead} />
           {banner}

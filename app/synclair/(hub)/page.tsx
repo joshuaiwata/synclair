@@ -1,18 +1,7 @@
 import Link from "next/link"
-import {
-  ArrowUpRight,
-  Blocks,
-  BookOpen,
-  Bot,
-  Component,
-  FileText,
-  Frame,
-  LayoutTemplate,
-  Map as MapIcon,
-  Network,
-  Palette,
-  Sparkles,
-} from "lucide-react"
+import { ArrowUpRight, Blocks, BookOpen, Bot, Component, FileText, Frame, LayoutTemplate, Map as MapIcon, Network, Palette, RefreshCw, Sparkles } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { ComponentCard } from "@/components/library/component-card"
 import { HubPage } from "@/components/hub-page"
@@ -310,6 +299,16 @@ export default async function Page() {
   return (
     <HubPage
       title="Synclair"
+      action={
+        <AgentAsk
+          label="Re-sync"
+          icon={<RefreshCw />}
+          title="Re-sync Synclair with the code"
+          prompt="Re-sync Synclair with the codebase — refresh the component catalog, the sitemap, the system map, and the hygiene scan, then tell me what changed."
+          note="runs the intake skills in order"
+          align="end"
+        />
+      }
       meta={
         <span className="flex items-center gap-2">
           {lastCommit && (

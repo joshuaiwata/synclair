@@ -1,4 +1,6 @@
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, RefreshCw } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { DefinitionList } from "@/components/definition-list"
 import { HubPage } from "@/components/hub-page"
@@ -77,6 +79,16 @@ export default async function EnvironmentPage({
   return (
     <HubPage
       title="Environment"
+      action={
+        <AgentAsk
+          label="Check for updates"
+          icon={<RefreshCw />}
+          title="Check the foundation for updates"
+          prompt="Check whether this Synclair clone is behind the mother repo, and tell me what changed."
+          note="synclair-sync skill"
+          align="end"
+        />
+      }
       meta={<span className="text-muted-foreground font-mono text-xs">stack &amp; services</span>}
       lead={
         <>

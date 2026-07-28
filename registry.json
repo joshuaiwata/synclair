@@ -412,6 +412,31 @@
       }
     },
     {
+      "name": "agent-ask",
+      "type": "registry:component",
+      "title": "Agent Ask",
+      "description": "The hand-off control for work only an agent can do: the trigger opens a popover with the exact prompt to give your agent, a copy button, and the skill that runs it — instead of a form or a Refresh that implies the hub does the work itself.",
+      "categories": [
+        "feedback",
+        "navigation"
+      ],
+      "files": [
+        {
+          "path": "components/agent-ask.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "popover"
+      ],
+      "docs": "components/agent-ask.docs.tsx",
+      "meta": {
+        "status": "stable",
+        "layer": "foundation"
+      }
+    },
+    {
       "name": "filter-bar",
       "type": "registry:component",
       "title": "Filter Bar",

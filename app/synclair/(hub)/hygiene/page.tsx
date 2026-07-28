@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
-import { ShieldCheck } from "lucide-react"
+import { RefreshCw, ShieldCheck } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
@@ -82,6 +84,16 @@ export default async function HygienePage() {
   return (
     <HubPage
       title="Hygiene"
+      action={
+        <AgentAsk
+          label="Rescan"
+          icon={<RefreshCw />}
+          title="Rescan for hygiene"
+          prompt="Rescan the codebase for foundation hygiene and refresh the findings."
+          note="scan:hygiene"
+          align="end"
+        />
+      }
       meta={
         <span className="text-muted-foreground font-mono text-xs">
           {report.totals.findings} findings · {report.totals.files} of{" "}
