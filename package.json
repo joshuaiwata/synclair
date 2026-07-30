@@ -20,6 +20,8 @@
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",
+    "scan:pages": "node scripts/scan-pages.mjs",
+    "map:pages": "npm run scan:pages && npm run resolve:pages && npm run check:pages -- --reanchor",
     "resolve:pages": "node scripts/resolve-page-items.mjs",
     "host:status": "node scripts/host-servers.mjs status",
     "host:up": "node scripts/host-servers.mjs up",

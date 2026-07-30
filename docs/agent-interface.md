@@ -153,7 +153,28 @@ being swallowed and scored as a 100% saving).
 
 ---
 
-## Phase 3 — scanner / prose split ⬜ PLANNED
+### Measured again, with real data
+
+Running the Phase-3 scanner produced a real 26-route map, which finally allowed
+the populated measurement the blank seed had been blocking:
+
+| Question | File read | Tool | Saving |
+|---|---|---|---|
+| What pages exist | 8,249 tok | 809 tok | **90%** |
+| Which token do I use | 4,368 tok | 1,468 tok | 66% |
+| What components exist | 4,720 tok | 3,873 tok | 18% |
+| What is this project | 129 tok | 170 tok | −32% |
+
+**Comparable total: 17,466 → 6,320 tokens (64%)**, up from 40% on the blank seed.
+
+This confirms the earlier caveat rather than contradicting it: the saving scales
+with how much data an artifact holds. `pages-map.json` is large and repetitive
+(every node carries source files, hashes, and item lists), so returning a digest
+instead of the file whole is worth 90%. `registry.json` is already dense, so
+reshaping it is worth 18%. **The win comes from artifacts with bulk, not from the
+tool layer as such.**
+
+## Phase 3 — scanner / prose split ⬜ IN PROGRESS
 
 The performance work, and the biggest remaining item. Every generator has a
 **facts** half a script can compute and a **judgment** half only an agent can
@@ -169,6 +190,39 @@ write; today diggers do both in one expensive context.
 Order: `pages-map` first (most machinery already exists — `resolve:pages`,
 `check:pages`, per-node hashes), then `external-catalog`, then `system-map`, then
 `ux-docs` last as the most judgment-heavy.
+
+### 3a — pages ✅ BUILT
+
+`npm run map:pages` is now a three-step deterministic pass, of which only the
+first is new:
+
+| Step | Derives | New? |
+|---|---|---|
+| `scan:pages` | routes, entry files, kind, dynamic, preview URLs | **new** |
+| `resolve:pages` | composed catalog items + source closure | existed |
+| `check:pages --reanchor` | per-page freshness hashes | existed |
+
+The agent is left with `title`, `summary`, and `auth` — the judgment. On this
+repo the scan finds 26 routes, correctly stripping route groups (`(hub)`,
+`(library)`), skipping parallel routes (`@slot`) and private folders (`_foo`),
+and classifying API routes and dynamic segments.
+
+**Prose survives a rescan.** Agent-written fields are carried over per route and
+only facts are recomputed — verified by seeding a summary, re-scanning, and
+confirming it (and the resolved items and hash) came through intact. A refresh
+that destroys written work is a refresh nobody runs.
+
+`provenance.confidence` drops to `medium` while any route lacks a summary: the
+facts are derived, but a sitemap without prose is an inventory, not a map.
+
+Two boundaries worth keeping:
+
+- **Host mode is refused, loudly.** The scanner understands *this* repo's Next
+  app router; a host uses its own (react-router, Expo, Next pages) and is mapped
+  by the `page-mapper` agent. Same guard `resolve-page-items.mjs` already draws.
+- **A blank seed is a valid state, not drift.** `--check` exits 0 on an unmapped
+  clone. Reporting "26 routes missing" there would fail CI in every fresh clone
+  forever — the exact breakage this plan's prime directive forbids.
 
 **Acceptance per artifact:** regenerate it for platform-clairity with the new
 scanner and diff against the agent-written version. Facts must match or improve;
