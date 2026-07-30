@@ -24,86 +24,16 @@
  *   npm run check:coverage                    # hosts from data/external-catalog.json
  *   node scripts/check-host-coverage.mjs --host ../acme-app   # ad-hoc scan, no catalog needed
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+
+import { exportsOf, MAX_FILE_BYTES, norm, walkAll, walkComponents } from "./lib/host-walk.mjs";
 
 const root = process.cwd();
 
-const SKIP_DIRS = new Set([
-  "node_modules", ".git", ".next", "dist", "build", "out", "coverage",
-  "public", "__tests__", "__mocks__", "e2e", ".storybook", ".turbo",
-  ".vercel", "synclair",
-]);
-const SKIP_FILE = /\.(test|spec|stories|docs|d)\.tsx?$|\.d\.ts$/;
-const EXPORT_PATTERNS = [
-  /export\s+default\s+function\s+([A-Z][A-Za-z0-9]*)/g,
-  /export\s+(?:async\s+)?function\s+([A-Z][A-Za-z0-9]*)/g,
-  /export\s+const\s+([A-Z][A-Za-z0-9]*)\s*(?:=|:)/g,
-];
-const MAX_FILE_BYTES = 300 * 1024;
+// Walk/skip rules + export detection are shared with the other host scripts:
+// scripts/lib/host-walk.mjs (kept in step with lib/system/host-scan.ts).
 
-function isComponentDir(rel) {
-  const segs = rel.split(path.sep);
-  return segs.includes("components") || segs.includes("ui");
-}
-
-// All web source files (usage corpus), not just component dirs.
-function walkAll(dir, rootAbs, files) {
-  let entries;
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue;
-    const abs = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue;
-      walkAll(abs, rootAbs, files);
-    } else if (entry.isFile() && /\.(tsx?|css|html)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
-      files.push(path.relative(rootAbs, abs));
-    }
-  }
-}
-
-function walk(dir, rootAbs, files) {
-  let entries;
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue;
-    const abs = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue;
-      walk(abs, rootAbs, files);
-    } else if (entry.isFile() && /\.(tsx|jsx)$/.test(entry.name) && !SKIP_FILE.test(entry.name)) {
-      const rel = path.relative(rootAbs, abs);
-      if (isComponentDir(rel)) files.push(rel);
-    }
-  }
-}
-
-function exportsOf(abs) {
-  try {
-    if (statSync(abs).size > MAX_FILE_BYTES) return [];
-    const src = readFileSync(abs, "utf8");
-    const names = new Set();
-    for (const pattern of EXPORT_PATTERNS) {
-      pattern.lastIndex = 0;
-      let m;
-      while ((m = pattern.exec(src)) !== null) names.add(m[1]);
-    }
-    return [...names];
-  } catch {
-    return [];
-  }
-}
-
-const norm = (p) => p.replace(/^\.\//, "").split(path.sep).join("/");
 
 // --- resolve hosts + items ---------------------------------------------------
 const args = process.argv.slice(2);
@@ -169,8 +99,7 @@ for (const host of hosts) {
   );
   const documented = new Set(hostItems.map((it) => norm(it.hostPath ?? "")));
 
-  const files = [];
-  walk(hostRootAbs, hostRootAbs, files);
+  const files = walkComponents(hostRootAbs);
   const candidates = files
     .map((rel) => ({ rel: norm(rel), exports: exportsOf(path.join(hostRootAbs, rel)) }))
     .filter((c) => c.exports.length > 0);
@@ -181,8 +110,7 @@ for (const host of hosts) {
   // across the whole host web source; snapshot fallback for non-web surfaces.
   const webCorpus = [];
   if (host.surface !== "mobile") {
-    const corpusFiles = [];
-    walkAll(hostRootAbs, hostRootAbs, corpusFiles);
+    const corpusFiles = walkAll(hostRootAbs);
     for (const rel of corpusFiles) {
       try {
         if (statSync(path.join(hostRootAbs, rel)).size > MAX_FILE_BYTES) continue;

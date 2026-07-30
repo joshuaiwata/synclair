@@ -17,6 +17,7 @@
     "check:host": "node scripts/check-host-drift.mjs",
     "check:coverage": "node scripts/check-host-coverage.mjs",
     "scan:hygiene": "node scripts/scan-host-hygiene.mjs",
+    "draft:host-catalog": "node scripts/draft-host-catalog.mjs",
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",

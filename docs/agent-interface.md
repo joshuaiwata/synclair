@@ -224,6 +224,46 @@ Two boundaries worth keeping:
   clone. Reporting "26 routes missing" there would fail CI in every fresh clone
   forever — the exact breakage this plan's prime directive forbids.
 
+### 3b — host catalog ✅ BUILT
+
+The gap here turned out to be **much narrower than 3a's**, because the host side
+was already further along: `lib/system/host-scan.ts` enumerates host component
+files live, `check:coverage` already diffs them against the catalog, and props
+are derived live by `deriveHostProps`. Enumeration wasn't missing — it was the
+*entry drafting* that still had a digger re-deriving facts by hand.
+
+`npm run draft:host-catalog -- --host ../app` derives, per undocumented candidate:
+
+| Derived | How |
+|---|---|
+| `hostPath`, `sourceHash` | walk + sha256 — byte-identical to `check:host`, so a merged draft is immediately fresh |
+| `basis` (shadcn/custom) | Radix import, or cva inside `ui/` |
+| `props` | the `<Name>Props` interface, with types, required flags, and JSDoc |
+| `usage.renderedIn` | JSX tag occurrences across the host corpus |
+
+`title`, `description`, `kind`, `categories`, `notes` are emitted as **`null`** —
+deliberately, for the `component-cataloger` to write. Tier especially: that's the
+`tier-arbiter`'s call, not a regex's.
+
+**It does not write the catalog, and that restraint is the design.** A mechanical
+walk yields *candidates*, and candidates are not components — providers, page
+one-offs and icon wrappers all export PascalCase functions. Auto-adding them is
+precisely how a hub ends up advertising 40 components when the app renders 23,
+which is the fiction `check:coverage` was built to catch. So the drafter prints
+for triage, sorts likely-noise last with a reason (`theme-provider` →
+*"name ends in Provider/Context"*), and leaves the merge to a human or the digger.
+Verified: the catalog file's hash is unchanged after a run.
+
+The walk that all this shares now lives once, in `scripts/lib/host-walk.mjs` —
+it had been duplicated between `check-host-coverage.mjs` and `host-scan.ts`, and
+a third copy would have guaranteed drift. The coverage script was refactored onto
+it and verified to produce **byte-identical output** against a fixture host first.
+
+**Caveat:** verified against a purpose-built fixture host (shadcn primitive,
+custom component, a provider as noise, a test file to skip), not against
+platform-clairity. The mechanism is proven; that the entries are *right* for a
+real app still needs a populated clone.
+
 **Acceptance per artifact:** regenerate it for platform-clairity with the new
 scanner and diff against the agent-written version. Facts must match or improve;
 only prose may differ.
