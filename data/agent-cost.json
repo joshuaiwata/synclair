@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-07-30T22:04:34.558Z",
+  "measuredAt": "2026-07-30T23:39:15.427Z",
   "estimator": {
     "charsPerToken": {
       "prose": 4,
@@ -40,25 +40,29 @@
       "id": "what-components-exist",
       "question": "What components exist and which should I use?",
       "tool": "search_library",
-      "chars": 31505,
-      "tokens": 9001,
-      "reads": 2,
+      "chars": 16519,
+      "tokens": 4720,
+      "reads": 1,
       "blank": [
         "data/external-catalog.json"
       ],
-      "missing": []
+      "missing": [],
+      "skillBodyTokens": 3747,
+      "comparable": true
     },
     {
       "id": "what-does-page-compose",
       "question": "What pages exist and what does each one compose?",
       "tool": "get_page",
-      "chars": 6838,
-      "tokens": 1954,
-      "reads": 1,
+      "chars": 0,
+      "tokens": 0,
+      "reads": 0,
       "blank": [
         "data/pages-map.json"
       ],
-      "missing": []
+      "missing": [],
+      "skillBodyTokens": 1710,
+      "comparable": false
     },
     {
       "id": "which-token",
@@ -68,37 +72,43 @@
       "tokens": 4368,
       "reads": 3,
       "blank": [],
-      "missing": []
+      "missing": [],
+      "skillBodyTokens": 0,
+      "comparable": true
     },
     {
       "id": "what-is-this-project",
       "question": "What is this project / what's being built?",
       "tool": "get_overview",
-      "chars": 4193,
-      "tokens": 1198,
-      "reads": 2,
+      "chars": 450,
+      "tokens": 129,
+      "reads": 1,
       "blank": [
         "data/setup.json",
         "data/system-map.json"
       ],
-      "missing": []
+      "missing": [],
+      "skillBodyTokens": 936,
+      "comparable": true
     },
     {
       "id": "what-is-the-system",
       "question": "What does this codebase consist of beyond the UI?",
       "tool": "get_system",
-      "chars": 4602,
-      "tokens": 1315,
-      "reads": 1,
+      "chars": 0,
+      "tokens": 0,
+      "reads": 0,
       "blank": [
         "data/system-map.json"
       ],
-      "missing": []
+      "missing": [],
+      "skillBodyTokens": 1151,
+      "comparable": false
     }
   ],
   "totals": {
-    "lookupTokens": 17836,
-    "lookupReads": 9
+    "lookupTokens": 9217,
+    "lookupReads": 5
   },
   "mcp": {
     "tools": 7,
@@ -108,9 +118,10 @@
       {
         "id": "what-components-exist",
         "tool": "search_library",
-        "chars": 2060,
-        "tokens": 589,
-        "reads": 1
+        "chars": 13557,
+        "tokens": 3873,
+        "reads": 1,
+        "scopedTokens": 589
       },
       {
         "id": "what-does-page-compose",
@@ -122,9 +133,10 @@
       {
         "id": "which-token",
         "tool": "get_foundation",
-        "chars": 977,
-        "tokens": 279,
-        "reads": 1
+        "chars": 5137,
+        "tokens": 1468,
+        "reads": 1,
+        "scopedTokens": 279
       },
       {
         "id": "what-is-this-project",
@@ -142,7 +154,7 @@
       }
     ],
     "totals": {
-      "lookupTokens": 1158,
+      "lookupTokens": 5631,
       "lookupReads": 5
     }
   },

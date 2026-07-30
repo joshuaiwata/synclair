@@ -610,7 +610,11 @@ function serve() {
       if (reply) process.stdout.write(`${JSON.stringify(reply)}\n`)
     }
   })
-  process.stdin.on("end", () => process.exit(0))
+  // Deliberately NO process.exit() here. stdout is a pipe, and exit() discards
+  // whatever is still buffered — which silently TRUNCATES large replies mid-JSON.
+  // With stdin ended and no work left, the event loop empties and Node exits on
+  // its own, after the writes have flushed.
+  process.stdin.on("end", () => {})
 }
 
 /** Self-test: exercises every tool without an MCP client. */

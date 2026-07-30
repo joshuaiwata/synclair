@@ -109,13 +109,47 @@ by the client's approval prompt. Writing a user's global agent config as an
 
 ### Measured result
 
-Mother repo, blank seed: **9 file reads / 17.8k tokens → 5 calls / 1.2k tokens**,
-net **−15.8k** after the +854-token tool surface. Blank-seed figures understate
-the real saving, which scales with populated data.
+Mother repo, blank seed, **like-for-like** (same broad question, data files only):
 
-The harness also caught its own gap: the "what is this system made of" scenario
-had no tool behind it, which is why `get_system` exists. That is the harness
-doing its job.
+| Question | File read | Tool | Saving |
+|---|---|---|---|
+| What components exist | 4,720 tok | 3,873 tok | **18%** |
+| Which token do I use | 4,368 tok | 1,468 tok | **66%** |
+| What is this project | 129 tok | 169 tok | **−31%** |
+| Pages / System Map | — | — | not comparable (blank seed) |
+
+**~40% across comparable scenarios**, against a permanent **+854-token** tool
+surface. The registry saving is small because `registry.json` is already dense
+structured data; the token saving is large because `tokens.ts` is mostly
+TypeScript interfaces and comments an agent doesn't need. `get_overview` is
+*negative* on a blank seed — the tool returns a structured skeleton where the
+files are nearly empty.
+
+Two wins sit outside that table and shouldn't be folded into it: **scoped
+queries** (589 tok for "badge" vs a 4,720-tok read) are a narrower question, not
+compression; and every response carries a freshness state a file read can't give
+you at all.
+
+#### What this measurement is careful NOT to claim
+
+The first version of this harness reported **86–97%**. It was wrong three ways,
+and the fixes are now enforced in the script:
+
+1. **Skill bodies were counted as lookup cost** (~7.5k tokens). A skill is
+   process guidance read on demand; the tool layer doesn't replace it. They are
+   now reported separately and excluded (`alsoReads`).
+2. **Filtered queries were compared against whole-file reads** — a narrower
+   question dressed up as compression. Comparisons now run unfiltered.
+3. **Blank data produced fake wins.** Three scenarios had no data, so the tool
+   answered "nothing here yet" cheaply and that read as a 97% saving. Scenarios
+   now carry a `comparable` flag and print *"not comparable"* instead of a
+   percentage.
+
+The harness has now caught three real defects, which is the argument for building
+it first: a missing `get_system` tool, its own inflated arithmetic, and a
+stdout-truncation bug in the server (`process.exit()` on stdin end discards
+buffered writes, silently cutting large replies mid-JSON — the parse failure was
+being swallowed and scored as a 100% saving).
 
 ---
 

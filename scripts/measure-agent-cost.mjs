@@ -188,18 +188,33 @@ function measureAmbient() {
  * files it must read WHOLE today to answer. These are the scenarios the MCP
  * tools will serve as shaped responses, so the pairing is the comparison.
  */
+/**
+ * `reads` — the DATA an agent must open to answer the question. This is the only
+ * bucket compared against a tool response, because it is the only bucket a tool
+ * response replaces.
+ *
+ * `alsoReads` — skill bodies that get pulled in around the same task. They are
+ * reported for context and DELIBERATELY EXCLUDED from the comparison: a skill is
+ * process guidance read on demand when its description matches, and the MCP
+ * server does not replace it. Counting them as "before" cost would credit the
+ * tool layer with a saving it does not produce. (An earlier version of this
+ * script did exactly that and reported a ~93% saving where the honest figure was
+ * ~18%.)
+ */
 const SCENARIOS = [
   {
     id: "what-components-exist",
     question: "What components exist and which should I use?",
     tool: "search_library",
-    reads: ["registry.json", "data/external-catalog.json", ".claude/skills/component-library/SKILL.md"],
+    reads: ["registry.json", "data/external-catalog.json"],
+    alsoReads: [".claude/skills/component-library/SKILL.md"],
   },
   {
     id: "what-does-page-compose",
     question: "What pages exist and what does each one compose?",
     tool: "get_page",
-    reads: ["data/pages-map.json", ".claude/skills/pages-map/SKILL.md"],
+    reads: ["data/pages-map.json"],
+    alsoReads: [".claude/skills/pages-map/SKILL.md"],
   },
   {
     id: "which-token",
@@ -211,18 +226,15 @@ const SCENARIOS = [
     id: "what-is-this-project",
     question: "What is this project / what's being built?",
     tool: "get_overview",
-    reads: [
-      ".claude/skills/project-identity/SKILL.md",
-      "lib/system/knowledge/sources.ts",
-      "data/setup.json",
-      "data/system-map.json",
-    ],
+    reads: ["lib/system/knowledge/sources.ts", "data/setup.json", "data/system-map.json"],
+    alsoReads: [".claude/skills/project-identity/SKILL.md"],
   },
   {
     id: "what-is-the-system",
     question: "What does this codebase consist of beyond the UI?",
     tool: "get_system",
-    reads: ["data/system-map.json", ".claude/skills/codebase-map/SKILL.md"],
+    reads: ["data/system-map.json"],
+    alsoReads: [".claude/skills/codebase-map/SKILL.md"],
   },
 ]
 
@@ -236,6 +248,11 @@ function measureLookups() {
     })
     const chars = files.reduce((n, f) => n + f.chars, 0)
     const kind = s.reads.some((r) => r.endsWith(".ts") || r.endsWith(".json")) ? "code" : "prose"
+    const skillChars = (s.alsoReads ?? []).reduce(
+      (n, rel) => n + (readIfPresent(rel)?.length ?? 0),
+      0
+    )
+    const readable = files.filter((f) => f.state === "read")
     return {
       id: s.id,
       question: s.question,
@@ -244,9 +261,17 @@ function measureLookups() {
       chars,
       tokens: estTokens(chars, kind),
       /** Every file the agent opens is a round trip, not just tokens. */
-      reads: files.filter((f) => f.state === "read").length,
+      reads: readable.length,
       blank: files.filter((f) => f.state === "blank").map((f) => f.rel),
       missing: files.filter((f) => f.state === "missing").map((f) => f.rel),
+      /** Context only — NOT part of the comparison. See the SCENARIOS note. */
+      skillBodyTokens: estTokens(skillChars, "prose"),
+      /**
+       * A scenario is only comparable when there is real data to compare. With a
+       * blank or missing source the tool just answers "nothing here yet", and
+       * calling that a saving would be fiction.
+       */
+      comparable: readable.length > 0,
     }
   })
 }
@@ -267,12 +292,22 @@ function measureMcp() {
   const server = path.join(ROOT, "scripts", "mcp-server.mjs")
   if (!existsSync(server)) return null
 
-  const calls = SCENARIOS.map((s, i) => ({
-    jsonrpc: "2.0",
-    id: 100 + i,
-    method: "tools/call",
-    params: { name: s.tool, arguments: scenarioArgs(s.id) },
-  }))
+  // Like-for-like: the tool is asked the SAME broad question the file read
+  // answers, so it runs unfiltered. Scoped calls are measured separately (id
+  // 200+) because narrowing the question is a different kind of win and must not
+  // be reported as compression.
+  const calls = SCENARIOS.flatMap((s, i) => {
+    const broad = {
+      jsonrpc: "2.0",
+      id: 100 + i,
+      method: "tools/call",
+      params: { name: s.tool, arguments: {} },
+    }
+    const scoped = scenarioArgs(s.id)
+    return scoped
+      ? [broad, { jsonrpc: "2.0", id: 200 + i, method: "tools/call", params: { name: s.tool, arguments: scoped } }]
+      : [broad]
+  })
 
   const lines = [
     { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {} } },
@@ -286,13 +321,20 @@ function measureMcp() {
   if (proc.status !== 0 || !proc.stdout) return { error: proc.stderr?.trim() || "server did not respond" }
 
   const replies = new Map()
+  const unparsed = []
   for (const line of proc.stdout.trim().split("\n")) {
     try {
       const m = JSON.parse(line)
       replies.set(m.id, m)
-    } catch {
-      /* ignore non-JSON noise */
+    } catch (e) {
+      // NEVER swallow this. A truncated reply parses as garbage, the scenario
+      // then measures 0 chars, and 0 chars reads as a 100% saving — which is
+      // exactly how this harness once reported a win that wasn't there.
+      unparsed.push(`${line.length} chars: ${e instanceof Error ? e.message : e}`)
     }
+  }
+  if (unparsed.length) {
+    return { error: `${unparsed.length} unparseable reply/replies — ${unparsed[0]}` }
   }
 
   const list = replies.get(2)?.result?.tools ?? []
@@ -302,6 +344,7 @@ function measureMcp() {
     const reply = replies.get(100 + i)
     const text = reply?.result?.content?.[0]?.text
     const chars = text?.length ?? 0
+    const scopedText = replies.get(200 + i)?.result?.content?.[0]?.text
     return {
       id: s.id,
       tool: s.tool,
@@ -309,6 +352,7 @@ function measureMcp() {
       tokens: estTokens(chars, "code"),
       /** One tool call replaces N file reads — round trips matter as much as tokens. */
       reads: 1,
+      scopedTokens: scopedText ? estTokens(scopedText.length, "code") : undefined,
       error: reply?.result?.isError ? text : undefined,
     }
   })
@@ -325,11 +369,16 @@ function measureMcp() {
   }
 }
 
-/** Representative arguments — a real question, not an empty call. */
+/**
+ * A narrower, realistic question for tools that support filtering — measured as
+ * a SEPARATE figure. Narrowing the question is a genuine workflow win but it is
+ * not compression, and conflating the two is how the first version of this
+ * script overstated its result.
+ */
 function scenarioArgs(id) {
   if (id === "what-components-exist") return { query: "badge" }
   if (id === "which-token") return { query: "muted" }
-  return {}
+  return null
 }
 
 // ------------------------------------------------------------------- report
@@ -417,26 +466,50 @@ function print(snap, prev) {
 
   if (snap.mcp && !snap.mcp.error) {
     const m = snap.mcp
-    console.log(`\nMCP — the same questions, answered by the tool layer`)
-    console.log(`  tool surface (${m.tools} tools, added to ambient)`
-      + `  ${fmt(m.surfaceTokens).padStart(7)} tokens`)
+    console.log(`\nMCP — the SAME question, asked of the tool layer (unfiltered)`)
+    console.log(`  tool surface (${m.tools} tools, a permanent addition to ambient)`
+      + `  +${fmt(m.surfaceTokens)} tokens`)
+
+    let cmpBefore = 0
+    let cmpAfter = 0
     for (const s of m.scenarios) {
       const before = snap.lookups.find((l) => l.id === s.id)
-      const saved = before ? before.tokens - s.tokens : 0
-      const pct = before?.tokens ? ` ${((saved / before.tokens) * 100).toFixed(0)}%` : ""
-      console.log(`    ${s.tool.padEnd(20)}${"1 call".padStart(8)}`
-        + `  ${fmt(s.tokens).padStart(7)} tokens`
-        + (before ? `   was ${fmt(before.tokens)}${saved > 0 ? ` (−${pct.trim()})` : ""}` : "")
-        + (s.error ? "  [ERROR]" : ""))
+      const comparable = before?.comparable && !s.error
+      console.log(`    ${s.tool.padEnd(18)}${fmt(s.tokens).padStart(7)} tok`
+        + (comparable
+          ? `  vs ${fmt(before.tokens).padStart(6)} read`
+            + `  ${(((before.tokens - s.tokens) / before.tokens) * 100).toFixed(0).padStart(4)}%`
+          : `  — not comparable (${s.error ? "tool error" : "no data to read"})`))
+      if (comparable) {
+        cmpBefore += before.tokens
+        cmpAfter += s.tokens
+      }
     }
-    const net = snap.totals.lookupTokens - m.totals.lookupTokens - m.surfaceTokens
-    console.log(`  ─ lookups ${fmt(snap.totals.lookupReads)} reads/${fmt(snap.totals.lookupTokens)} tok`
-      + ` → ${fmt(m.totals.lookupReads)} calls/${fmt(m.totals.lookupTokens)} tok`)
-    console.log(`    net of the +${fmt(m.surfaceTokens)} surface: `
-      + `${net >= 0 ? "−" : "+"}${fmt(Math.abs(net))} tokens per session's worth of lookups`)
-    if (!snap.populated) {
-      console.log(`    ⚠ blank seed — the real saving scales with populated data, not this figure.`)
+
+    if (cmpBefore > 0) {
+      const pct = (((cmpBefore - cmpAfter) / cmpBefore) * 100).toFixed(0)
+      console.log(`  ─ comparable scenarios only: ${fmt(cmpBefore)} → ${fmt(cmpAfter)} tokens (${pct}%)`)
+    } else {
+      console.log(`  ─ nothing comparable in this clone — populate the seed for a real figure.`)
     }
+
+    const scoped = m.scenarios.filter((s) => s.scopedTokens !== undefined)
+    if (scoped.length) {
+      console.log(`\n  Scoped queries — a NARROWER question, so a workflow win, not compression:`)
+      for (const s of scoped) {
+        const before = snap.lookups.find((l) => l.id === s.id)
+        console.log(`    ${s.tool.padEnd(18)}${fmt(s.scopedTokens).padStart(7)} tok`
+          + (before?.comparable ? `  (broad read was ${fmt(before.tokens)})` : ""))
+      }
+    }
+
+    const skillTokens = snap.lookups.reduce((n, l) => n + (l.skillBodyTokens ?? 0), 0)
+    if (skillTokens) {
+      console.log(`\n  Skill bodies around these tasks: ${fmt(skillTokens)} tokens —`
+        + ` EXCLUDED above.\n    Tools don't replace skills, so counting them would overstate the win.`)
+    }
+    console.log(`\n  Also: ${fmt(snap.totals.lookupReads)} file reads → ${fmt(m.totals.lookupReads)} calls,`
+      + ` and every response carries freshness a file read can't.`)
   } else if (snap.mcp?.error) {
     console.log(`\nMCP — probe failed: ${snap.mcp.error}`)
   }
