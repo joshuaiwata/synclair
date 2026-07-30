@@ -479,14 +479,46 @@ const TOOLS = {
         jobs: (map.jobs ?? []).filter(match),
         integrations: (map.integrations ?? []).filter(match),
       }
-      const picked = args.section ? { [args.section]: sections[args.section] } : sections
 
-      return {
+      const base = {
         repo: map.repo?.name,
         stack: map.stackFacts ?? map.stack,
-        ...picked,
         freshness: syncState(map.provenance, map.repo?.root),
-        _meta: meta({ generatedAt: map.repo?.digestedAt, commit: map.repo?.commit }),
+      }
+
+      // Asking for one section (or filtering) means you want the detail.
+      if (args.section || q) {
+        return {
+          ...base,
+          ...(args.section ? { [args.section]: sections[args.section] } : sections),
+          _meta: meta({ generatedAt: map.repo?.digestedAt, commit: map.repo?.commit }),
+        }
+      }
+
+      /**
+       * Default is a DIGEST, not the whole map. Returning every section in full
+       * made this tool LARGER than reading data/system-map.json outright (−24%
+       * on a real 32KB map) — a tool that costs more than the file it replaces
+       * is worse than no tool. Names and counts orient; `section` fetches depth.
+       */
+      const names = (list, key = "name") => list.map((e) => e[key]).filter(Boolean)
+      return {
+        ...base,
+        overview: sections.overview,
+        areas: { count: sections.areas.length, names: names(sections.areas) },
+        api: {
+          count: sections.api.length,
+          paths: sections.api.slice(0, 40).map((e) => `${e.method ?? "—"} ${e.path}`),
+          truncated: Math.max(0, sections.api.length - 40),
+        },
+        data: { count: sections.data.length, entities: names(sections.data) },
+        jobs: { count: sections.jobs.length, names: names(sections.jobs) },
+        integrations: { count: sections.integrations.length, names: names(sections.integrations) },
+        _meta: meta({
+          generatedAt: map.repo?.digestedAt,
+          commit: map.repo?.commit,
+          hint: "digest — call with `section` (areas|api|data|jobs|integrations) or `query` for detail",
+        }),
       }
     },
   },

@@ -259,10 +259,63 @@ it had been duplicated between `check-host-coverage.mjs` and `host-scan.ts`, and
 a third copy would have guaranteed drift. The coverage script was refactored onto
 it and verified to produce **byte-identical output** against a fixture host first.
 
-**Caveat:** verified against a purpose-built fixture host (shadcn primitive,
-custom component, a provider as noise, a test file to skip), not against
-platform-clairity. The mechanism is proven; that the entries are *right* for a
-real app still needs a populated clone.
+---
+
+## Validation against a real clone ✅ DONE
+
+Run against **`toolbeltwork/platform-product`** (embedded topology, 4 hosts, 144
+cataloged items, 51 pages, 30 registry items). Note the repo is
+`platform-product`, not `platform-clairity` — earlier notes were stale.
+
+Nothing in that repo was modified: the work ran in a throwaway hub copied to
+scratch, which is the guardrail [`extensibility.md`](extensibility.md) specifies.
+
+### The measurement, finally on real data
+
+| Question | File read | Tool | Saving |
+|---|---|---|---|
+| What components exist | 71,218 tok | 6,015 tok | 92% |
+| What pages exist | 36,315 tok | 1,529 tok | 96% |
+| What is this project | 17,829 tok | 221 tok | 99% |
+| What does the system consist of | 9,269 tok | 2,381 tok | 74% |
+| Which token do I use | 7,635 tok | 1,497 tok | 80% |
+
+**142,266 → 11,643 tokens (92%)**, 10 file reads → 5 calls, against a permanent
++854-token surface. Ambient tax there is 8,524 tokens.
+
+This is the honest headline, and it's the opposite lesson from the blank seed:
+the saving *scales with how much the artifact holds*. A 225KB catalog and a 127KB
+pages map are where whole-file reads hurt, and those only exist in a populated
+clone.
+
+### Three defects the real data caught
+
+1. **`get_system` cost 24% MORE than reading the file** — it returned every
+   section in full plus JSON indent overhead. A tool that costs more than the
+   file it replaces is worse than no tool. Now digests by default (names +
+   counts) with `section`/`query` for depth: −24% → **+74%**.
+2. **The `basis` heuristic was over-fitted.** Against 144 real entries the
+   original scored 97.9%. My "improvement" — a shadcn primitive-name list plus
+   primitives/composites directory scoring — scored **95.1%**, worse, because a
+   mature host has its own design system using conventional names (`Avatar`,
+   `Dialog`, `Table`) and its own `primitives/` directory. Measured four
+   variants; the winner adds exactly one rule to the original (*importing a
+   local sibling component ⇒ the host composed it*) for **98.6%**. The two
+   residual misses are shadcn primitives that use no Radix (`card`, `input`).
+3. **51 of the 144 entries' hashes had drifted** since cataloging — not a bug,
+   but confirmation that `sourceHash` agrees with `check:host` on real content.
+
+### Guards held
+
+- `scan:pages` correctly **refused** a real host-mode map (`repo.root:
+  ../apps/prototype`) and left it byte-identical.
+- `draft:host-catalog` wrote nothing to the catalog.
+- `pages.freshness` reported `unanchored` rather than inventing a verdict it
+  couldn't support.
+
+**Still unproven:** the "regenerate and diff" acceptance test for `scan:pages`
+can't run there — that clone is host-mode, so the scanner (correctly) declines.
+It needs a clone whose pages map describes its *own* Next app.
 
 **Acceptance per artifact:** regenerate it for platform-clairity with the new
 scanner and diff against the agent-written version. Facts must match or improve;
