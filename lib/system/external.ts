@@ -5,6 +5,7 @@ import path from "node:path"
 import type { ComponentKind, ComponentStatus, RegistryComponent } from "./components"
 import type { ComponentDoc, DocProp, Preview } from "./doc-types"
 import { deriveHostProps } from "./host-docgen"
+import { type Provenance, toProvenance } from "./provenance"
 import { getSetupMode } from "./setup"
 import { defaultSurfaceId } from "./surfaces"
 
@@ -116,6 +117,13 @@ export interface ExternalCatalog {
   /** One host per surface. Older catalogs wrote a singular `host`; the loader upgrades it. */
   hosts: ExternalHost[]
   items: ExternalItem[]
+  /**
+   * Where this catalog came from and whether it still holds (`provenance.ts`).
+   * Optional — absent resolves to `unanchored`, so existing catalogs are
+   * unaffected. Per-item freshness stays with `check:host`'s source hashes;
+   * this is the catalog-level anchor.
+   */
+  provenance?: Provenance
 }
 
 const EMPTY: ExternalCatalog = { hosts: [], items: [] }
@@ -135,6 +143,7 @@ export async function getExternalCatalog(): Promise<ExternalCatalog> {
     return {
       hosts,
       items: Array.isArray(parsed.items) ? parsed.items : [],
+      provenance: toProvenance((parsed as Record<string, unknown>).provenance),
     }
   } catch (e) {
     // A missing file is a valid blank; a corrupt one should be loud, not an

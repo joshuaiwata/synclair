@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { cache } from "react"
 
+import type { Provenance } from "./provenance"
+
 /**
  * Foundation hygiene for the HOST codebase — the drift Storybook has no organ
  * for (docs/rendering-parity.md). The component catalog tracks whether the hub
@@ -95,6 +97,12 @@ export interface HostHygieneReport {
   topFiles: HygieneTopFile[]
   /** Capped sample per rule — see each rule's `truncated` for what's not shown. */
   findings: HygieneFinding[]
+  /**
+   * Where this scan came from and whether it still holds (`provenance.ts`).
+   * Optional — absent resolves to `unanchored`, so reports written by an older
+   * `scan:hygiene` stay valid. `scannedAt` remains the human timestamp.
+   */
+  provenance?: Provenance
 }
 
 const REPORT_PATH = path.join(process.cwd(), "data", "host-hygiene.json")

@@ -1,0 +1,104 @@
+{
+  "measuredAt": "2026-07-30T21:58:57.887Z",
+  "estimator": {
+    "charsPerToken": {
+      "prose": 4,
+      "code": 3.5
+    },
+    "note": "estimate — compare deltas, not absolutes"
+  },
+  "repo": "clairity",
+  "populated": false,
+  "ambient": {
+    "chars": 33144,
+    "tokens": 8286,
+    "routerChars": 13293,
+    "routers": [
+      {
+        "file": "AGENTS.md",
+        "chars": 12552,
+        "present": true
+      },
+      {
+        "file": "CLAUDE.md",
+        "chars": 741,
+        "present": true
+      }
+    ],
+    "skills": {
+      "count": 20,
+      "surfacedChars": 10463
+    },
+    "agents": {
+      "count": 16,
+      "surfacedChars": 9388
+    },
+    "deferredBodyChars": 233516
+  },
+  "lookups": [
+    {
+      "id": "what-components-exist",
+      "question": "What components exist and which should I use?",
+      "tool": "search_library",
+      "chars": 31505,
+      "tokens": 9001,
+      "reads": 2,
+      "blank": [
+        "data/external-catalog.json"
+      ],
+      "missing": []
+    },
+    {
+      "id": "what-does-page-compose",
+      "question": "What pages exist and what does each one compose?",
+      "tool": "get_page",
+      "chars": 6838,
+      "tokens": 1954,
+      "reads": 1,
+      "blank": [
+        "data/pages-map.json"
+      ],
+      "missing": []
+    },
+    {
+      "id": "which-token",
+      "question": "Which token do I use for this styling decision?",
+      "tool": "get_foundation",
+      "chars": 15289,
+      "tokens": 4368,
+      "reads": 3,
+      "blank": [],
+      "missing": []
+    },
+    {
+      "id": "what-is-this-project",
+      "question": "What is this project / what's being built?",
+      "tool": "get_overview",
+      "chars": 4193,
+      "tokens": 1198,
+      "reads": 2,
+      "blank": [
+        "data/setup.json",
+        "data/system-map.json"
+      ],
+      "missing": []
+    },
+    {
+      "id": "what-is-the-system",
+      "question": "What does this codebase consist of beyond the UI?",
+      "tool": "get_system",
+      "chars": 4602,
+      "tokens": 1315,
+      "reads": 1,
+      "blank": [
+        "data/system-map.json"
+      ],
+      "missing": []
+    }
+  ],
+  "totals": {
+    "lookupTokens": 17836,
+    "lookupReads": 9
+  },
+  "unclassified": []
+}

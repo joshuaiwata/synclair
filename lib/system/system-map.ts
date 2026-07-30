@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
+import { type Provenance, toProvenance } from "./provenance"
+
 /**
  * The SYSTEM MAP: a distilled, human-and-agent-readable digest of what's in a
  * codebase BEYOND the component library — areas/modules, API surface, data
@@ -138,6 +140,13 @@ export interface SystemMap {
   data: DataEntity[]
   jobs: SystemJob[]
   integrations: SystemIntegration[]
+  /**
+   * Where this digest came from and whether it still holds (`provenance.ts`).
+   * Optional: maps written before provenance existed resolve to `unanchored`,
+   * so adopting this changes nothing for an existing clone until the map is
+   * regenerated. `repo.commit` remains the coarse anchor and is unaffected.
+   */
+  provenance?: Provenance
   /** Set when the data file exists but couldn't be parsed — the page says so instead of showing a lying empty state. */
   unreadable?: boolean
 }
@@ -249,6 +258,7 @@ export async function getSystemMap(): Promise<SystemMap> {
         if (!name) return null
         return { name, kind: str(e.kind), summary: str(e.summary) }
       }),
+      provenance: toProvenance(parsed.provenance),
     }
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return EMPTY
