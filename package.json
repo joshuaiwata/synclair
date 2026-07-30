@@ -25,6 +25,9 @@
     "host:up": "node scripts/host-servers.mjs up",
     "call-home": "node scripts/call-home.mjs",
     "measure:agent-cost": "node scripts/measure-agent-cost.mjs",
+    "mcp": "node scripts/mcp-server.mjs",
+    "mcp:probe": "node scripts/mcp-server.mjs --probe",
+    "mcp:install": "node scripts/mcp-install.mjs",
     "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages",
     "postinstall": "patch-package"
   },

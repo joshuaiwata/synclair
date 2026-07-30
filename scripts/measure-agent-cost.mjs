@@ -26,6 +26,7 @@
  *   node scripts/measure-agent-cost.mjs --json      # machine-readable
  */
 
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
@@ -250,11 +251,93 @@ function measureLookups() {
   })
 }
 
+// ---------------------------------------------------------------------- mcp
+
+/**
+ * The "after" side of the comparison, measured rather than estimated: spawn the
+ * real MCP server, do a real JSON-RPC round trip, and count the bytes an agent
+ * would actually receive.
+ *
+ * Two costs matter and they pull in opposite directions — the tool SURFACE
+ * (descriptions + schemas, added to every session's ambient tax) and the
+ * RESPONSES (which replace whole-file reads). A tool layer only pays for itself
+ * when the second saving beats the first, so both are reported.
+ */
+function measureMcp() {
+  const server = path.join(ROOT, "scripts", "mcp-server.mjs")
+  if (!existsSync(server)) return null
+
+  const calls = SCENARIOS.map((s, i) => ({
+    jsonrpc: "2.0",
+    id: 100 + i,
+    method: "tools/call",
+    params: { name: s.tool, arguments: scenarioArgs(s.id) },
+  }))
+
+  const lines = [
+    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {} } },
+    { jsonrpc: "2.0", id: 2, method: "tools/list" },
+    ...calls,
+  ]
+    .map((m) => JSON.stringify(m))
+    .join("\n")
+
+  const proc = spawnSync(process.execPath, [server], { input: `${lines}\n`, encoding: "utf8" })
+  if (proc.status !== 0 || !proc.stdout) return { error: proc.stderr?.trim() || "server did not respond" }
+
+  const replies = new Map()
+  for (const line of proc.stdout.trim().split("\n")) {
+    try {
+      const m = JSON.parse(line)
+      replies.set(m.id, m)
+    } catch {
+      /* ignore non-JSON noise */
+    }
+  }
+
+  const list = replies.get(2)?.result?.tools ?? []
+  const surfaceChars = JSON.stringify(list).length
+
+  const perScenario = SCENARIOS.map((s, i) => {
+    const reply = replies.get(100 + i)
+    const text = reply?.result?.content?.[0]?.text
+    const chars = text?.length ?? 0
+    return {
+      id: s.id,
+      tool: s.tool,
+      chars,
+      tokens: estTokens(chars, "code"),
+      /** One tool call replaces N file reads — round trips matter as much as tokens. */
+      reads: 1,
+      error: reply?.result?.isError ? text : undefined,
+    }
+  })
+
+  return {
+    tools: list.length,
+    surfaceChars,
+    surfaceTokens: estTokens(surfaceChars, "prose"),
+    scenarios: perScenario,
+    totals: {
+      lookupTokens: perScenario.reduce((n, s) => n + s.tokens, 0),
+      lookupReads: perScenario.length,
+    },
+  }
+}
+
+/** Representative arguments — a real question, not an empty call. */
+function scenarioArgs(id) {
+  if (id === "what-components-exist") return { query: "badge" }
+  if (id === "which-token") return { query: "muted" }
+  return {}
+}
+
 // ------------------------------------------------------------------- report
 
 function build() {
   const ambient = measureAmbient()
   const lookups = measureLookups()
+  const mcp = measureMcp()
   const populated = lookups.every((l) => l.blank.length === 0)
 
   return {
@@ -279,6 +362,7 @@ function build() {
       lookupTokens: lookups.reduce((n, l) => n + l.tokens, 0),
       lookupReads: lookups.reduce((n, l) => n + l.reads, 0),
     },
+    mcp,
     /** Capability hygiene — a missing classifier degrades /synclair/ai-setup. */
     unclassified: [...ambient.skills.entries, ...ambient.agents.entries]
       .filter((e) => e.missingCategory || e.missingLayer)
@@ -330,6 +414,32 @@ function print(snap, prev) {
   console.log(`  ─ total  ${fmt(snap.totals.lookupReads)} reads,`
     + ` ${fmt(snap.totals.lookupTokens)} tokens`
     + delta(snap.totals.lookupTokens, prev?.totals?.lookupTokens))
+
+  if (snap.mcp && !snap.mcp.error) {
+    const m = snap.mcp
+    console.log(`\nMCP — the same questions, answered by the tool layer`)
+    console.log(`  tool surface (${m.tools} tools, added to ambient)`
+      + `  ${fmt(m.surfaceTokens).padStart(7)} tokens`)
+    for (const s of m.scenarios) {
+      const before = snap.lookups.find((l) => l.id === s.id)
+      const saved = before ? before.tokens - s.tokens : 0
+      const pct = before?.tokens ? ` ${((saved / before.tokens) * 100).toFixed(0)}%` : ""
+      console.log(`    ${s.tool.padEnd(20)}${"1 call".padStart(8)}`
+        + `  ${fmt(s.tokens).padStart(7)} tokens`
+        + (before ? `   was ${fmt(before.tokens)}${saved > 0 ? ` (−${pct.trim()})` : ""}` : "")
+        + (s.error ? "  [ERROR]" : ""))
+    }
+    const net = snap.totals.lookupTokens - m.totals.lookupTokens - m.surfaceTokens
+    console.log(`  ─ lookups ${fmt(snap.totals.lookupReads)} reads/${fmt(snap.totals.lookupTokens)} tok`
+      + ` → ${fmt(m.totals.lookupReads)} calls/${fmt(m.totals.lookupTokens)} tok`)
+    console.log(`    net of the +${fmt(m.surfaceTokens)} surface: `
+      + `${net >= 0 ? "−" : "+"}${fmt(Math.abs(net))} tokens per session's worth of lookups`)
+    if (!snap.populated) {
+      console.log(`    ⚠ blank seed — the real saving scales with populated data, not this figure.`)
+    }
+  } else if (snap.mcp?.error) {
+    console.log(`\nMCP — probe failed: ${snap.mcp.error}`)
+  }
 
   if (snap.unclassified.length) {
     console.log(`\n  ${snap.unclassified.length} capability file(s) missing category/layer:`)
