@@ -45,6 +45,29 @@ distill one (`figma-distiller` / `product-spec`) rather than free-handing it.
   its real API — don't re-implement a Button, Field, Dialog, Badge, or Table that
   already exists, and don't guess a component's props (open its source or its hub doc
   page; a wrong-API guess costs more than a 10-second read).
+- **Components are not the only thing you can re-invent.** If the screen touches
+  uploads, storage, auth, search, notifications, jobs — anything with a backend
+  seam — **check whether that seam already exists before you design around its
+  absence.** Ask the hub:
+
+  ```
+  get_system({ query: "upload" })     # or "storage", "auth", "notification"…
+  ```
+
+  One call, ~2k tokens, and it answers from the System Map's API surface and
+  areas. This is not hypothetical: a photo UI was built here hand-rolling a
+  canvas crop into a data URL in the mock db, while `file-api` already had a
+  complete two-step flow (`POST /upload` → presigned PUT → `POST /:id/confirm`)
+  and the prototype already modelled an upload seam in `features/messaging`.
+  All of it was documented. Nobody asked. The cost wasn't the crop code — it
+  was a UI shaped for a contract the real backend doesn't have, so graduating
+  it becomes a rebuild rather than a swap.
+
+  The rule of thumb: **if your screen would need an endpoint to be real, look
+  for that endpoint first.** Whatever you find (or don't) is worth one line in
+  your report — "surveyed X, found nothing, hand-rolling Y" is a fine answer;
+  not looking is not.
+
 - **If the design needs a primitive the set doesn't have** (a Checkbox, a Stepper, a
   co-brand header…), you may build it — but **do not bury it as an unnamed inline
   block inside a screen file.** Inline-invented primitives are invisible to the
