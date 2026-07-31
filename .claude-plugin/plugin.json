@@ -1,0 +1,273 @@
+{
+  "name": "synclair",
+  "version": "0.0.1",
+  "description": "One aligned source of truth for humans and agents — design tokens, component library, and project knowledge, served to agents over MCP.",
+  "mcpServers": {
+    "synclair": {
+      "command": "node",
+      "args": [
+        "scripts/mcp-server.mjs"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "name": "build-report",
+      "description": "Produce a build/coverage REPORT of this project as Synclair sees it — a plain-English, per-section read of what's there, what's next, and ranked recommendations, rendered at /synclair/reports. Use after an intake, after shipping work against prior recommendations (\"re-run the report\", \"update the report\"), or when asked \"how's the build looking / what should we do next / audit the app\". Digger-driven and data-verified: it reads the host via the intake diggers and cross-checks every count against the hub's own data. NOT a code review of a single diff (that's a normal review) and NOT the design-side foundations audit.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/skills/build-report/SKILL.md"
+    },
+    {
+      "name": "build-view",
+      "description": "Build or extend a view/screen from requirements, using Figma as a guide (not a spec). Use whenever the user asks to build out a screen, view, page, flow, or feature — with or without a Figma link.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/build-view/SKILL.md"
+    },
+    {
+      "name": "co-locate-synclair",
+      "description": "Place Synclair INSIDE a product repo as a subdirectory (co-located mode) instead of as a sibling clone, and isolate the two apps so the product's build/lint/typecheck/deploy don't trip over Synclair's. Use when a team wants one repo and one clone — so agents building in the product repo get Synclair's skills/knowledge ambiently — and asks to \"put synclair in the repo\", \"vendor synclair\", \"embed the hub\", \"co-locate\", or \"keep the two apps from colliding\". NOT the default — the foundation recommends the SIBLING model (docs/existing-project.md); reach here only when single-repo ergonomics outweigh losing easy foundation sync.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/skills/co-locate-synclair/SKILL.md"
+    },
+    {
+      "name": "codebase-map",
+      "description": "Generate or refresh the System Map (/synclair/system) — the digest of what a codebase consists of beyond the UI - areas, API surface, data model, background jobs, integrations. Use when asked to \"map the codebase\", \"give us visibility into the repo/backend/database\", \"what is in this system\", when /synclair/system shows its empty state, or when the map's snapshot commit has drifted far behind. Works on THIS repo (new-project mode) or the HOST repo (existing-project mode). NOT for the component library (component-library / existing-project-intake) and not for product requirements (product-spec).",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/skills/codebase-map/SKILL.md"
+    },
+    {
+      "name": "component-library",
+      "description": "Conventions for this project's component library — the invention gate, the shadcn registry (Components / Blocks / Templates), the per-tier gallery pages with card previews and per-item doc pages, colocated .docs.tsx files, and global ⌘K search. Use when creating or modifying any reusable component, block, or template, or when deciding whether something new needs to be invented.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/component-library/SKILL.md"
+    },
+    {
+      "name": "doc-quality",
+      "description": "The presentation standard for every distilled knowledge artifact Synclair generates — Knowledge summaries, the System Map, UX docs, References, product summaries. Use when authoring or reviewing any generated \"read\" — deciding whether something should be prose, a table, a diagram, or a wireframe; formatting it for scan; and framing it consistently with its siblings so Synclair stays one system, not a Frankenstein of one-off layouts. The rubric the `doc-quality-reviewer` enforces and every generator authors against.",
+      "category": "foundation",
+      "layer": "foundation",
+      "source": ".claude/skills/doc-quality/SKILL.md"
+    },
+    {
+      "name": "existing-project-intake",
+      "description": "Discover and populate Synclair from a HOST codebase that already exists (existing-project mode) — survey the repo, harvest its knowledge sources, extract its design tokens, and catalog its components into the hub. Use when Synclair was just cloned beside an existing app and the hub is empty, or when asked to \"populate synclair from the codebase\", \"catalog the host app\", \"intake the existing project\", \"make the hub reflect our app\", or to refresh a stale host catalog (check:host drift). NOT for new projects (docs/new-project.md) and not for the initial clone/reseed mechanics (project-bootstrap + docs/existing-project.md — run those first).",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/skills/existing-project-intake/SKILL.md"
+    },
+    {
+      "name": "figma-distiller",
+      "description": "Distill a Figma design file into per-page knowledge digests — the visual counterpart to product-spec. Use when asked to \"process / distill / add a Figma file (or page) to knowledge\", when the Manifest surfaces an un-distilled page, or when build-view needs the design for a screen whose Figma page has no digest yet. Reads pages via REST + the Figma MCP through the figma-frame-reader digger; writes a screen-map digest per file › page.",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/skills/figma-distiller/SKILL.md"
+    },
+    {
+      "name": "pages-map",
+      "description": "Generate or refresh the app SITEMAP (/synclair/pages) — an inventory of every view/route, a live preview of each, how they tie together, and the components/blocks/templates each one composes. Use when asked to \"map the pages/views/routes\", \"build a sitemap\", \"what pages does this app have\", \"what components does each screen use\", when /synclair/pages shows its empty state, or when `npm run check:pages` reports drift. Works on THIS repo (new-project mode) or the HOST repo (existing-project mode). NOT the backend/architecture digest (that's codebase-map / the System Map) and NOT the component library (component-library / existing-project-intake).",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/skills/pages-map/SKILL.md"
+    },
+    {
+      "name": "port-host-component",
+      "description": "Companion mode — promote a DOCUMENTED host component (an external catalog entry from existing-project intake) into a LIVE, registered component whose previews render inside a SCOPED product theme, so it shows the product's real look without restyling the neutral hub. Use when asked to \"make the host components live\", \"port <Component> into the hub\", \"get live/branded components\", or after intake when a read-only catalog entry should become first-class (interactive preview, registry, verify-ui protection). NOT for building brand-new components (component-library) and NOT for the read-only catalog itself (existing-project-intake).",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/port-host-component/SKILL.md"
+    },
+    {
+      "name": "preview-server",
+      "description": "Reliably start, stop, and recover the Synclair dev/preview server (port 4100). Use whenever bringing up the preview, when preview_start fails (any error — spawn failures, Turbopack panics, \"Another next dev server is already running\"), or when the preview window is blank or stuck on \"Awaiting server\". Prevents the port-collision, symlink-panic, and .next-poisoning failures that recur across agents/sessions.",
+      "category": "tooling",
+      "layer": "foundation",
+      "source": ".claude/skills/preview-server/SKILL.md"
+    },
+    {
+      "name": "product-spec",
+      "description": "Distilled product requirements for this project — the compressed, per-area digest of what each view/feature must do, sourced from the PRDs/specs/decks in the knowledge manifest. Use when building or scoping a specific product area and you need the requirements, entities, states, and rules — before or alongside build-view. Complements the project's domain skill (industry knowledge) with THIS product's decisions.",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/skills/product-spec/SKILL.md"
+    },
+    {
+      "name": "product-summary",
+      "description": "Generate or regenerate a project summary — the on-demand distilled views (briefs, diagrams, custom cuts) on the Summary tab of /synclair/knowledge. Use when asked to \"regenerate the summary\", \"write the product brief\", \"make a diagram of X\", when the summary queue (data/knowledge/summary-queue.json) has pending requests, or when the Summary tab shows \"Knowledge changed since generated\". The written counterpart of figma-distiller's flow — button queues, agent drains.",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/skills/product-summary/SKILL.md"
+    },
+    {
+      "name": "project-identity",
+      "description": "What THIS project is — the product being built — and how to keep the Synclair foundation out of the answer. Use whenever the user asks what the project/repo is, what's being built, for an executive summary / overview / brief, about scope, goals, or roadmap, to onboard onto the project, or \"what does <product> do\". The default lens for any question about the project as a subject. NOT for maintaining Synclair itself (use the `synclair` skill for that).",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/skills/project-identity/SKILL.md"
+    },
+    {
+      "name": "shadcn",
+      "description": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI, including chat interfaces. Provides project context, component docs, and usage examples. Applies when working with shadcn/ui, component registries, presets, --preset codes, or any project with a components.json file. Also triggers for \"shadcn init\", \"create an app with --preset\", or \"switch to --preset\".",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/shadcn/SKILL.md"
+    },
+    {
+      "name": "synclair",
+      "description": "Maintain the Synclair foundation — keep this repo true to the brain/adapter/seed architecture. THIS repo IS Synclair, the upstream that projects clone; improvements here reach future projects on their next clone. Use when restructuring, when deciding whether something is foundation vs. project, or when touching lib/system / adapters / the knowledge layer / the hub shell. Spec: docs/foundation-model.md.",
+      "category": "foundation",
+      "layer": "foundation",
+      "source": ".claude/skills/synclair/SKILL.md"
+    },
+    {
+      "name": "synclair-steward",
+      "description": "The post-work review gate for any library or view change — verify every touched item RENDERS (live import, live preview, screenshot, or embed; never a bare code snippet), meets the UX-doc and doc-quality expectations for its tier, and passes the machine checks, by actually loading the pages, before the work is called done. Use after porting/creating/modifying components, blocks, templates, or views; when the user asks \"does everything render?\", \"check the library\", or \"review this against our UX expectations\"; or when a doc page is suspected of rendering code-only. NOT for authoring docs (ux-doc), formatting reads (doc-quality), or the registration ceremony itself (component-library) — this skill is the inspector that runs AFTER those.",
+      "category": "tooling",
+      "layer": "foundation",
+      "source": ".claude/skills/synclair-steward/SKILL.md"
+    },
+    {
+      "name": "synclair-sync",
+      "description": "Pull foundation updates from the mother Synclair repo into this clone, or promote a foundation improvement upstream. Use when asked to \"sync with upstream\", \"update the foundation\", \"pull synclair updates\", \"are we behind the mother repo?\", to set up or run \"call home\" (npm run call-home — the opt-in freshness check on /synclair/environment), when Synclair shows the clone is behind, or when a foundation-level improvement made here should reach other projects. NOT for reseeding a fresh clone (that's docs/new-project.md) and never for syncing seed content — the project's brand, domain, and knowledge never sync in either direction.",
+      "category": "foundation",
+      "layer": "foundation",
+      "source": ".claude/skills/synclair-sync/SKILL.md"
+    },
+    {
+      "name": "ux-doc",
+      "description": "Author or update UX documentation for a component, block, or template — intent, anatomy wireframes, interaction tables, responsive rules, device-width previews — and keep it commit-anchored to the source it documents. Use whenever a block or template is being registered or reaches stable, when a doc page shows \"docs stale\", when check:ux-docs reports drift or a queue entry, or when asked to \"document the UX\" of anything in the library. Extends component-library (the registration ceremony); not a separate doc system.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/ux-doc/SKILL.md"
+    },
+    {
+      "name": "ux-first-pass",
+      "description": "Archetype-first UX process for building or revamping any UI — get to good on the first pass instead of theming your way there. Use whenever designing or restyling screens, views, components, or whole apps; when a UI \"works but feels generic\"; or before any visual overhaul. Structure before surface, reference products before pixels, adversarial review before presenting.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/ux-first-pass/SKILL.md"
+    }
+  ],
+  "agents": [
+    {
+      "name": "codebase-surveyor",
+      "description": "Host-codebase survey worker for existing-project mode. Use PROACTIVELY as the FIRST digger when Synclair runs beside an existing app (the existing-project-intake skill's phase 1), and on demand for \"survey the host repo\", \"what stack is the host app\", or \"orient me in the existing codebase\". Reads the host repo in ITS OWN context and returns a tight orientation digest — framework, structure, conventions, where components/styles/views live — so the main thread and every later digger start oriented instead of blank. Transient orientation only: for the durable /synclair/system artifact (\"map the codebase\"), use the system-mapper via the codebase-map skill instead.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/codebase-surveyor.md"
+    },
+    {
+      "name": "component-cataloger",
+      "description": "Host-component cataloging worker for existing-project mode. Use PROACTIVELY during existing-project intake (phase 4, after the survey), and on demand for \"catalog the host components\", \"add <component> to the library from the host app\", or to refresh entries that `npm run check:host` flagged as stale. Reads host component sources in ITS OWN context and returns ready-to-write `data/external-catalog.json` entries — name, API from the types, real usage snippets, import-graph usage counts, sha256 source hashes — so the hub's galleries document the host's design system without importing its code.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/component-cataloger.md"
+    },
+    {
+      "name": "design-system-architect",
+      "description": "On-demand design-system consultant for hard structural decisions — token architecture, component API design, variant taxonomy, registry governance. Consult when a decision is expensive to reverse (\"how should this token scale work?\", \"what's the right API for this block?\", \"component or variant?\"). NOT for routine component building — the component-library skill covers that; do not gate normal work on this agent.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/design-system-architect.md"
+    },
+    {
+      "name": "doc-quality-reviewer",
+      "description": "Adversarial reviewer for generated knowledge artifacts — checks any distilled \"read\" (a Knowledge summary, the System Map, a UX doc, a Reference, a Figma digest) against the `doc-quality` standard before it is called done. Use PROACTIVELY right after generating or regenerating one of these, and on demand for \"review this summary/map/doc for quality\", \"is this readable/scannable\", \"does this need a diagram\", or \"check the formatting\". Reads the artifact (its data + its rendered page) in ITS OWN context and returns a ranked punch list with concrete fixes — it is the backstop that keeps the hub one system, not a Frankenstein.",
+      "category": "foundation",
+      "layer": "foundation",
+      "source": ".claude/agents/doc-quality-reviewer.md"
+    },
+    {
+      "name": "figma-frame-reader",
+      "description": "Figma page/frame retrieval worker. Use PROACTIVELY when distilling a Figma page into knowledge, or when build-view needs the design for a screen whose Figma page has no digest yet. Reads pages via the Figma REST API + MCP in ITS OWN context (a single page's metadata can be 400K+ chars) and returns a tight screen-map digest, so the main thread never loads raw node trees. Follows the figma-distiller skill's method.",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/agents/figma-frame-reader.md"
+    },
+    {
+      "name": "knowledge-harvester",
+      "description": "Project-knowledge harvesting worker for existing-project mode. Use PROACTIVELY during existing-project intake (phase 2), and on demand for \"what docs does the host repo have\", \"populate the knowledge manifest\", or \"find the specs for this project\". Sweeps the HOST repo for READMEs, docs/, ADRs, specs, and wiki exports in ITS OWN context, and returns proposed knowledge-manifest entries (lib/system/knowledge/sources.ts) plus a distillation priority list — so /synclair/knowledge starts populated instead of empty.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/knowledge-harvester.md"
+    },
+    {
+      "name": "library-curator",
+      "description": "Component library health auditor. Use PROACTIVELY after building or modifying views/components, and on demand for \"audit the library\", \"is everything registered?\", or \"clean up the components\". Finds unregistered components, registry drift, token violations, and missing documentation.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/library-curator.md"
+    },
+    {
+      "name": "page-mapper",
+      "description": "App-sitemap digest worker — the route/view counterpart of the system-mapper. Use PROACTIVELY via the pages-map skill, during existing-project intake, and on demand for \"map the pages/views/routes\", \"build a sitemap\", \"what pages does this app have\", or \"what components does each screen use\". Reads a repo's router (this one or the HOST) in ITS OWN context and returns a ready-to-write data/pages-map.json — every route, the components/blocks/templates it composes, its navigation edges, and a live-preview URL — so /synclair/pages shows the whole app at a glance without anyone reading the routing tree.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/page-mapper.md"
+    },
+    {
+      "name": "prd-retriever",
+      "description": "Requirements/PRD retrieval worker. Use PROACTIVELY at the start of building any specific view or feature to fetch just the requirements that matter for it — reads the source of record (spec/PRD/deck/Figma) in its own context and returns a tight brief, so the main thread never has to load a 40-page doc. Also on demand for \"what does the PRD say about X\", \"pull the requirements for the change-order view\", or \"what's specced for this area\".",
+      "category": "knowledge",
+      "layer": "foundation",
+      "source": ".claude/agents/prd-retriever.md"
+    },
+    {
+      "name": "render-auditor",
+      "description": "Rendering audit for the component library — verifies every gallery card and doc page actually RENDERS its preview instead of degrading to a code placeholder, a blank frame, or an error. Use PROACTIVELY after adding components, previews, or docs modules, and on demand for \"audit the previews\", \"are the components rendering?\", \"some cards just show code\", or before calling any library hardening done. Complements library-curator (static registration health) with runtime proof from the running hub.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/render-auditor.md"
+    },
+    {
+      "name": "system-mapper",
+      "description": "Whole-codebase digest worker — the backend/architecture counterpart of the component-cataloger. Use PROACTIVELY via the codebase-map skill, during existing-project intake (after the survey), and on demand for \"map the codebase\", \"what's in this repo\", \"what's the backend/architecture\", \"what does the database look like\", or \"give the team visibility into the system\". Reads a repo (this one or the HOST) in ITS OWN context and returns a ready-to-write data/system-map.json — areas, API surface, data model, jobs, integrations — so /synclair/system orients humans and agents without them reading source.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/system-mapper.md"
+    },
+    {
+      "name": "tier-arbiter",
+      "description": "Tier judge for the component library — decides whether a piece of UI is a COMPONENT, a BLOCK, or a TEMPLATE when the line isn't obvious. Use PROACTIVELY whenever a tier call has to be made or defended - during existing-project intake (the cataloger's `kind` field), at the component-library invention gate (registering something new), when promoting/porting a host item, or to audit the catalog for misclassifications (\"is X really a block?\", \"check the tiers\"). Reads the actual source in its own context and returns a verdict + rationale per item, so tier assignments stay consistent across agents and sessions instead of each one eyeballing it.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/tier-arbiter.md"
+    },
+    {
+      "name": "token-archaeologist",
+      "description": "Design-token extraction worker for existing-project mode — the code-side counterpart of figma-export-tokens. Use PROACTIVELY during existing-project intake (phase 3), and on demand for \"extract the host app's tokens\", \"what's their color palette\", \"pull the theme from the existing codebase\", or \"make /synclair/foundations match the host brand\". Digs the HOST repo's styling source of truth (Tailwind config, CSS custom properties, theme objects — or de-facto tokens mined from repeated raw values) in ITS OWN context and returns a proposed seed: brand ramps + theme values + semantic mapping, ready to write into lib/system/seed/.",
+      "category": "intake",
+      "layer": "foundation",
+      "source": ".claude/agents/token-archaeologist.md"
+    },
+    {
+      "name": "ui-designer",
+      "description": "Generative UI design direction for this project's views — proposes layout, hierarchy, and component composition in Tailwind/shadcn vocabulary before building. Use when starting a view with thin or absent Figma coverage, when a mock's layout doesn't survive contact with the requirement, or when a screen needs a design direction rather than a critique.\\n\\n<example>\\nContext: A view has requirements but no usable mock.\\nuser: \"We need a records log view but the Figma only has an old wireframe\"\\nassistant: \"I'll get a concrete design direction first. Let me use the ui-designer agent to propose the layout and component composition in our shadcn vocabulary.\"\\n<commentary>\\nGenerative direction is needed (not critique) because there's nothing solid to evaluate yet.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The mock's layout fights the requirement.\\nuser: \"The Figma shows this as cards but there could be 400 line items\"\\nassistant: \"Card grids won't survive 400 rows. I'll use the ui-designer agent to propose a dense-table direction that meets the requirement, and we'll note the deviation for the designers.\"\\n<commentary>\\nFoundation-first: the requirement outranks the mock; the agent proposes what to build instead.\\n</commentary>\\n</example>",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/ui-designer.md"
+    },
+    {
+      "name": "ui-visual-validator",
+      "description": "Adversarial visual verification of UI changes. Use PROACTIVELY after building or modifying any view or component, before declaring it done. Assumes the change did NOT work until screenshots prove otherwise. Also on demand for \"verify this screen\", \"does this actually look right?\", or comparing a build against its requirement.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/ui-visual-validator.md"
+    },
+    {
+      "name": "ux-doc-writer",
+      "description": "UX-documentation drafting worker. Use PROACTIVELY when a block or template is registered or promoted to stable (the ux-doc skill's required fields need authoring), when a doc page shows \"docs stale\", when check:ux-docs reports drift, or to drain data/ux-docs/queue.json. Reads the item's source, registry entry, and knowledge digests in ITS OWN context and writes the UX sections of its .docs.tsx — intent, anatomy wireframe, interaction rows, responsive rules — then re-anchors, so the main thread never has to hold component source + PRD context at once.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/agents/ux-doc-writer.md"
+    }
+  ],
+  "generated": {
+    "by": "gen:plugin-manifest",
+    "note": "Derived from the files on disk — edit the capability's frontmatter, not this file."
+  }
+}
