@@ -42,6 +42,8 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { advanceCursor, changesSince, fingerprint } from "./lib/brief-cursor.mjs"
+
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 
 const args = process.argv.slice(2)
@@ -107,10 +109,20 @@ const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 const signals = []
 
+/**
+ * `check:freshness` computes live and caches nothing, so run it ONCE and share
+ * the result — the standing-condition signal and the change feed both need it,
+ * and spawning it twice would double the brief's cold start for no gain.
+ */
+let freshnessReport
+const artifactList = () => {
+  if (freshnessReport === undefined) freshnessReport = runJson("check-freshness.mjs")
+  return Array.isArray(freshnessReport?.artifacts) ? freshnessReport.artifacts : []
+}
+
 /** Generated artifacts whose recorded sources have moved on. */
 function artifactStaleness() {
-  const report = runJson("check-freshness.mjs")
-  const list = Array.isArray(report?.artifacts) ? report.artifacts : []
+  const list = artifactList()
   // `unanchored` and `absent` are NOT findings — the rule that has held since
   // Phase 1. Only a real `stale` counts.
   const stale = list.filter((a) => a?.state === "stale")
@@ -238,34 +250,94 @@ for (const fn of [workInProgress, artifactStaleness, knowledgeStaleness, uxDebt]
   }
 }
 
+/**
+ * The CHANGE FEED — what moved since this developer last saw the brief.
+ *
+ * Reported before the standing condition, because "a component was cataloged"
+ * and "the Billing PRD drifted" are news, while "3 things are stale" is the same
+ * sentence every session until someone acts on it. News first, wallpaper second.
+ */
+let feed = { first: true, events: [] }
+let currentFingerprint = null
+try {
+  currentFingerprint = fingerprint(HUB_ROOT, artifactList())
+  feed = changesSince(HUB_ROOT, currentFingerprint)
+} catch {
+  // No feed is a fine outcome; a broken one must not cost the standing signals.
+}
+
 // ── output ────────────────────────────────────────────────────────────────────
 
 if (asJson) {
+  /**
+   * `--json` NEVER advances the cursor. A machine reading the feed is not a
+   * person seeing it, and marking news as read on their behalf means the next
+   * human session opens with nothing.
+   */
   process.stdout.write(
-    JSON.stringify({ hubRoot: HUB_ROOT, clean: signals.length === 0, signals }, null, 2) + "\n"
+    JSON.stringify(
+      { hubRoot: HUB_ROOT, clean: signals.length === 0 && feed.events.length === 0, signals, feed },
+      null,
+      2
+    ) + "\n"
   )
   process.exit(0)
 }
 
-if (signals.length === 0 && !force) process.exit(0)
+/**
+ * A first run seeds the cursor and says nothing about the feed. Announcing 144
+ * catalog items as "new" on the first session of a populated clone is the
+ * loudest possible way to teach someone to ignore this.
+ */
+if (feed.first && currentFingerprint) advanceCursor(HUB_ROOT, currentFingerprint)
+
+if (signals.length === 0 && feed.events.length === 0 && !force) process.exit(0)
 
 const header = "[synclair] Hub state — derived, not a request. Fix what your task touches; ignore the rest."
-const body = [header, ...signals.map((s) => `  · ${s.line}`)].join("\n")
+const feedLines = feed.events.map((e) => `  → ${e.text}`)
+const body = [
+  header,
+  ...(feedLines.length ? ["  Since you last looked:", ...feedLines] : []),
+  ...signals.map((s) => `  · ${s.line}`),
+].join("\n")
 
-/** The cap truncates whole lines, never mid-sentence, and says that it did. */
+/**
+ * The cap truncates whole lines, never mid-sentence, and says that it did.
+ *
+ * Feed lines come first and are dropped last: news is perishable, the standing
+ * condition is not — it will still be there next session, and `refresh --check`
+ * prints all of it on demand.
+ */
 let out = body
+let feedShown = feedLines.length
 if (out.length > MAX_CHARS) {
+  const budget = MAX_CHARS - header.length - 60
   const kept = []
-  let used = header.length
-  for (const s of signals) {
-    const line = `\n  · ${s.line}`
-    if (used + line.length > MAX_CHARS - 40) break
-    used += line.length
-    kept.push(`  · ${s.line}`)
+  let used = 0
+  feedShown = 0
+  const push = (line, isFeed) => {
+    if (used + line.length + 1 > budget) return false
+    used += line.length + 1
+    kept.push(line)
+    if (isFeed) feedShown++
+    return true
   }
-  const dropped = signals.length - kept.length
+  if (feedLines.length) push("  Since you last looked:", false)
+  for (const l of feedLines) if (!push(l, true)) break
+  for (const s of signals) if (!push(`  · ${s.line}`, false)) break
+  const dropped = feedLines.length + signals.length - (kept.length - (feedLines.length ? 1 : 0))
   out = [header, ...kept, `  · (+${dropped} more — \`npm run refresh -- --check\`)`].join("\n")
 }
 
 process.stdout.write(out + "\n")
+
+/**
+ * Mark as read ONLY what was actually shown. If the cap swallowed part of the
+ * feed, the cursor stays put and the rest arrives next session — a notification
+ * nobody saw must never be recorded as delivered.
+ */
+if (currentFingerprint && !feed.first && feedShown === feedLines.length) {
+  advanceCursor(HUB_ROOT, currentFingerprint)
+}
+
 process.exit(0)

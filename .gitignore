@@ -37,3 +37,8 @@ next-env.d.ts
 
 # Detached host dev-server logs (npm run host:up)
 /.host-servers/
+
+# synclair — per-developer state for the session brief's change feed.
+# NEVER committed: "what I last saw" is personal. Sharing one cursor would mean
+# whoever ran the brief first silently consumed everyone else's notifications.
+/data/.local/

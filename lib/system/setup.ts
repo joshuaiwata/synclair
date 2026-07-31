@@ -14,8 +14,13 @@ import path from "node:path"
  *   skills/knowledge travel with the code, so agents building in the repo get
  *   them ambiently. Two-way.
  * - `watcher` — Synclair is a SEPARATE paired repo BESIDE the product (two
- *   repos, the default `docs/existing-project.md` sibling clone). It observes and
- *   documents the host; nothing lands in the host repo. One-way.
+ *   repos). It observes and documents the host; nothing lands in the host repo.
+ *   One-way. **DEPRECATED as a default (2026-07-31)** — every clone that has ever
+ *   stuck is `embedded`, and watcher structurally cannot commit its own wiring
+ *   (paths cross a repo boundary, so `.mcp.json` and hooks must be absolute and
+ *   gitignored, and every developer re-runs setup by hand). Kept for the one case
+ *   it genuinely serves: a host you cannot or should not commit into. Still
+ *   supported, no longer recommended — see `docs/setup-modes.md`.
  *
  * A third value is the *absence* of a resolved mode: **blank / unresolved** — the
  * transient state of a fresh clone before setup records anything. "Standalone /
