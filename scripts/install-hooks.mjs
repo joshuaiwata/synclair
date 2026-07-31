@@ -71,7 +71,7 @@ const block = [
   `  _sc_out=$(cd "${HUB_ROOT}" && node scripts/check-freshness.mjs --json 2>/dev/null \\`,
   `    | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{`,
   `      const a=JSON.parse(d).artifacts.filter(x=>x.state==="stale");`,
-  `      if(a.length)console.log("synclair: "+a.map(x=>x.artifact).join(", ")+" drifted — npm run check:freshness");`,
+  `      if(a.length)console.log("synclair: "+a.map(x=>x.artifact).join(", ")+" drifted — cd synclair && npm run refresh");`,
   `    }catch{}})' 2>/dev/null)`,
   `  [ -n "$_sc_out" ] && echo "$_sc_out"`,
   `fi`,
