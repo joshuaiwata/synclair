@@ -198,7 +198,37 @@ function uxDebt() {
   }
 }
 
-for (const fn of [artifactStaleness, knowledgeStaleness, uxDebt]) {
+/**
+ * What the WORK IN PROGRESS has already touched — the one signal that is about
+ * this session rather than about the repo's standing condition.
+ *
+ * Deliberately quiet: it fires only when uncommitted changes reach something the
+ * hub documents, and it names counts, not lists. The point is to catch the case
+ * where someone has edited a shared component and has no idea a UX doc and
+ * fourteen screens now describe something else.
+ */
+function workInProgress() {
+  const r = runJson("impact.mjs")
+  if (!r || !Array.isArray(r.changed) || r.changed.length === 0) return null
+  const screens = r.pages?.length ?? 0
+  const docs = r.docs?.length ?? 0
+  const specs = r.knowledge?.length ?? 0
+  const unknown = r.reachUnknown?.length ?? 0
+  if (screens + docs + specs + unknown === 0) return null
+  const parts = []
+  if (screens) parts.push(`${plural(screens, "screen")}`)
+  if (docs) parts.push(`${plural(docs, "UX doc")}`)
+  if (specs) parts.push(`${plural(specs, "spec")}`)
+  // Unknown reach is reported, never rounded down to zero.
+  if (unknown) parts.push(`${unknown} item(s) whose screen reach is unmapped`)
+  return {
+    key: "impact",
+    line: `Your uncommitted changes touch ${parts.join(", ")} — \`npm run impact\` lists them.`,
+    count: screens + docs + specs + unknown,
+  }
+}
+
+for (const fn of [workInProgress, artifactStaleness, knowledgeStaleness, uxDebt]) {
   try {
     const s = fn()
     if (s) signals.push(s)
