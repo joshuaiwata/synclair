@@ -75,18 +75,40 @@ function counts() {
   const knowledge = (readText("lib/system/knowledge/sources.ts") ?? "").match(/\bid:\s*"/g)?.length ?? 0
 
   const items = Array.isArray(reg?.items) ? reg.items : []
-  const tier = (t) =>
-    items.filter((i) => (i.type ?? "").includes(t)).length
-      + (cat?.items ?? []).filter((i) => (i.kind ?? "component") === t).length
+
+  /**
+   * shadcn registry type → tier. Substring-matching each tier name separately
+   * meant `registry:page` matched NONE of them and vanished from every count;
+   * it's a whole view, so it belongs with templates. Must agree with
+   * `tierOf` in scripts/mcp-server.mjs — two places reporting different
+   * totals for the same library is worse than either number alone.
+   */
+  const nativeTier = (type) =>
+    (type ?? "").includes("block")
+      ? "block"
+      : (type ?? "").includes("template") || (type ?? "").includes("page")
+        ? "template"
+        : "component"
+
+  /**
+   * Counted per ORIGIN, never summed. Synclair's own chrome and the product's
+   * catalogue are different questions, and a combined figure disagrees with the
+   * hub — which shows the host's count for the surface you're looking at.
+   */
+  const nativeBy = (t) => items.filter((i) => nativeTier(i.type) === t).length
+  const hostBy = (t) => (cat?.items ?? []).filter((i) => (i.kind ?? "component") === t).length
 
   return {
     setupMode: setup?.mode ?? null,
     hosts: (cat?.hosts ?? []).map((h) => h.name ?? h.root).filter(Boolean),
     native: items.length,
     host: (cat?.items ?? []).length,
-    components: tier("component"),
-    blocks: tier("block"),
-    templates: tier("template"),
+    nativeComponents: nativeBy("component"),
+    nativeBlocks: nativeBy("block"),
+    nativeTemplates: nativeBy("template"),
+    hostComponents: hostBy("component"),
+    hostBlocks: hostBy("block"),
+    hostTemplates: hostBy("template"),
     pages: (pages?.pages ?? []).length,
     pagesRepo: pages?.repo?.name ?? null,
     areas: (sys?.areas ?? []).length,
@@ -126,13 +148,19 @@ function buildBlock() {
     + (c.hosts.length ? ` · hosts: ${c.hosts.join(", ")}` : "")
   )
 
-  const lib = c.native + c.host
-  lines.push(
-    lib
-      ? `- **Library** — ${c.components} components · ${c.blocks} blocks · ${c.templates} templates`
-        + ` (${c.native} native, ${c.host} host)`
-      : "- **Library** — empty (no components catalogued yet)"
-  )
+  const tiers = (comp, blk, tpl) => `${comp} components · ${blk} blocks · ${tpl} templates`
+  if (!c.native && !c.host) {
+    lines.push("- **Library** — empty (no components catalogued yet)")
+  } else if (c.host) {
+    // Companion mode: lead with the PRODUCT's catalogue — that's what anyone
+    // building here means — and keep Synclair's own chrome as a separate line.
+    lines.push(`- **Library (host)** — ${tiers(c.hostComponents, c.hostBlocks, c.hostTemplates)}`)
+    lines.push(
+      `- **Library (Synclair's own)** — ${tiers(c.nativeComponents, c.nativeBlocks, c.nativeTemplates)}`
+    )
+  } else {
+    lines.push(`- **Library** — ${tiers(c.nativeComponents, c.nativeBlocks, c.nativeTemplates)}`)
+  }
 
   lines.push(
     c.pages
