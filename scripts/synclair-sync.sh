@@ -74,10 +74,28 @@ SEED_OURS=(
   "data/"
   "memory/"
   ".claude/skills/product-spec/references/"
+  # This project's registered live-preview scenes for ITS host components
+  # (port-host-component / Path A). Upstream ships a two-example stub, so taking
+  # upstream's version silently unregisters every scene — a real clone went from
+  # 148 registrations to 2, and every gallery card fell back to a bare
+  # `<Component />` placeholder. Nothing else in the repo notices; the catalog
+  # still lists the items, they just stop rendering.
+  "components/host-previews/"
 )
 
 # MIXED — seed identity and foundation content share the file; resolve by hand.
 MIXED=(
+  # ── HOST WIRING ────────────────────────────────────────────────────────────
+  # These carry foundation structure PLUS the paths that connect this clone to
+  # ITS host, and they fail as a group. `next.config.ts` sets `turbopack.root`
+  # to the monorepo root and registers the host-self-alias loader;
+  # `tsconfig.json` declares the @host/* and project aliases the preview scenes
+  # import through. Upstream has neither, so taking either wholesale breaks
+  # Path A rendering, and the symptom is the same in every case — every gallery
+  # card degrades to a bare `<Component />` placeholder with no error until you
+  # open a page. Treat host wiring as project content, always.
+  "next.config.ts"
+  "tsconfig.json"
   "app/globals.css"
   "package.json"
   "package-lock.json"
