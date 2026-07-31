@@ -30,6 +30,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
+
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const SERVER_REL = path.join("scripts", "mcp-server.mjs")
 
@@ -51,35 +53,12 @@ function readJson(p) {
 }
 
 /**
- * Work out where the product repo is and how this clone sits relative to it.
- * `data/setup.json` records the topology; an explicit `--host` always wins.
+ * Where the product repo is, and how this clone sits relative to it, now lives
+ * in `scripts/lib/topology.mjs` — shared with `install-agent-hooks.mjs`, which
+ * needs the identical answer. Same reasoning that extracted `host-walk.mjs`:
+ * the second copy is the moment to extract, because the third guarantees drift.
  */
-function resolveTarget() {
-  const explicit = flag("--host")
-  const setup = readJson(path.join(HUB_ROOT, "data", "setup.json")) ?? {}
-
-  if (explicit) {
-    const hostRoot = path.resolve(process.cwd(), explicit)
-    return { hostRoot, mode: setup.mode ?? "explicit" }
-  }
-
-  // Embedded: the clone is a subdirectory of the product repo.
-  if (setup.mode === "embedded") {
-    return { hostRoot: path.dirname(HUB_ROOT), mode: "embedded" }
-  }
-
-  // Watcher: the host path is recorded by intake; fall back to asking.
-  if (setup.mode === "watcher") {
-    const hostRel = setup.hostRoot ?? setup.host?.root
-    if (!hostRel) return { hostRoot: null, mode: "watcher" }
-    return { hostRoot: path.resolve(HUB_ROOT, hostRel), mode: "watcher" }
-  }
-
-  // No mode recorded — this clone IS the project (standalone / new-project).
-  return { hostRoot: HUB_ROOT, mode: setup.mode ?? "standalone" }
-}
-
-const { hostRoot, mode } = resolveTarget()
+const { hostRoot, mode } = resolveTarget(HUB_ROOT, flag("--host"))
 
 if (!hostRoot) {
   console.error(
@@ -93,10 +72,8 @@ if (!hostRoot) {
  * Embedded and standalone can use a repo-relative path (committable). Watcher
  * crosses a repo boundary, so it must be absolute and must not be committed.
  */
-const embeddedish = mode === "embedded" || mode === "standalone" || hostRoot === HUB_ROOT
-const serverPath = embeddedish
-  ? path.relative(hostRoot, path.join(HUB_ROOT, SERVER_REL)) || SERVER_REL
-  : path.join(HUB_ROOT, SERVER_REL)
+const embeddedish = isEmbeddedish(HUB_ROOT, hostRoot, mode)
+const serverPath = scriptPathFor(HUB_ROOT, hostRoot, mode, SERVER_REL)
 
 const entry = { command: "node", args: [serverPath], env: {} }
 

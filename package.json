@@ -26,7 +26,10 @@
     "check:freshness": "node scripts/check-freshness.mjs",
     "refresh": "node scripts/refresh.mjs",
     "check:knowledge": "node scripts/check-knowledge.mjs",
+    "check:knowledge-local": "node scripts/check-knowledge-local.mjs",
     "install:hooks": "node scripts/install-hooks.mjs",
+    "install:agent-hooks": "node scripts/install-agent-hooks.mjs",
+    "brief": "node scripts/agent-brief.mjs",
     "scan:pages": "node scripts/scan-pages.mjs",
     "scan:system": "node scripts/scan-system.mjs",
     "map:pages": "npm run scan:pages && npm run resolve:pages && npm run check:pages -- --reanchor",
@@ -43,7 +46,7 @@
     "mcp:install": "node scripts/mcp-install.mjs",
     "bridge:agents": "node scripts/bridge-agents.mjs",
     "check:agent-bridge": "node scripts/bridge-agents.mjs --check",
-    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host",
+    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host",
     "postinstall": "patch-package"
   },
   "dependencies": {

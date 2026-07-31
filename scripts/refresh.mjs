@@ -14,9 +14,11 @@
  *   reach for a component, what a PRD now says. No script writes that, and a
  *   script that tried would produce confident fiction.
  *
- * This matters here specifically because the agent-driven auto-sync was retired
- * (see .github/workflows/synclair-catalog.yml): it ran a model on every PR,
- * cost real tokens, and minted preview scenes on branches that then collided.
+ * This matters here specifically because the agent-driven auto-sync was NARROWED
+ * (see .github/workflows/synclair-catalog.yml): running a model on every PR push
+ * cost real tokens and minted preview scenes on branches that then collided, so
+ * the agent job now fires only on PR open/reopen/ready-for-review, and only when
+ * an ANTHROPIC_API_KEY secret is present. The cheap scan still runs every push.
  * Everything below is deterministic — no model, no network, no tokens — so it's
  * safe to run on a hook, in CI, or fifty times a day. Repowise gets continuous
  * freshness the same way: its index is derived, so `update` is cheap enough to
@@ -200,7 +202,7 @@ else {
 
 console.log(
   `  Everything above the line is deterministic — no model, no network, no tokens.\n`
-  + `  Safe on a hook or in CI, unlike the agent-driven auto-sync this replaces.\n`
+  + `  Safe on a hook or in CI, unlike the agent-driven PR auto-sync it complements.\n`
 )
 
 process.exit(checkOnly && failed ? 1 : 0)
