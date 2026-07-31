@@ -259,6 +259,32 @@ if (hostAliasTargets.length > 0 && existsSync(hostPreviewsDir)) {
       .replace(/^\s*\/\/.*$/gm, "");
     for (const m of src.matchAll(/from\s+"@host\/([^"]+)"/g)) {
       const resolved = path.resolve(hostAliasTargets[0], m[1]);
+
+      /**
+       * Does the module actually exist? `registry.tsx` STATICALLY imports every
+       * scene, so one unresolvable specifier is a build error that takes down
+       * the whole library route — every card, not just this one. On a real
+       * clone two stale scenes 500'd all 148. Catching it here turns a total
+       * outage into a named finding.
+       *
+       * node_modules is exempt below (dependency resolution isn't ours), and a
+       * missing host tree is not a failure — that's a clone whose host simply
+       * isn't checked out, which `check:host` already reports.
+       */
+      const hostTreePresent = hostAliasTargets.some((t) => existsSync(t));
+      if (hostTreePresent && !m[1].split("/").includes("node_modules")) {
+        const found = [".ts", ".tsx", ".js", ".jsx", ""].some((ext) => existsSync(resolved + ext))
+          || ["/index.ts", "/index.tsx", "/index.js"].some((ix) => existsSync(resolved + ix));
+        if (!found) {
+          errors.push(
+            `host-previews: ${f} imports "@host/${m[1]}", which does not exist. `
+            + `registry.tsx imports every scene statically, so this breaks the ENTIRE library `
+            + `route, not just this card. Fix the path, or unregister the scene until the host `
+            + `component lands.`
+          );
+        }
+      }
+
       const dir = path.dirname(resolved);
       if (dir.startsWith(root + path.sep)) continue; // hub tree: auto-scanned
       // Dependencies are precompiled or the host build's concern — Tailwind

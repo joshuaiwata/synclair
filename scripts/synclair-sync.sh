@@ -174,6 +174,10 @@ git merge-base HEAD "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1 || {
   merge_flags+=(--allow-unrelated-histories)
 }
 
+# Remember where this clone stood, so the post-merge audit below can tell what
+# the merge REMOVED — including from files that never conflicted.
+pre_merge_ref=$(git rev-parse HEAD)
+
 # ${arr[@]+"${arr[@]}"}: stock macOS bash 3.2 + set -u errors on expanding an
 # empty array — and the array IS empty on every normal (shared-ancestry) sync.
 if git merge ${merge_flags[@]+"${merge_flags[@]}"} --no-edit "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1; then
@@ -212,6 +216,38 @@ else
     echo ""
     echo "Then: git commit --no-edit"
   fi
+fi
+
+# ── POST-MERGE AUDIT ─────────────────────────────────────────────────────────
+# Classification only protects files that CONFLICT. A SEED or MIXED file whose
+# two sides touched different regions merges cleanly and loses the project's
+# content without ever being surfaced — that is exactly how a real clone lost
+# every `@source` line from app/globals.css (a MIXED file) and stopped styling
+# its host previews, with nothing reported.
+#
+# So compare every SEED/MIXED path against where the clone stood before the
+# merge and report any that LOST lines, conflict or not.
+audit_paths=()
+for s in "${SEED_OURS[@]}"; do audit_paths+=("$(qualify "$s")"); done
+for m in "${MIXED[@]}"; do audit_paths+=("$(qualify "$m")"); done
+
+shrunk=()
+while IFS= read -r p; do
+  [[ -n "$p" ]] || continue
+  before=$(git show "$pre_merge_ref:$p" 2>/dev/null | wc -l | tr -d ' ')
+  after=$(git show ":$p" 2>/dev/null | wc -l | tr -d ' ')
+  [[ -z "$after" || "$after" == "0" ]] && after=$(wc -l < "$p" 2>/dev/null | tr -d ' ')
+  if [[ -n "$before" && -n "$after" && "$before" -gt 0 && "$after" -lt "$before" ]]; then
+    shrunk+=("$p ($before → $after lines)")
+  fi
+done < <(git diff --name-only "$pre_merge_ref" -- ${audit_paths[@]+"${audit_paths[@]}"} 2>/dev/null)
+
+if [[ ${#shrunk[@]} -gt 0 ]]; then
+  echo ""
+  echo "⚠ PROJECT CONTENT SHRANK — these are yours, and the merge made them smaller:"
+  for p in "${shrunk[@]}"; do echo "   $p"; done
+  echo "   Review each before committing:  git diff $pre_merge_ref -- <path>"
+  echo "   Restore one wholesale with:     git checkout $pre_merge_ref -- <path>"
 fi
 
 # Stamp the call-home baseline (data/mother.json is SEED, so the merge keeps
