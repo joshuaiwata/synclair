@@ -22,6 +22,8 @@
     "check:ux-docs": "node scripts/check-ux-docs.mjs",
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",
+    "check:freshness": "node scripts/check-freshness.mjs",
+    "install:hooks": "node scripts/install-hooks.mjs",
     "scan:pages": "node scripts/scan-pages.mjs",
     "map:pages": "npm run scan:pages && npm run resolve:pages && npm run check:pages -- --reanchor",
     "resolve:pages": "node scripts/resolve-page-items.mjs",
