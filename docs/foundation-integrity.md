@@ -1,6 +1,7 @@
 # Foundation integrity — plan
 
-**Status: proposed. Nothing built.** Third in the series:
+**Status: M4 and M7 ✅ BUILT and validated; M1, M2, M3, M5, M6, M8 proposed.**
+Third in the series:
 [`extensibility.md`](extensibility.md) draws the Core/Extension line,
 [`agent-interface.md`](agent-interface.md) covers how Synclair's knowledge
 *reaches* agents, this one covers whether what it says is **true, scoped, scored
@@ -252,7 +253,7 @@ Feeds M2 directly: an unverified claim is the clearest confidence signal there i
 
 ---
 
-## M4 — Delivery ⬜
+## M4 — Delivery ✅ BUILT
 
 *Cheapest item here and the biggest practical gain. A basic version ships alone,
 today.*
@@ -283,6 +284,30 @@ the same line `mcp:install` draws, for the same reason.
 - Install → `--remove` → settings file byte-identical.
 - An unrelated existing hook still fires after install and after removal.
 - Never installed by `postinstall`.
+
+### What shipped
+
+`scripts/agent-brief.mjs` (`npm run brief`) and `scripts/install-agent-hooks.mjs`
+(`npm run install:agent-hooks`). 23 acceptance checks pass, and the whole cycle —
+install, run from the host root, remove — was exercised against the reference
+clone's real, content-rich `.claude/settings.json` and came back byte-identical.
+
+Measured on that clone: **90ms, 236 characters (~59 tokens)** for three real
+findings. Embedded topology writes a repo-relative path, so the hook is
+committable and arrives on clone.
+
+**The finding that changed the design.** The first version reported UX-doc debt
+for every item, and went off immediately on the mother repo — five stale docs,
+all of them the hub's own skin. Those ship *with* Synclair and sync from
+upstream, so every clone would inherit them and every session in every clone
+would open with a line about work nobody in that repo can do. Debt is now scoped
+by `meta.layer`: the brief reports what the project owns, `refresh --check` still
+reports everything for whoever maintains the foundation. `check:ux-docs` gained
+`--json` (additive; its human output is untouched) to carry the layer.
+
+Topology resolution moved to `scripts/lib/topology.mjs`, shared with
+`mcp-install` — extracted at the second copy, as `host-walk.mjs` was, and
+verified byte-identical against a captured baseline.
 
 ## M5 — The rulings layer ⬜
 
@@ -337,7 +362,7 @@ pages map.
 - Every unmatched consumer carries a reason; an unexplained drop is a bug.
 - Single-surface project: no surface chrome anywhere (`isMultiSurface()` gate).
 
-## M7 — Local sources and scoped staleness ⬜
+## M7 — Local sources and scoped staleness ✅ BUILT
 
 *The users' request, now one consumer of M1 and M3 rather than the whole plan.*
 
@@ -359,6 +384,59 @@ verify perfectly. Today Drive and Notion sources can't be probed at all.
 - Reformat the file without changing wording → **no** finding.
 - Delete the file → `unreachable`, not a crash and not `fresh`.
 - Both topologies: embedded resolves against repo root, watcher against host root.
+
+### What shipped
+
+`scripts/lib/local-source.mjs`, wired into `check:knowledge`, plus
+`--discover`. `path` is a new optional field on `KnowledgeSource`; a `url`
+pointing at a blob in this repo infers the same thing, so **existing entries need
+no edit**. Section drift comes from git — `distilledAt` plus history already says
+what the file looked like when the digest was written, so it needs no new
+bookkeeping and no agent cooperation. Git is the shared DB (spec §11).
+
+38 integration checks against the reference clone, plus **29 hermetic checks in
+`npm run check:knowledge-local`**, now part of `verify-ui`. The hermetic test
+builds its own throwaway repo with explicit commit timestamps, so it runs in any
+clone with no network and no fixture.
+
+What it found on the reference clone: **7 real PRDs in `.prds/` that the manifest
+never mentioned** — the team had already done what the users asked for, and the
+hub could not see it. A queue entry now reads `changed "Problem Statement"
+(46 untouched, vs a0a63de4)` instead of "re-distill this document".
+
+### Four defects the real data caught
+
+Each is now a case in the self-test. All four were quiet-wrong-answer bugs, which
+is the failure mode this mechanism must not have:
+
+1. **An SSH host alias disabled it entirely.** The slug matcher required literal
+   `github.com`; this machine's remote is `git@github-work:…`, and `insteadOf`
+   rewrites do the same thing invisibly. Local detection silently no-opped on
+   exactly the multi-account setups most likely to have several repos in play.
+   It now reads every remote and requires only that the host *look* like GitHub.
+2. **Two commits in the same second made an edit vanish.** `--before` is
+   inclusive, so it picked the newer commit and concluded nothing had changed.
+   The bound is now strict, and ambiguity resolves to `stale`: a false `stale`
+   costs someone a glance, a false `fresh` costs them the belief that the hub is
+   worth reading.
+3. **YAML frontmatter using `#` group labels** titled all seven PRDs "Document
+   Identity" and inflated every section count. Frontmatter is now one clearly
+   labelled pseudo-section, and its delimiters tolerate trailing whitespace — so
+   a formatter run can't make a document's frontmatter vanish and promote every
+   label to a heading.
+4. **`localPath: null, sections: null` on every remote source** added ~70 lines
+   of diff to a committed cache in clones with no local sources at all. Omitted
+   when absent — the same discipline as `unanchored`.
+
+Whitespace is normalised before hashing (trailing spaces, blank-line runs), so a
+prettier pass across the repo doesn't flag every section of every spec. It cannot
+hide a wording change.
+
+### Proof of inertness
+
+On a clone with no local sources, the new script's output is **byte-identical**
+to the pristine one it replaces. On a blank seed it reports the manifest is empty
+and writes nothing new.
 
 ## M8 — Derived health rollup ⬜
 
@@ -382,8 +460,8 @@ than replacing it — the numbers become derived, the interpretation stays autho
 
 | | Ships alone? | Depends on |
 |---|---|---|
-| **M4** Delivery (basic) | **yes** | nothing — `refresh --check` already works |
-| **M7** Local sources | **yes** | nothing; better with M1, M3 |
+| **M4** Delivery (basic) ✅ | **yes** | nothing — `refresh --check` already works |
+| **M7** Local sources ✅ | **yes** | nothing; better with M1, M3 |
 | **M6** Seam | **yes** | reuses `scan-system` |
 | **M2** Confidence | **yes** | fields already exist; better with M3 |
 | **M1** Graph | yes | nothing |
@@ -391,7 +469,23 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M5** Rulings | no | M1 (governance), M3 (evidence), M4 (delivery) |
 | **M8** Rollup | no | M1–M3 |
 
-**Recommended order: M4 → M7 → M1 → M2 → M3 → M6 → M5 → M8.**
+**Recommended order: M4 → M7 → M1 → M2 → M3 → M6 → M5 → M8.** The first two are
+done; M1 is next.
+
+### How these were validated, and how to repeat it
+
+Against a throwaway cut of **`toolbeltwork/platform:design`** — embedded hub, 34
+knowledge sources, 13 apps, 7 in-repo PRDs. The source repo was never modified:
+the cut fetches `refs/remotes/origin/design` by full ref name into a fresh
+`git init`, which needs no worktree on the source and no network. Every fix was
+re-tested on a **freshly re-cut clone**, not a patched one, because a clone that
+has already run the harness is no longer pristine — that bit once, when discovery
+reported 6 PRDs instead of 7 because an earlier test had deleted one.
+
+Two things a repeat run must keep: overlay the working tree against `main`
+(not `main...HEAD` — the work under test is uncommitted, and a merge-base diff
+silently overlays nothing and "passes" against pristine code), and never overlay
+`data/`, which is per-clone seed.
 
 M4 and M7 first because they're small, independent, and between them close the
 delivery gap and the users' request — most of the felt value. M1 next because
