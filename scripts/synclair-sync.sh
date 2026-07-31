@@ -21,8 +21,11 @@
 #
 set -euo pipefail
 
-UPSTREAM_URL="https://github.com/joshuaiwata/synclair.git"
-UPSTREAM_BRANCH="main"
+UPSTREAM_URL="${SYNCLAIR_UPSTREAM_URL:-https://github.com/joshuaiwata/synclair.git}"
+# Overridable so a foundation change can be REHEARSED in a real clone before it
+# merges. Without this the only way to test an unmerged foundation branch is to
+# merge it first, which is precisely the wrong order.
+UPSTREAM_BRANCH="${SYNCLAIR_UPSTREAM_BRANCH:-main}"
 
 # ── TOPOLOGY ─────────────────────────────────────────────────────────────────
 # Where this clone sits decides where the merge must land (docs/setup-modes.md).
