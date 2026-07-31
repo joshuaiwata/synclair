@@ -259,6 +259,44 @@ if (hostAliasTargets.length > 0 && existsSync(hostPreviewsDir)) {
       .replace(/^\s*\/\/.*$/gm, "");
     for (const m of src.matchAll(/from\s+"@host\/([^"]+)"/g)) {
       const resolved = path.resolve(hostAliasTargets[0], m[1]);
+
+      /**
+       * Does the module actually exist? `registry.tsx` STATICALLY imports every
+       * scene, so one unresolvable specifier is a build error that takes down
+       * the whole library route — every card, not just this one. On a real
+       * clone two stale scenes 500'd all 148. Catching it here turns a total
+       * outage into a named finding.
+       *
+       * A missing host tree is NOT a failure — that's a clone whose host simply
+       * isn't checked out, which `check:host` already reports.
+       *
+       * node_modules is deliberately NOT exempt. These are explicit `@host/…`
+       * paths an author wrote, not bare specifiers the resolver invents, and a
+       * scene reaching into the host's own `node_modules` (to share a package
+       * instance with the host's build) breaks exactly the same way when it's
+       * absent. Exempting it hid a real failure in testing — the remedy just
+       * differs, so the message differs.
+       */
+      const hostTreePresent = hostAliasTargets.some((t) => existsSync(t));
+      if (hostTreePresent) {
+        const found = [".ts", ".tsx", ".js", ".jsx", ""].some((ext) => existsSync(resolved + ext))
+          || ["/index.ts", "/index.tsx", "/index.js", "/package.json"].some((ix) =>
+            existsSync(resolved + ix)
+          );
+        if (!found) {
+          const isDep = m[1].split("/").includes("node_modules");
+          errors.push(
+            `host-previews: ${f} imports "@host/${m[1]}", which does not exist. `
+            + `registry.tsx imports every scene statically, so this breaks the ENTIRE library `
+            + `route, not just this card. `
+            + (isDep
+              ? `That path is inside the host's node_modules — install the host's dependencies `
+                + `(e.g. pnpm install at the workspace root) so the preview can share its package instance.`
+              : `Fix the path, or unregister the scene until the host component lands.`)
+          );
+        }
+      }
+
       const dir = path.dirname(resolved);
       if (dir.startsWith(root + path.sep)) continue; // hub tree: auto-scanned
       // Dependencies are precompiled or the host build's concern — Tailwind

@@ -158,6 +158,58 @@ function hostEntry(alias, root, srcBase) {
 let cachedHosts = null
 
 /** Resolve the host trees this hub can live-import from. */
+/**
+ * Hosts the clone already declares for itself, in `data/external-catalog.json`
+ * — maintained by intake, one entry per surface, roots relative to the hub.
+ *
+ * This exists because the tsconfig fallback below cannot describe a MONOREPO.
+ * There, `@host/*` points at the workspace root (`../*`), so the fallback
+ * derives exactly one host tree rooted there — and a file in
+ * `apps/prototype/src/…` importing `@/lib/utils` gets rewritten to
+ * `@host/lib/utils` (the workspace root) instead of
+ * `@host/apps/prototype/src/lib/utils`. Every live preview in that surface
+ * then fails to resolve. The catalog knows the real roots, so ask it.
+ *
+ * The prefix has to span alias-target → host root → the host's own `@/` base,
+ * because the rewrite lands under `@host/*` and that alias points at the
+ * workspace root, not at any one app.
+ */
+function hostsFromCatalog() {
+  const cat = readJsonc(path.join(HUB_ROOT, "data", "external-catalog.json"))
+  const declared = Array.isArray(cat?.hosts) ? cat.hosts : cat?.host ? [cat.host] : []
+  if (declared.length === 0) return []
+
+  const paths = readJsonc(path.join(HUB_ROOT, "tsconfig.json"))?.compilerOptions?.paths ?? {}
+  const out = []
+  for (const h of declared) {
+    if (!h || typeof h.root !== "string") continue
+    const rootAbs = path.resolve(HUB_ROOT, h.root)
+    // Prefer a per-surface alias when the hub declares one, else the generic.
+    const surfaceKey = h.surface ? `@host-${h.surface}/*` : null
+    const key = surfaceKey && Array.isArray(paths[surfaceKey]) ? surfaceKey : "@host/*"
+    const target = Array.isArray(paths[key]) ? paths[key][0] : null
+    if (typeof target !== "string") continue
+
+    const aliasTargetAbs = path.resolve(HUB_ROOT, dropStar(target))
+    const rel = path.relative(aliasTargetAbs, rootAbs)
+    // A host outside the alias tree can't be addressed through it — skip rather
+    // than emit a prefix that resolves somewhere wrong.
+    if (rel.startsWith("..") || path.isAbsolute(rel)) continue
+
+    const base = hostSrcBase(rootAbs)
+    const seg = [rel.split(path.sep).join("/"), base].filter(Boolean).join("/")
+    out.push({ root: rootAbs, prefix: `${key.replace("/*", "")}/${seg ? `${seg}/` : ""}` })
+  }
+  return out
+}
+
+/**
+ * Deepest root first. Host trees nest (a workspace root and an app inside it),
+ * and the rewrite takes the FIRST containing entry — so the most specific match
+ * has to come first or a nested app silently resolves against its parent.
+ */
+const bySpecificity = (entries) => entries.sort((a, b) => b.root.length - a.root.length)
+
 function hostTrees(options) {
   if (cachedHosts) return cachedHosts
   const entries = []
@@ -174,20 +226,28 @@ function hostTrees(options) {
       )
     }
   } else {
-    // Same source of truth the rewrite resolves against: the hub tsconfig's
-    // `@host/*` (or `@host-<surface>/*`) path targets.
+    // The clone's own declaration of where its hosts live — correct for
+    // monorepos, which the tsconfig alias alone cannot express.
+    entries.push(...hostsFromCatalog())
+
+    // Then the hub tsconfig's `@host/*` (or `@host-<surface>/*`) targets — the
+    // same alias the rewrite lands on. Kept even when the catalog answered, so
+    // an uncatalogued host still resolves; specificity ordering means the
+    // catalog's deeper roots win wherever both apply.
     const paths = readJsonc(path.join(HUB_ROOT, "tsconfig.json"))?.compilerOptions?.paths ?? {}
     for (const [key, targets] of Object.entries(paths)) {
       const m = /^(@host(?:-[A-Za-z0-9_-]+)?)\/\*$/.exec(key)
       if (!m || !Array.isArray(targets)) continue
       for (const target of targets) {
         if (typeof target !== "string") continue
-        entries.push(hostEntry(m[1], path.resolve(HUB_ROOT, dropStar(target)), null))
+        const root = path.resolve(HUB_ROOT, dropStar(target))
+        if (entries.some((e) => e.root === root)) continue
+        entries.push(hostEntry(m[1], root, null))
       }
     }
   }
-  cachedHosts = entries
-  return entries
+  cachedHosts = bySpecificity(entries)
+  return cachedHosts
 }
 
 module.exports = function hostSelfAliasLoader(source) {

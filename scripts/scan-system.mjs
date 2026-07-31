@@ -39,7 +39,21 @@ const check = args.includes("--check")
 const write = args.includes("--write")
 const asJson = args.includes("--json")
 
-const existing = existsSync(MAP_PATH) ? JSON.parse(readFileSync(MAP_PATH, "utf8")) : {}
+/** Corrupt input reports itself rather than throwing a stack trace at the user. */
+function readExisting() {
+  if (!existsSync(MAP_PATH)) return {}
+  try {
+    return JSON.parse(readFileSync(MAP_PATH, "utf8"))
+  } catch (e) {
+    console.error(
+      `data/system-map.json is not valid JSON (${e instanceof Error ? e.message : e}).\n`
+      + "  Fix the file (or restore it from git) and re-run."
+    )
+    process.exit(1)
+  }
+}
+
+const existing = readExisting()
 const target = flag("--host") ?? existing?.repo?.root ?? null
 const REPO = target ? path.resolve(ROOT, target) : ROOT
 

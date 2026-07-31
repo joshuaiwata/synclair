@@ -42,7 +42,26 @@ const printOnly = args.includes("--print")
 
 // --------------------------------------------------------------- host guard
 
-const existing = existsSync(MAP_PATH) ? JSON.parse(readFileSync(MAP_PATH, "utf8")) : {}
+/**
+ * A corrupt map must report itself, not throw a stack trace. It also must NOT
+ * be treated as "no map" — that would silently discard every summary in it on
+ * the next write.
+ */
+function readExisting() {
+  if (!existsSync(MAP_PATH)) return {}
+  try {
+    return JSON.parse(readFileSync(MAP_PATH, "utf8"))
+  } catch (e) {
+    console.error(
+      `data/pages-map.json is not valid JSON (${e instanceof Error ? e.message : e}).\n`
+      + "  Refusing to scan — rewriting now would destroy whatever prose it still holds.\n"
+      + "  Fix the file (or restore it from git) and re-run."
+    )
+    process.exit(1)
+  }
+}
+
+const existing = readExisting()
 
 /**
  * Same boundary `resolve-page-items.mjs` draws, and for the same reason: this

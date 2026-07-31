@@ -157,8 +157,17 @@ const lower = (s) => (s ?? "").toString().toLowerCase()
 function registryItems() {
   const reg = readJson("registry.json")
   if (!reg || reg.__unreadable || !Array.isArray(reg.items)) return []
+  /**
+   * shadcn registry types → Synclair tiers. `registry:page` is a whole view, so
+   * it belongs with templates — it was falling through to "component" and
+   * inflating that count.
+   */
   const tierOf = (type) =>
-    type?.includes("block") ? "block" : type?.includes("template") ? "template" : "component"
+    type?.includes("block")
+      ? "block"
+      : type?.includes("template") || type?.includes("page")
+        ? "template"
+        : "component"
   return reg.items.map((it) => ({
     name: it.name,
     tier: tierOf(it.type),
@@ -173,6 +182,13 @@ function registryItems() {
   }))
 }
 
+/**
+ * Field names here MUST match `ExternalItem` in lib/system/external.ts. They
+ * didn't: `path` read `it.source ?? it.path` and `usageCount` read
+ * `it.usageCount`, neither of which exists — so every catalogued component came
+ * back with `path: undefined` (145/145 on a real clone) while the response
+ * looked perfectly well-formed. `check-mcp-contract.mjs` guards this now.
+ */
 function externalItems() {
   const cat = readJson("data/external-catalog.json")
   if (!cat || cat.__unreadable || !Array.isArray(cat.items)) return []
@@ -180,12 +196,13 @@ function externalItems() {
     name: it.name,
     tier: it.kind ?? "component",
     title: it.title ?? it.name,
-    description: it.summary ?? it.description,
+    description: it.description,
     origin: "host",
     status: it.status,
-    path: it.source ?? it.path,
+    path: it.hostPath,
     surface: it.surface,
-    usageCount: it.usageCount,
+    basis: it.basis,
+    usageCount: it.usage?.fileCount,
   }))
 }
 
@@ -230,17 +247,31 @@ const TOOLS = {
       const knowledge = scanKnowledgeSources()
       const hygiene = readJson("data/host-hygiene.json")
 
-      const byTier = (t) => items.filter((i) => i.tier === t).length
+      const byTier = (t, origin) =>
+        items.filter((i) => i.tier === t && (!origin || i.origin === origin)).length
       const pageNodes = pages?.pages ?? pages?.nodes ?? []
 
       return {
         product: { name: project.name, tagline: project.tagline },
+        /**
+         * Split by origin. A single `components: 77` silently summed Synclair's
+         * own chrome with the product's catalogue, so it disagreed with the hub
+         * (which shows 56 for the host surface) on a number labelled the same
+         * way. In companion mode those are different questions and an agent
+         * almost always means the host's.
+         */
         library: {
-          components: byTier("component"),
-          blocks: byTier("block"),
-          templates: byTier("template"),
-          native: items.filter((i) => i.origin === "native").length,
-          host: items.filter((i) => i.origin === "host").length,
+          total: items.length,
+          host: {
+            components: byTier("component", "host"),
+            blocks: byTier("block", "host"),
+            templates: byTier("template", "host"),
+          },
+          native: {
+            components: byTier("component", "native"),
+            blocks: byTier("block", "native"),
+            templates: byTier("template", "native"),
+          },
         },
         pages: {
           count: pageNodes.length,
@@ -321,19 +352,38 @@ const TOOLS = {
       const pages = pagesMap()
       const pageNodes = pages?.pages ?? pages?.nodes ?? []
 
-      const found = names.map((n) => {
-        const item = items.find((i) => lower(i.name) === lower(n))
-        if (!item) {
+      const found = names.flatMap((n) => {
+        /**
+         * A name can legitimately exist TWICE — once as a Synclair-native
+         * component and once in the host catalog (`page-header` does exactly
+         * this on a real clone). Returning only the first match handed back the
+         * hub's own component when the agent meant the product's, with nothing
+         * to indicate the other existed. Return both and let `origin` decide.
+         */
+        const matches = items.filter((i) => lower(i.name) === lower(n))
+        if (matches.length === 0) {
           const near = items
             .filter((i) => lower(i.name).includes(lower(n)) || lower(n).includes(lower(i.name)))
             .slice(0, 5)
             .map((i) => i.name)
-          return { name: n, found: false, didYouMean: near }
+          return [{ name: n, found: false, didYouMean: near }]
         }
-        const usedBy = pageNodes
-          .filter((p) => (p.items ?? []).some((u) => lower(u.name) === lower(item.name)))
-          .map((p) => ({ route: p.route ?? p.path, name: p.name }))
-        return { ...item, found: true, usedByPages: usedBy, usedByCount: usedBy.length }
+        return matches.map((item) => {
+          const usedBy = pageNodes
+            .filter((p) => (p.items ?? []).some((u) => lower(u.name) === lower(item.name)))
+            .map((p) => ({ route: p.route ?? p.path, name: p.title }))
+          return {
+            ...item,
+            found: true,
+            usedByPages: usedBy,
+            usedByCount: usedBy.length,
+            // Say so explicitly rather than leaving the agent to notice two
+            // records came back for one name.
+            ...(matches.length > 1
+              ? { ambiguous: `${matches.length} items share this name — see \`origin\`` }
+              : {}),
+          }
+        })
       })
 
       return { items: found, _meta: meta() }
@@ -401,11 +451,14 @@ const TOOLS = {
       const nodes = map.pages ?? map.nodes ?? []
       const withFreshness = (p) => ({
         route: p.route ?? p.path,
-        name: p.name,
+        // `PageNode` calls these `title` and `links` (lib/system/pages-map.ts).
+        // Reading `name`/`linksTo` returned undefined for every page.
+        name: p.title,
         summary: p.summary,
+        auth: p.auth,
         sourceFiles: p.sourceFiles,
         composes: p.items,
-        linksTo: p.linksTo ?? p.edges,
+        linksTo: p.links,
         freshness: syncState(
           { sourceHash: p.sourceHash, sourceFiles: p.sourceFiles },
           map.repo?.root
@@ -427,7 +480,7 @@ const TOOLS = {
         total: nodes.length,
         pages: nodes.map((p) => ({
           route: p.route ?? p.path,
-          name: p.name,
+          name: p.title,
           composes: (p.items ?? []).length,
           freshness: syncState(
             { sourceHash: p.sourceHash, sourceFiles: p.sourceFiles },

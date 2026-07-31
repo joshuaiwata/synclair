@@ -21,8 +21,53 @@
 #
 set -euo pipefail
 
-UPSTREAM_URL="https://github.com/joshuaiwata/synclair.git"
-UPSTREAM_BRANCH="main"
+UPSTREAM_URL="${SYNCLAIR_UPSTREAM_URL:-https://github.com/joshuaiwata/synclair.git}"
+# Overridable so a foundation change can be REHEARSED in a real clone before it
+# merges. Without this the only way to test an unmerged foundation branch is to
+# merge it first, which is precisely the wrong order.
+UPSTREAM_BRANCH="${SYNCLAIR_UPSTREAM_BRANCH:-main}"
+
+# ── TOPOLOGY ─────────────────────────────────────────────────────────────────
+# Where this clone sits decides where the merge must land (docs/setup-modes.md).
+#
+#   standalone/watcher — the clone IS the git repo. Upstream's root maps to the
+#                        repo root; a plain merge is correct.
+#   embedded           — the clone is a SUBDIRECTORY of the product repo, so git
+#                        operates on the HOST repo. A plain merge would land
+#                        upstream's AGENTS.md, app/, lib/ and .claude/ at the
+#                        PRODUCT ROOT — dumping the whole foundation over the
+#                        product. `-X subtree=<prefix>` is what maps it back
+#                        under the clone.
+#
+# This was missing, and it is why no embedded clone has ever had shared
+# ancestry: the sanctioned tool could not give it any without damaging the host.
+SYNCLAIR_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GIT_ROOT="$(git -C "$SYNCLAIR_ROOT" rev-parse --show-toplevel)"
+
+if [[ "$SYNCLAIR_ROOT" == "$GIT_ROOT" ]]; then
+  PREFIX=""
+  TOPOLOGY="standalone"
+else
+  PREFIX="${SYNCLAIR_ROOT#"$GIT_ROOT"/}"
+  TOPOLOGY="embedded"
+  # A prefix we can't express relative to the git root means we cannot say where
+  # the merge would land. Refusing is the only safe answer — the failure mode
+  # here is a product repo with a foundation emptied over it.
+  if [[ -z "$PREFIX" || "$PREFIX" == "$SYNCLAIR_ROOT" || "$PREFIX" == /* ]]; then
+    echo "error: cannot resolve this clone's path inside the repo." >&2
+    echo "  synclair: $SYNCLAIR_ROOT" >&2
+    echo "  git root: $GIT_ROOT" >&2
+    echo "  Refusing to merge — a wrong prefix writes the foundation over the product." >&2
+    exit 1
+  fi
+fi
+
+# All git work happens from the git root so paths are repo-relative throughout.
+cd "$GIT_ROOT"
+
+# Conflict paths come back repo-relative, so the seed/mixed lists need the
+# prefix too or every seed file in an embedded clone is silently misclassified.
+qualify() { [[ -n "$PREFIX" ]] && echo "$PREFIX/$1" || echo "$1"; }
 
 # SEED — always the project's own; on conflict keep OURS automatically.
 SEED_OURS=(
@@ -32,10 +77,28 @@ SEED_OURS=(
   "data/"
   "memory/"
   ".claude/skills/product-spec/references/"
+  # This project's registered live-preview scenes for ITS host components
+  # (port-host-component / Path A). Upstream ships a two-example stub, so taking
+  # upstream's version silently unregisters every scene — a real clone went from
+  # 148 registrations to 2, and every gallery card fell back to a bare
+  # `<Component />` placeholder. Nothing else in the repo notices; the catalog
+  # still lists the items, they just stop rendering.
+  "components/host-previews/"
 )
 
 # MIXED — seed identity and foundation content share the file; resolve by hand.
 MIXED=(
+  # ── HOST WIRING ────────────────────────────────────────────────────────────
+  # These carry foundation structure PLUS the paths that connect this clone to
+  # ITS host, and they fail as a group. `next.config.ts` sets `turbopack.root`
+  # to the monorepo root and registers the host-self-alias loader;
+  # `tsconfig.json` declares the @host/* and project aliases the preview scenes
+  # import through. Upstream has neither, so taking either wholesale breaks
+  # Path A rendering, and the symptom is the same in every case — every gallery
+  # card degrades to a bare `<Component />` placeholder with no error until you
+  # open a page. Treat host wiring as project content, always.
+  "next.config.ts"
+  "tsconfig.json"
   "app/globals.css"
   "package.json"
   "package-lock.json"
@@ -62,19 +125,20 @@ ensure_upstream() {
 
 is_seed() {
   local p="$1"
-  for s in "${SEED_OURS[@]}"; do [[ "$p" == "$s"* ]] && return 0; done
+  for s in "${SEED_OURS[@]}"; do [[ "$p" == "$(qualify "$s")"* ]] && return 0; done
   return 1
 }
 
 is_mixed() {
   local p="$1"
-  for m in "${MIXED[@]}"; do [[ "$p" == "$m" ]] && return 0; done
+  for m in "${MIXED[@]}"; do [[ "$p" == "$(qualify "$m")" ]] && return 0; done
   return 1
 }
 
 ensure_upstream
 
 if [[ "$cmd" == "status" ]]; then
+  echo "topology: $TOPOLOGY${PREFIX:+ (clone at $PREFIX/)}"
   if base=$(git merge-base HEAD "upstream/$UPSTREAM_BRANCH" 2>/dev/null); then
     behind=$(git rev-list --count HEAD.."upstream/$UPSTREAM_BRANCH")
     echo "shared ancestry: yes (base $(git rev-parse --short "$base"))"
@@ -83,7 +147,15 @@ if [[ "$cmd" == "status" ]]; then
   else
     echo "shared ancestry: NO — this clone predates history-preserving setup."
     echo "‹pull› will do the one-time adoption merge (--allow-unrelated-histories)."
-    echo "files that differ from upstream: $(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" | wc -l | tr -d ' ')"
+    # Scope the count to the clone. Comparing a whole PRODUCT repo against the
+    # foundation counts every application file as "differing", which is true and
+    # useless — in this repo it read 2,644.
+    if [[ -n "$PREFIX" ]]; then
+      differing=$(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" -- "$PREFIX" | wc -l | tr -d ' ')
+    else
+      differing=$(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" | wc -l | tr -d ' ')
+    fi
+    echo "files in this clone that differ from upstream: $differing"
   fi
   exit 0
 fi
@@ -97,10 +169,17 @@ git switch -c "$sync_branch" >/dev/null 2>&1 || { echo "error: branch $sync_bran
 echo "› merging upstream/$UPSTREAM_BRANCH into $sync_branch (from $start_branch)…"
 
 merge_flags=()
+# Map upstream's root under this clone's directory. Without it, an embedded
+# clone's merge lands the foundation at the PRODUCT root.
+[[ -n "$PREFIX" ]] && merge_flags+=(-X "subtree=$PREFIX")
 git merge-base HEAD "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1 || {
   echo "› no shared ancestry — one-time adoption merge."
   merge_flags+=(--allow-unrelated-histories)
 }
+
+# Remember where this clone stood, so the post-merge audit below can tell what
+# the merge REMOVED — including from files that never conflicted.
+pre_merge_ref=$(git rev-parse HEAD)
 
 # ${arr[@]+"${arr[@]}"}: stock macOS bash 3.2 + set -u errors on expanding an
 # empty array — and the array IS empty on every normal (shared-ancestry) sync.
@@ -140,6 +219,38 @@ else
     echo ""
     echo "Then: git commit --no-edit"
   fi
+fi
+
+# ── POST-MERGE AUDIT ─────────────────────────────────────────────────────────
+# Classification only protects files that CONFLICT. A SEED or MIXED file whose
+# two sides touched different regions merges cleanly and loses the project's
+# content without ever being surfaced — that is exactly how a real clone lost
+# every `@source` line from app/globals.css (a MIXED file) and stopped styling
+# its host previews, with nothing reported.
+#
+# So compare every SEED/MIXED path against where the clone stood before the
+# merge and report any that LOST lines, conflict or not.
+audit_paths=()
+for s in "${SEED_OURS[@]}"; do audit_paths+=("$(qualify "$s")"); done
+for m in "${MIXED[@]}"; do audit_paths+=("$(qualify "$m")"); done
+
+shrunk=()
+while IFS= read -r p; do
+  [[ -n "$p" ]] || continue
+  before=$(git show "$pre_merge_ref:$p" 2>/dev/null | wc -l | tr -d ' ')
+  after=$(git show ":$p" 2>/dev/null | wc -l | tr -d ' ')
+  [[ -z "$after" || "$after" == "0" ]] && after=$(wc -l < "$p" 2>/dev/null | tr -d ' ')
+  if [[ -n "$before" && -n "$after" && "$before" -gt 0 && "$after" -lt "$before" ]]; then
+    shrunk+=("$p ($before → $after lines)")
+  fi
+done < <(git diff --name-only "$pre_merge_ref" -- ${audit_paths[@]+"${audit_paths[@]}"} 2>/dev/null)
+
+if [[ ${#shrunk[@]} -gt 0 ]]; then
+  echo ""
+  echo "⚠ PROJECT CONTENT SHRANK — these are yours, and the merge made them smaller:"
+  for p in "${shrunk[@]}"; do echo "   $p"; done
+  echo "   Review each before committing:  git diff $pre_merge_ref -- <path>"
+  echo "   Restore one wholesale with:     git checkout $pre_merge_ref -- <path>"
 fi
 
 # Stamp the call-home baseline (data/mother.json is SEED, so the merge keeps

@@ -38,6 +38,7 @@
     "gen:plugin-manifest": "node scripts/gen-plugin-manifest.mjs",
     "mcp": "node scripts/mcp-server.mjs",
     "mcp:probe": "node scripts/mcp-server.mjs --probe",
+    "check:mcp-contract": "node scripts/check-mcp-contract.mjs",
     "mcp:install": "node scripts/mcp-install.mjs",
     "bridge:agents": "node scripts/bridge-agents.mjs",
     "check:agent-bridge": "node scripts/bridge-agents.mjs --check",
