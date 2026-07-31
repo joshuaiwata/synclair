@@ -18,6 +18,7 @@ import { isNewlyAdded } from "@/lib/system/item-meta"
 import type { HostUsage } from "@/lib/system/host-usage"
 import { itemHref } from "@/lib/system/tiers"
 import type { ItemUsage } from "@/lib/system/usage"
+import { PreviewBoundary } from "./preview-boundary"
 
 const STATUS_TONE: Record<ComponentStatus, "success" | "info" | "warning"> = {
   stable: "success",
@@ -51,12 +52,18 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   const stageWidth = component.kind !== "component" ? 768 : undefined
   if (hostPreview) {
     const Live = hostPreview.component
-    const node = hostPreview.theme ? (
-      <ProductThemeScope theme={hostPreview.theme} className="bg-transparent p-0">
-        <Live />
-      </ProductThemeScope>
-    ) : (
-      <Live />
+    // Contained: a scene that throws, or whose host component navigates on
+    // click, breaks THIS card — not the gallery it sits in.
+    const node = (
+      <PreviewBoundary name={component.name}>
+        {hostPreview.theme ? (
+          <ProductThemeScope theme={hostPreview.theme} className="bg-transparent p-0">
+            <Live />
+          </ProductThemeScope>
+        ) : (
+          <Live />
+        )}
+      </PreviewBoundary>
     )
     return (
       <div className="stage-canvas relative h-36 overflow-hidden border-b">
