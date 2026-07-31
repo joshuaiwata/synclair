@@ -106,16 +106,54 @@ function syncState(anchor, repoRoot) {
  * don't recognise yields nothing rather than a wrong answer, and every caller
  * reports what it couldn't read instead of pretending the data is empty.
  */
-function scanTokens() {
-  const text = readText("lib/system/tokens.ts")
-  if (!text) return { tokens: [], unreadable: "lib/system/tokens.ts not found" }
+/**
+ * Token literals, from either source file. Both use the same single-line shape.
+ */
+function scanTokenFile(rel) {
+  const text = readText(rel)
+  if (!text) return null
   const tokens = []
   const re = /\{\s*name:\s*"([^"]+)",\s*bg:\s*"([^"]*)",\s*value:\s*"([^"]*)",\s*usage:\s*"([^"]*)"/g
   let m
   while ((m = re.exec(text)) !== null) {
     tokens.push({ name: m[1], class: m[2], value: m[3], usage: m[4] })
   }
-  return { tokens }
+  return tokens
+}
+
+/**
+ * WHOSE tokens are these?
+ *
+ * `lib/system/tokens.ts` is Synclair's OWN chrome. Its own header says so: in
+ * companion mode "these style SYNCLAIR, not the product (the host's palette
+ * lives in BRAND_RAMPS)". Returning them to an agent asking which token to use
+ * for the PRODUCT is a confidently wrong answer with a usage string attached —
+ * on a real clone it answered `primary = #1c1917` (a stone neutral) when the
+ * product's primary is ToolBelt Yellow `#fccd0a`.
+ *
+ * So in companion mode the product's ramps lead and the hub's chrome is
+ * labelled as such. When the clone IS the product there's no distinction to
+ * draw, and the semantic set is the answer.
+ */
+function scanTokens() {
+  const hub = scanTokenFile("lib/system/tokens.ts")
+  const brand = scanTokenFile("lib/system/seed/brand-ramps.ts")
+  if (!hub && !brand) return { tokens: [], unreadable: "no token source found" }
+
+  const cat = readJson("data/external-catalog.json")
+  const companion = Array.isArray(cat?.hosts) && cat.hosts.length > 0
+
+  if (companion && brand?.length) {
+    return {
+      tokens: brand,
+      scope: "product",
+      hubTokens: hub ?? [],
+      note:
+        "These are the PRODUCT's brand values (lib/system/seed/brand-ramps.ts) — use them. "
+        + "`hubTokens` is Synclair's own chrome and styles the hub, not the app.",
+    }
+  }
+  return { tokens: hub ?? [], scope: "product" }
 }
 
 function scanProject() {
@@ -432,7 +470,7 @@ const TOOLS = {
       additionalProperties: false,
     },
     run(args = {}) {
-      const { tokens, unreadable } = scanTokens()
+      const { tokens, unreadable, scope, hubTokens, note } = scanTokens()
       const q = lower(args.query)
       const filtered = q
         ? tokens.filter((t) => lower(t.name).includes(q) || lower(t.usage).includes(q))
@@ -443,9 +481,14 @@ const TOOLS = {
           "No raw hex or px values — this is lint-enforced. The error message names the fix; do not eslint-disable around it.",
           "Never hardcode '/synclair' paths — link via the synclair() helper in lib/system/routes.ts.",
         ],
+        scope,
         total: tokens.length,
         returned: filtered.length,
         tokens: filtered,
+        ...(note ? { note } : {}),
+        // Named, not merged — an agent must never mistake hub chrome for the
+        // product's palette, which is the bug this shape exists to prevent.
+        ...(hubTokens?.length ? { hubTokens: { count: hubTokens.length, note: "Synclair's own chrome — styles the hub, not the app." } } : {}),
         unreadable: unreadable ?? null,
         _meta: meta({ note: "values are documented light-mode; the theme renders live from app/globals.css" }),
       }
