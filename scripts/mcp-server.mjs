@@ -1,0 +1,676 @@
+#!/usr/bin/env node
+/**
+ * SYNCLAIR MCP SERVER — the agent-facing view of the hub's data.
+ *
+ * The hub at `/synclair` is the HUMAN view of Synclair's knowledge. This is the
+ * agent view of the same data: an MCP server over stdio that answers shaped
+ * questions instead of making an agent open whole files.
+ *
+ * Three properties are deliberate:
+ *
+ *   NO HUB REQUIRED — this reads `registry.json` and `data/*.json` off disk. It
+ *   does not boot Next, bind a port, or need the dev server on 4100. Starting a
+ *   server here can never collide with the hub.
+ *
+ *   NO DEPENDENCIES — raw JSON-RPC over newline-delimited stdio, no SDK. A
+ *   cloned foundation must work in any clone with zero install, and MCP's stdio
+ *   transport is small enough that a dependency would cost more than it saves.
+ *
+ *   LOCATION-ANCHORED, NOT CWD-ANCHORED — the hub root is derived from this
+ *   file's own path, so the server works identically whether the agent's cwd is
+ *   the hub (embedded topology) or the host repo beside it (watcher topology).
+ *   This is what makes one `.mcp.json` entry correct in both modes.
+ *
+ * Tools are TASK-SHAPED, not one-per-file: six of them, batched where it
+ * matters, each returning the slice an agent asked for plus a `_meta` block
+ * carrying freshness. Measure the difference with `npm run measure:agent-cost`.
+ *
+ *   node scripts/mcp-server.mjs           # serve (stdio; for an MCP client)
+ *   node scripts/mcp-server.mjs --probe   # self-test: list tools + call each
+ */
+
+import { createHash } from "node:crypto"
+import { existsSync, readFileSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+/** <hubRoot>/scripts/mcp-server.mjs → <hubRoot>. Never `process.cwd()`. */
+const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+
+const SERVER_INFO = { name: "synclair", version: "0.1.0" }
+const DEFAULT_PROTOCOL = "2024-11-05"
+
+// ------------------------------------------------------------------ reading
+
+const abs = (rel) => path.join(HUB_ROOT, rel)
+
+function readText(rel) {
+  const p = abs(rel)
+  if (!existsSync(p)) return null
+  try {
+    return readFileSync(p, "utf8")
+  } catch {
+    return null
+  }
+}
+
+function readJson(rel) {
+  const text = readText(rel)
+  if (text === null) return null
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    // A corrupt data file must be loud, not silently an empty hub.
+    return { __unreadable: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/**
+ * Freshness, mirroring `lib/system/provenance.ts`. Duplicated deliberately:
+ * this script must run without a TypeScript runtime (Node 20 has no type
+ * stripping), the same way `scripts/check-pages.mjs` does. The framing —
+ * rel + "\n" + bytes + "\0" — MUST stay byte-identical across all three or the
+ * drift checks and the UI will disagree about what is stale.
+ */
+function hashSources(files, baseDir) {
+  const hash = createHash("sha256")
+  let any = false
+  for (const rel of files ?? []) {
+    const p = path.join(baseDir, rel)
+    if (!existsSync(p)) continue
+    hash.update(rel)
+    hash.update("\n")
+    hash.update(readFileSync(p))
+    hash.update("\0")
+    any = true
+  }
+  return any ? hash.digest("hex") : null
+}
+
+/** `repoRoot`: null/absent = this repo; a path = the HOST repo, relative to it. */
+const baseDirFor = (repoRoot) => (repoRoot ? path.join(HUB_ROOT, repoRoot) : HUB_ROOT)
+
+function syncState(anchor, repoRoot) {
+  if (!anchor?.sourceHash || !anchor.sourceFiles?.length) return "unanchored"
+  const current = hashSources(anchor.sourceFiles, baseDirFor(repoRoot))
+  if (current === null) return "unanchored"
+  return current === anchor.sourceHash ? "fresh" : "stale"
+}
+
+// --------------------------------------------------------- TS seed extraction
+
+/**
+ * A few sources of truth are TypeScript modules, not JSON (tokens, the project
+ * seed). Rather than take a TS runtime, we scan the literals — they are
+ * single-line, stable, and lint-enforced. Extraction is TOLERANT: a shape we
+ * don't recognise yields nothing rather than a wrong answer, and every caller
+ * reports what it couldn't read instead of pretending the data is empty.
+ */
+function scanTokens() {
+  const text = readText("lib/system/tokens.ts")
+  if (!text) return { tokens: [], unreadable: "lib/system/tokens.ts not found" }
+  const tokens = []
+  const re = /\{\s*name:\s*"([^"]+)",\s*bg:\s*"([^"]*)",\s*value:\s*"([^"]*)",\s*usage:\s*"([^"]*)"/g
+  let m
+  while ((m = re.exec(text)) !== null) {
+    tokens.push({ name: m[1], class: m[2], value: m[3], usage: m[4] })
+  }
+  return { tokens }
+}
+
+function scanProject() {
+  const text = readText("lib/system/seed/project.ts")
+  if (!text) return {}
+  const name = /name:\s*"([^"]*)"/.exec(text)?.[1]
+  const tagline = /tagline:\s*"([^"]*)"/.exec(text)?.[1]
+  return { name, tagline }
+}
+
+/** Knowledge sources live in a TS module; pull the fields an agent needs. */
+function scanKnowledgeSources() {
+  const text = readText("lib/system/knowledge/sources.ts")
+  if (!text) return []
+  const out = []
+  const re = /\{[^{}]*?id:\s*"([^"]+)"[^{}]*?\}/gs
+  let m
+  while ((m = re.exec(text)) !== null) {
+    const body = m[0]
+    const pick = (k) => new RegExp(`${k}:\\s*"([^"]*)"`).exec(body)?.[1]
+    const title = pick("title")
+    if (!title) continue
+    out.push({
+      id: m[1],
+      title,
+      kind: pick("kind"),
+      area: pick("area"),
+      url: pick("url"),
+      distilledInto: pick("distilledInto"),
+    })
+  }
+  return out
+}
+
+// -------------------------------------------------------------- data loaders
+
+const lower = (s) => (s ?? "").toString().toLowerCase()
+
+function registryItems() {
+  const reg = readJson("registry.json")
+  if (!reg || reg.__unreadable || !Array.isArray(reg.items)) return []
+  const tierOf = (type) =>
+    type?.includes("block") ? "block" : type?.includes("template") ? "template" : "component"
+  return reg.items.map((it) => ({
+    name: it.name,
+    tier: tierOf(it.type),
+    title: it.title,
+    description: it.description,
+    origin: "native",
+    status: it.meta?.status,
+    layer: it.meta?.layer,
+    path: it.files?.[0]?.path,
+    hasDocs: Boolean(it.docs),
+    categories: it.categories,
+  }))
+}
+
+function externalItems() {
+  const cat = readJson("data/external-catalog.json")
+  if (!cat || cat.__unreadable || !Array.isArray(cat.items)) return []
+  return cat.items.map((it) => ({
+    name: it.name,
+    tier: it.kind ?? "component",
+    title: it.title ?? it.name,
+    description: it.summary ?? it.description,
+    origin: "host",
+    status: it.status,
+    path: it.source ?? it.path,
+    surface: it.surface,
+    usageCount: it.usageCount,
+  }))
+}
+
+const allItems = () => [...registryItems(), ...externalItems()]
+
+function pagesMap() {
+  const map = readJson("data/pages-map.json")
+  if (!map || map.__unreadable || !map.repo) return null
+  return map
+}
+
+// --------------------------------------------------------------------- tools
+
+/**
+ * `_meta` rides on every response: where the answer came from and how much we
+ * trust it. An agent that can see "stale" decides differently than one that
+ * can't, and the alternative — silently serving a stale answer — is the failure
+ * mode this whole layer exists to prevent.
+ */
+function meta(extra = {}) {
+  const setup = readJson("data/setup.json")
+  return {
+    source: "synclair",
+    hubRoot: HUB_ROOT,
+    setupMode: setup?.mode ?? null,
+    ...extra,
+  }
+}
+
+const TOOLS = {
+  get_overview: {
+    description:
+      "Orientation for this project: what product it is, how this Synclair clone is wired, and what "
+      + "the hub knows so far (counts + freshness per section). Call this FIRST on an unfamiliar repo "
+      + "instead of reading AGENTS.md and the data files.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    run() {
+      const project = scanProject()
+      const items = allItems()
+      const pages = pagesMap()
+      const sys = readJson("data/system-map.json")
+      const knowledge = scanKnowledgeSources()
+      const hygiene = readJson("data/host-hygiene.json")
+
+      const byTier = (t) => items.filter((i) => i.tier === t).length
+      const pageNodes = pages?.pages ?? pages?.nodes ?? []
+
+      return {
+        product: { name: project.name, tagline: project.tagline },
+        library: {
+          components: byTier("component"),
+          blocks: byTier("block"),
+          templates: byTier("template"),
+          native: items.filter((i) => i.origin === "native").length,
+          host: items.filter((i) => i.origin === "host").length,
+        },
+        pages: {
+          count: pageNodes.length,
+          repo: pages?.repo?.name ?? null,
+          freshness: pages ? rollUpPages(pages) : "unanchored",
+        },
+        system: {
+          present: Boolean(sys?.repo),
+          areas: sys?.areas?.length ?? 0,
+          api: sys?.api?.length ?? 0,
+          data: sys?.data?.length ?? 0,
+          freshness: syncState(sys?.provenance, sys?.repo?.root),
+        },
+        knowledge: { sources: knowledge.length },
+        hygiene: hygiene?.totals ? { findings: hygiene.totals.findings } : null,
+        _meta: meta(),
+      }
+    },
+  },
+
+  search_library: {
+    description:
+      "Search this project's component library — components, blocks, and templates, both Synclair-native "
+      + "and cataloged HOST components. Returns matches with tier, origin, status and path. Use before "
+      + "building any UI: the invention gate requires checking what already exists.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free text matched against name, title, description." },
+        tier: { type: "string", enum: ["component", "block", "template"] },
+        origin: { type: "string", enum: ["native", "host"] },
+        limit: { type: "number", description: "Max results (default 40)." },
+      },
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const q = lower(args.query)
+      let items = allItems()
+      if (args.tier) items = items.filter((i) => i.tier === args.tier)
+      if (args.origin) items = items.filter((i) => i.origin === args.origin)
+      if (q) {
+        items = items.filter((i) =>
+          [i.name, i.title, i.description, ...(i.categories ?? [])].some((f) => lower(f).includes(q))
+        )
+      }
+      const limit = Number.isFinite(args.limit) ? args.limit : 40
+      const total = items.length
+      return {
+        query: args.query ?? null,
+        total,
+        returned: Math.min(total, limit),
+        items: items.slice(0, limit),
+        // Never silently truncate — say what was dropped.
+        truncated: total > limit ? total - limit : 0,
+        _meta: meta(),
+      }
+    },
+  },
+
+  get_component: {
+    description:
+      "Full record for one or more library items: registry entry, docs status, source path, and which "
+      + "pages compose it. Batch several names in one call rather than calling repeatedly.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: {
+          oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          description: "Item name, or an array of names.",
+        },
+      },
+      required: ["name"],
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const names = Array.isArray(args.name) ? args.name : [args.name]
+      const items = allItems()
+      const pages = pagesMap()
+      const pageNodes = pages?.pages ?? pages?.nodes ?? []
+
+      const found = names.map((n) => {
+        const item = items.find((i) => lower(i.name) === lower(n))
+        if (!item) {
+          const near = items
+            .filter((i) => lower(i.name).includes(lower(n)) || lower(n).includes(lower(i.name)))
+            .slice(0, 5)
+            .map((i) => i.name)
+          return { name: n, found: false, didYouMean: near }
+        }
+        const usedBy = pageNodes
+          .filter((p) => (p.items ?? []).some((u) => lower(u.name) === lower(item.name)))
+          .map((p) => ({ route: p.route ?? p.path, name: p.name }))
+        return { ...item, found: true, usedByPages: usedBy, usedByCount: usedBy.length }
+      })
+
+      return { items: found, _meta: meta() }
+    },
+  },
+
+  get_foundation: {
+    description:
+      "This project's design tokens and the styling rules that go with them — the semantic vocabulary to "
+      + "use INSTEAD of raw hex/px values. Consult before writing any styling; raw values are lint-enforced "
+      + "failures in this codebase.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Filter tokens by name or usage, e.g. 'muted', 'border'." },
+      },
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const { tokens, unreadable } = scanTokens()
+      const q = lower(args.query)
+      const filtered = q
+        ? tokens.filter((t) => lower(t.name).includes(q) || lower(t.usage).includes(q))
+        : tokens
+      return {
+        rules: [
+          "Reach for a SEMANTIC token first (primary, muted, border…); drop to the brand ramp only for accents semantics can't cover.",
+          "No raw hex or px values — this is lint-enforced. The error message names the fix; do not eslint-disable around it.",
+          "Never hardcode '/synclair' paths — link via the synclair() helper in lib/system/routes.ts.",
+        ],
+        total: tokens.length,
+        returned: filtered.length,
+        tokens: filtered,
+        unreadable: unreadable ?? null,
+        _meta: meta({ note: "values are documented light-mode; the theme renders live from app/globals.css" }),
+      }
+    },
+  },
+
+  get_page: {
+    description:
+      "The app's sitemap, or the record for specific routes: what each view is, its source files, the "
+      + "components/blocks/templates it composes, its navigation edges, and whether its source changed "
+      + "since the map was generated. Batch several routes in one call.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        route: {
+          oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+          description: "Route path(s). Omit to list every page.",
+        },
+      },
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const map = pagesMap()
+      if (!map) {
+        return {
+          pages: [],
+          empty: true,
+          hint: "No pages map yet — generate it with the `pages-map` skill.",
+          _meta: meta(),
+        }
+      }
+      const nodes = map.pages ?? map.nodes ?? []
+      const withFreshness = (p) => ({
+        route: p.route ?? p.path,
+        name: p.name,
+        summary: p.summary,
+        sourceFiles: p.sourceFiles,
+        composes: p.items,
+        linksTo: p.linksTo ?? p.edges,
+        freshness: syncState(
+          { sourceHash: p.sourceHash, sourceFiles: p.sourceFiles },
+          map.repo?.root
+        ),
+      })
+
+      if (args.route) {
+        const routes = Array.isArray(args.route) ? args.route : [args.route]
+        const picked = routes.map((r) => {
+          const node = nodes.find((p) => (p.route ?? p.path) === r)
+          return node ? withFreshness(node) : { route: r, found: false }
+        })
+        return { pages: picked, _meta: meta({ repo: map.repo?.name }) }
+      }
+
+      // Listing mode stays a digest — routes and names, not every node whole.
+      return {
+        repo: map.repo?.name,
+        total: nodes.length,
+        pages: nodes.map((p) => ({
+          route: p.route ?? p.path,
+          name: p.name,
+          composes: (p.items ?? []).length,
+          freshness: syncState(
+            { sourceHash: p.sourceHash, sourceFiles: p.sourceFiles },
+            map.repo?.root
+          ),
+        })),
+        _meta: meta({ hint: "call with `route` for a page's full record" }),
+      }
+    },
+  },
+
+  get_system: {
+    description:
+      "What this codebase consists of BEYOND the UI — areas/modules, API surface, data model, background "
+      + "jobs, integrations — from the System Map. Use to orient in the backend without reading source. "
+      + "Returns a digest with `source` paths for anything you need to go deeper on.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        section: {
+          type: "string",
+          enum: ["areas", "api", "data", "jobs", "integrations", "overview"],
+          description: "Return just one section. Omit for the whole digest.",
+        },
+        query: { type: "string", description: "Filter entries by name/path/summary." },
+      },
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const map = readJson("data/system-map.json")
+      if (!map || map.__unreadable || !map.repo) {
+        return {
+          empty: true,
+          hint: map?.__unreadable
+            ? `data/system-map.json is corrupt: ${map.__unreadable}`
+            : "No system map yet — generate it with the `codebase-map` skill.",
+          _meta: meta(),
+        }
+      }
+      const q = lower(args.query)
+      const match = (e) =>
+        !q || [e.name, e.path, e.summary, e.method].some((f) => lower(f).includes(q))
+
+      const sections = {
+        overview: map.overviewSections ?? (map.overview ? [{ body: map.overview }] : []),
+        areas: (map.areas ?? []).filter(match),
+        api: (map.api ?? []).filter(match),
+        data: (map.data ?? []).filter(match),
+        jobs: (map.jobs ?? []).filter(match),
+        integrations: (map.integrations ?? []).filter(match),
+      }
+
+      const base = {
+        repo: map.repo?.name,
+        stack: map.stackFacts ?? map.stack,
+        freshness: syncState(map.provenance, map.repo?.root),
+      }
+
+      // Asking for one section (or filtering) means you want the detail.
+      if (args.section || q) {
+        return {
+          ...base,
+          ...(args.section ? { [args.section]: sections[args.section] } : sections),
+          _meta: meta({ generatedAt: map.repo?.digestedAt, commit: map.repo?.commit }),
+        }
+      }
+
+      /**
+       * Default is a DIGEST, not the whole map. Returning every section in full
+       * made this tool LARGER than reading data/system-map.json outright (−24%
+       * on a real 32KB map) — a tool that costs more than the file it replaces
+       * is worse than no tool. Names and counts orient; `section` fetches depth.
+       */
+      const names = (list, key = "name") => list.map((e) => e[key]).filter(Boolean)
+      return {
+        ...base,
+        overview: sections.overview,
+        areas: { count: sections.areas.length, names: names(sections.areas) },
+        api: {
+          count: sections.api.length,
+          paths: sections.api.slice(0, 40).map((e) => `${e.method ?? "—"} ${e.path}`),
+          truncated: Math.max(0, sections.api.length - 40),
+        },
+        data: { count: sections.data.length, entities: names(sections.data) },
+        jobs: { count: sections.jobs.length, names: names(sections.jobs) },
+        integrations: { count: sections.integrations.length, names: names(sections.integrations) },
+        _meta: meta({
+          generatedAt: map.repo?.digestedAt,
+          commit: map.repo?.commit,
+          hint: "digest — call with `section` (areas|api|data|jobs|integrations) or `query` for detail",
+        }),
+      }
+    },
+  },
+
+  get_knowledge: {
+    description:
+      "This project's knowledge sources — specs, PRDs, Figma files, decks — and the distilled digest for "
+      + "each. Returns the manifest and where the digest lives; read the DIGEST before digging into a raw "
+      + "source.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: { type: "string", description: "Filter by title, area, or kind." },
+      },
+      additionalProperties: false,
+    },
+    run(args = {}) {
+      const sources = scanKnowledgeSources()
+      const q = lower(args.topic)
+      const filtered = q
+        ? sources.filter((s) => [s.title, s.area, s.kind].some((f) => lower(f).includes(q)))
+        : sources
+      return {
+        total: sources.length,
+        returned: filtered.length,
+        sources: filtered,
+        hint: filtered.length
+          ? "Read `distilledInto` first; dig the raw `url` via the prd-retriever agent only if the digest is insufficient."
+          : "No knowledge sources registered yet — see lib/system/knowledge/sources.ts.",
+        _meta: meta(),
+      }
+    },
+  },
+}
+
+/** Any stale page makes the map stale — a 95%-current map still needs a look. */
+function rollUpPages(map) {
+  const nodes = map.pages ?? map.nodes ?? []
+  const states = nodes.map((p) =>
+    syncState({ sourceHash: p.sourceHash, sourceFiles: p.sourceFiles }, map.repo?.root)
+  )
+  if (states.includes("stale")) return "stale"
+  if (states.includes("fresh")) return "fresh"
+  return "unanchored"
+}
+
+// ------------------------------------------------------------------ protocol
+
+const toolList = () =>
+  Object.entries(TOOLS).map(([name, t]) => ({
+    name,
+    description: t.description,
+    inputSchema: t.inputSchema,
+  }))
+
+function callTool(name, args) {
+  const tool = TOOLS[name]
+  if (!tool) {
+    return { isError: true, content: [{ type: "text", text: `Unknown tool: ${name}` }] }
+  }
+  try {
+    const result = tool.run(args ?? {})
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] }
+  } catch (e) {
+    // A tool failure must never take the server down — the agent gets the error.
+    return {
+      isError: true,
+      content: [{ type: "text", text: `${name} failed: ${e instanceof Error ? e.message : e}` }],
+    }
+  }
+}
+
+function handle(msg) {
+  const { id, method, params } = msg
+
+  if (method === "initialize") {
+    return {
+      jsonrpc: "2.0",
+      id,
+      result: {
+        protocolVersion: params?.protocolVersion ?? DEFAULT_PROTOCOL,
+        capabilities: { tools: {} },
+        serverInfo: SERVER_INFO,
+      },
+    }
+  }
+  if (method === "tools/list") {
+    return { jsonrpc: "2.0", id, result: { tools: toolList() } }
+  }
+  if (method === "tools/call") {
+    return { jsonrpc: "2.0", id, result: callTool(params?.name, params?.arguments) }
+  }
+  if (method === "ping") {
+    return { jsonrpc: "2.0", id, result: {} }
+  }
+  // Notifications (no id) never get a reply.
+  if (id === undefined || id === null) return null
+  return { jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${method}` } }
+}
+
+function serve() {
+  let buffer = ""
+  process.stdin.setEncoding("utf8")
+  process.stdin.on("data", (chunk) => {
+    buffer += chunk
+    let nl
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim()
+      buffer = buffer.slice(nl + 1)
+      if (!line) continue
+      let reply
+      try {
+        reply = handle(JSON.parse(line))
+      } catch (e) {
+        reply = {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32700, message: `Parse error: ${e instanceof Error ? e.message : e}` },
+        }
+      }
+      if (reply) process.stdout.write(`${JSON.stringify(reply)}\n`)
+    }
+  })
+  // Deliberately NO process.exit() here. stdout is a pipe, and exit() discards
+  // whatever is still buffered — which silently TRUNCATES large replies mid-JSON.
+  // With stdin ended and no work left, the event loop empties and Node exits on
+  // its own, after the writes have flushed.
+  process.stdin.on("end", () => {})
+}
+
+/** Self-test: exercises every tool without an MCP client. */
+function probe() {
+  const out = [`hub root: ${HUB_ROOT}`, `tools:    ${Object.keys(TOOLS).length}`, ""]
+  for (const name of Object.keys(TOOLS)) {
+    const res = callTool(name, name === "get_component" ? { name: "status-badge" } : {})
+    const size = res.content[0].text.length
+    const state = res.isError ? "ERROR" : "ok"
+    out.push(`  ${name.padEnd(16)} ${state.padEnd(6)} ${String(size).padStart(6)} chars`)
+    if (res.isError) out.push(`    ${res.content[0].text}`)
+  }
+  // The point of the layer: what a shaped answer costs vs opening files whole.
+  const total = Object.keys(TOOLS).reduce(
+    (n, name) => n + callTool(name, name === "get_component" ? { name: "status-badge" } : {}).content[0].text.length,
+    0
+  )
+  out.push(
+    "",
+    `  all ${Object.keys(TOOLS).length} responses: ${total.toLocaleString()} chars `
+      + `(~${Math.round(total / 3.5).toLocaleString()} est. tokens)`
+  )
+  console.log(out.join("\n"))
+}
+
+if (process.argv.includes("--probe")) probe()
+else serve()

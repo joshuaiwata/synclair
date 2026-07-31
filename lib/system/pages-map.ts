@@ -1,8 +1,7 @@
-import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
+import { getSyncState, hashSources, type SyncState } from "./provenance"
 import type { MapSurface } from "./system-map"
 
 /**
@@ -273,21 +272,14 @@ export function hasPagesMap(map: PagesMap): boolean {
  * both sides frame the identical `rel` strings and read the identical bytes.
  */
 export function hashPageSource(files: string[], baseDir: string): string | null {
-  const hash = createHash("sha256")
-  let any = false
-  for (const rel of files) {
-    const abs = path.join(baseDir, rel)
-    if (!existsSync(abs)) continue
-    hash.update(rel)
-    hash.update("\n")
-    hash.update(readFileSync(abs))
-    hash.update("\0")
-    any = true
-  }
-  return any ? hash.digest("hex") : null
+  return hashSources(files, baseDir)
 }
 
-export type PageSyncState = "fresh" | "stale" | "unanchored"
+/**
+ * Kept as an alias of the shared `SyncState` so existing imports (and the pages
+ * UI) keep working while every artifact converges on one vocabulary.
+ */
+export type PageSyncState = SyncState
 
 /**
  * Freshness for one page: re-hash its source files live and compare to the
@@ -296,9 +288,5 @@ export type PageSyncState = "fresh" | "stale" | "unanchored"
  * nothing rather than a false "stale". `repoRoot` is `map.repo.root`.
  */
 export function getPageSourceSync(node: PageNode, repoRoot: string | null | undefined): PageSyncState {
-  if (!node.sourceHash || !node.sourceFiles?.length) return "unanchored"
-  const baseDir = repoRoot ? path.join(process.cwd(), repoRoot) : process.cwd()
-  const current = hashPageSource(node.sourceFiles, baseDir)
-  if (current === null) return "unanchored"
-  return current === node.sourceHash ? "fresh" : "stale"
+  return getSyncState({ sourceHash: node.sourceHash, sourceFiles: node.sourceFiles }, repoRoot)
 }

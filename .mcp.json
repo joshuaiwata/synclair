@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "synclair": {
+      "command": "node",
+      "args": ["scripts/mcp-server.mjs"],
+      "env": {}
+    }
+  }
+}

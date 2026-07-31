@@ -1,0 +1,162 @@
+{
+  "measuredAt": "2026-07-30T23:39:15.427Z",
+  "estimator": {
+    "charsPerToken": {
+      "prose": 4,
+      "code": 3.5
+    },
+    "note": "estimate — compare deltas, not absolutes"
+  },
+  "repo": "clairity",
+  "populated": false,
+  "ambient": {
+    "chars": 33144,
+    "tokens": 8286,
+    "routerChars": 13293,
+    "routers": [
+      {
+        "file": "AGENTS.md",
+        "chars": 12552,
+        "present": true
+      },
+      {
+        "file": "CLAUDE.md",
+        "chars": 741,
+        "present": true
+      }
+    ],
+    "skills": {
+      "count": 20,
+      "surfacedChars": 10463
+    },
+    "agents": {
+      "count": 16,
+      "surfacedChars": 9388
+    },
+    "deferredBodyChars": 233516
+  },
+  "lookups": [
+    {
+      "id": "what-components-exist",
+      "question": "What components exist and which should I use?",
+      "tool": "search_library",
+      "chars": 16519,
+      "tokens": 4720,
+      "reads": 1,
+      "blank": [
+        "data/external-catalog.json"
+      ],
+      "missing": [],
+      "skillBodyTokens": 3747,
+      "comparable": true
+    },
+    {
+      "id": "what-does-page-compose",
+      "question": "What pages exist and what does each one compose?",
+      "tool": "get_page",
+      "chars": 0,
+      "tokens": 0,
+      "reads": 0,
+      "blank": [
+        "data/pages-map.json"
+      ],
+      "missing": [],
+      "skillBodyTokens": 1710,
+      "comparable": false
+    },
+    {
+      "id": "which-token",
+      "question": "Which token do I use for this styling decision?",
+      "tool": "get_foundation",
+      "chars": 15289,
+      "tokens": 4368,
+      "reads": 3,
+      "blank": [],
+      "missing": [],
+      "skillBodyTokens": 0,
+      "comparable": true
+    },
+    {
+      "id": "what-is-this-project",
+      "question": "What is this project / what's being built?",
+      "tool": "get_overview",
+      "chars": 450,
+      "tokens": 129,
+      "reads": 1,
+      "blank": [
+        "data/setup.json",
+        "data/system-map.json"
+      ],
+      "missing": [],
+      "skillBodyTokens": 936,
+      "comparable": true
+    },
+    {
+      "id": "what-is-the-system",
+      "question": "What does this codebase consist of beyond the UI?",
+      "tool": "get_system",
+      "chars": 0,
+      "tokens": 0,
+      "reads": 0,
+      "blank": [
+        "data/system-map.json"
+      ],
+      "missing": [],
+      "skillBodyTokens": 1151,
+      "comparable": false
+    }
+  ],
+  "totals": {
+    "lookupTokens": 9217,
+    "lookupReads": 5
+  },
+  "mcp": {
+    "tools": 7,
+    "surfaceChars": 3416,
+    "surfaceTokens": 854,
+    "scenarios": [
+      {
+        "id": "what-components-exist",
+        "tool": "search_library",
+        "chars": 13557,
+        "tokens": 3873,
+        "reads": 1,
+        "scopedTokens": 589
+      },
+      {
+        "id": "what-does-page-compose",
+        "tool": "get_page",
+        "chars": 217,
+        "tokens": 62,
+        "reads": 1
+      },
+      {
+        "id": "which-token",
+        "tool": "get_foundation",
+        "chars": 5137,
+        "tokens": 1468,
+        "reads": 1,
+        "scopedTokens": 279
+      },
+      {
+        "id": "what-is-this-project",
+        "tool": "get_overview",
+        "chars": 592,
+        "tokens": 169,
+        "reads": 1
+      },
+      {
+        "id": "what-is-the-system",
+        "tool": "get_system",
+        "chars": 206,
+        "tokens": 59,
+        "reads": 1
+      }
+    ],
+    "totals": {
+      "lookupTokens": 5631,
+      "lookupReads": 5
+    }
+  },
+  "unclassified": []
+}
