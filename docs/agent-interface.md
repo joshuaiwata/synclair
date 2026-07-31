@@ -259,6 +259,34 @@ it had been duplicated between `check-host-coverage.mjs` and `host-scan.ts`, and
 a third copy would have guaranteed drift. The coverage script was refactored onto
 it and verified to produce **byte-identical output** against a fixture host first.
 
+### 3c / 3d — the judgment-heavy two ✅ BUILT (scoped smaller, on purpose)
+
+Both are scoped smaller than pages or the catalog, because the derivable
+fraction genuinely *is* smaller. In a real System Map the value is sentences
+like *"Owns the ABAC permission model and the Stytch B2B session/webhook
+handling"* — no scanner writes that, and pretending otherwise produces a map
+that reads like a directory listing.
+
+So neither generates. They **enumerate, and report what the authored half has
+missed**:
+
+**`scan:system`** derives areas (workspace dirs), endpoints (NestJS decorators +
+Next `route.ts` exports), models (Prisma), integrations (known packages) — then
+diffs against the map. On the real ToolBelt monorepo: **111 undocumented items**,
+including 13 areas the map never mentions (it documents 13; the repo has 26).
+Summaries stay empty for the `system-mapper`; existing prose carries across
+untouched.
+
+**`scan:ux-coverage`** answers the question `check:ux-docs` can't. Freshness
+tells you docs haven't drifted; it can't tell you they were ever *complete* — a
+doc written when a component had two variants stays perfectly fresh after a third
+is added. Two things are mechanically checkable: variants declared by `cva`, and
+whether a `.docs.tsx` carries the sections its **tier** requires. Whether the
+prose is any good stays `doc-quality`'s call.
+
+It found real debt here: **9 components with no `intent`, 6 blocks with no
+`anatomy`** — spot-checked against the files rather than trusted.
+
 ---
 
 ## Validation against a real clone ✅ DONE
