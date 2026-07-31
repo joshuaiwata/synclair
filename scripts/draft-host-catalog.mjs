@@ -175,6 +175,93 @@ function countUsage(tag, corpus) {
 
 // ------------------------------------------------------------------ drafting
 
+/**
+ * REFRESH — re-derive the FACTS of entries whose host source has moved, and
+ * keep every word the cataloger wrote.
+ *
+ * This is the drift half of the same split. When `check:host` reports an entry
+ * as stale, what actually changed is mechanical: the file's hash, its props,
+ * how many places render it. The judgment — what the component IS, when to
+ * reach for it, which tier — did not change just because someone edited the
+ * file, and re-running a digger over 71 entries to recover text that is still
+ * correct is waste.
+ *
+ * So: recompute `sourceHash`, `props`, `usage`, `basis`, `catalogedAt`. Never
+ * touch `title`, `description`, `kind`, `categories`, `notes`, `examples`.
+ * An entry whose source file is GONE is left alone and reported — that's a
+ * deletion, and deciding whether to retire the entry is a human call.
+ */
+function refreshStale() {
+  const catalogPath = path.join(ROOT, "data", "external-catalog.json")
+  const raw = JSON.parse(readFileSync(catalogPath, "utf8"))
+  const items = Array.isArray(raw.items) ? raw.items : []
+  const hostsList = Array.isArray(raw.hosts) ? raw.hosts : raw.host ? [raw.host] : []
+  const rootFor = (surface) => {
+    const h = hostsList.find((x) => x.surface === surface) ?? hostsList[0]
+    return h ? path.resolve(ROOT, h.root) : null
+  }
+
+  let fresh = 0
+  const refreshed = []
+  const missing = []
+
+  for (const it of items) {
+    const base = rootFor(it.surface)
+    const abs = base && it.hostPath ? path.join(base, it.hostPath) : null
+    if (!abs || !existsSync(abs)) {
+      missing.push(it.name)
+      continue
+    }
+    const buf = readFileSync(abs)
+    const hash = sha256(buf)
+    if (hash === it.sourceHash) {
+      fresh++
+      continue
+    }
+    const src = buf.toString("utf8")
+    const corpus = walkAll(base).map((rel) => {
+      try {
+        return readFileSync(path.join(base, rel), "utf8")
+      } catch {
+        return ""
+      }
+    })
+    const exportName = exportsOf(abs)[0] ?? it.name
+    const { basis } = deriveBasis(src, it.hostPath)
+    const props = deriveProps(src, exportName)
+
+    it.sourceHash = hash
+    it.catalogedAt = new Date().toISOString().slice(0, 10)
+    it.basis = basis
+    // Only replace props when we could actually read some — a component whose
+    // interface we can't parse keeps whatever the cataloger recorded.
+    if (props.length) it.props = props
+    it.usage = { ...(it.usage ?? {}), fileCount: countUsage(exportName, corpus) }
+    refreshed.push(it.name)
+  }
+
+  if (!args.includes("--print") && refreshed.length) {
+    writeFileSync(catalogPath, `${JSON.stringify(raw, null, 2)}\n`)
+  }
+  return { fresh, refreshed, missing, total: items.length }
+}
+
+if (args.includes("--refresh")) {
+  const r = refreshStale()
+  console.log(`\nCatalog refresh — ${r.total} entr(ies)`)
+  console.log(`  already current: ${r.fresh}`)
+  console.log(`  facts refreshed: ${r.refreshed.length}${r.refreshed.length ? ` — ${r.refreshed.slice(0, 8).join(", ")}${r.refreshed.length > 8 ? " …" : ""}` : ""}`)
+  if (r.missing.length) {
+    console.log(`  source GONE:     ${r.missing.length} — ${r.missing.slice(0, 8).join(", ")}${r.missing.length > 8 ? " …" : ""}`)
+    console.log(`    Left untouched: a deleted component is a retire-or-repoint decision, not a refresh.`)
+  }
+  console.log(
+    `\n  Facts only — hash, props, usage, basis. Every word the cataloger wrote`
+    + `\n  (title, description, tier, categories, notes) is untouched.\n`
+  )
+  process.exit(0)
+}
+
 const report = []
 
 for (const host of hosts) {

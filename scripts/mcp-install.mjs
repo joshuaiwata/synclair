@@ -26,7 +26,7 @@
  *   node scripts/mcp-install.mjs --host ../app    # explicit host repo
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -99,33 +99,125 @@ const serverPath = embeddedish
   : path.join(HUB_ROOT, SERVER_REL)
 
 const entry = { command: "node", args: [serverPath], env: {} }
-const targetFile = path.join(hostRoot, ".mcp.json")
+
+/**
+ * One server, three clients, three different mechanisms — a team is rarely all
+ * on one tool, and a registration that only covers Claude Code silently leaves
+ * everyone else reading whole files.
+ *
+ *   Claude Code  <host>/.mcp.json        project-scoped, COMMITTABLE
+ *   Cursor       <host>/.cursor/mcp.json project-scoped, COMMITTABLE
+ *   Codex        ~/.codex/config.toml    USER-GLOBAL — no project-scoped file
+ *                                        exists, so it can't be committed and
+ *                                        every developer runs it once.
+ *
+ * The first two land on `git pull`. Codex is opt-in via `--codex` because it
+ * writes outside the repo, into a file the user owns.
+ */
+/**
+ * WHERE people actually launch their agent.
+ *
+ * A project-scoped `.mcp.json` is read from the session's LAUNCH directory —
+ * it is not searched for up the tree. In a monorepo that means a single file at
+ * the repo root serves only the people who start at the repo root; anyone
+ * working in `apps/<app>` gets no tools at all, silently.
+ *
+ * So register at the repo root AND at every host root the catalog declares —
+ * which is precisely the set of app directories the team works in, already
+ * maintained by intake. Paths stay relative, so every file is committable and
+ * correct on any clone.
+ *
+ * (Repowise avoids this by shipping a binary on PATH, so its config is just
+ * `repowise mcp` with no path to resolve. Synclair's server is deliberately
+ * anchored to its own location so it always serves ITS hub — the trade is that
+ * the config names a path, so the paths have to be right in each place.)
+ */
+function launchDirs() {
+  const dirs = new Set([hostRoot])
+  const cat = readJson(path.join(HUB_ROOT, "data", "external-catalog.json"))
+  for (const h of Array.isArray(cat?.hosts) ? cat.hosts : []) {
+    if (typeof h?.root !== "string") continue
+    const abs = path.resolve(HUB_ROOT, h.root)
+    if (existsSync(abs)) dirs.add(abs)
+  }
+  return [...dirs]
+}
+
+const CLIENTS = launchDirs().flatMap((dir) => [
+  { id: "claude", label: "Claude Code", dir, file: path.join(dir, ".mcp.json") },
+  { id: "cursor", label: "Cursor", dir, file: path.join(dir, ".cursor", "mcp.json") },
+])
+
+/** TOML block for Codex, marker-delimited so re-running replaces rather than repeats. */
+const CODEX_START = "# >>> synclair >>>"
+const CODEX_END = "# <<< synclair <<<"
+function codexBlock() {
+  // Codex spawns from the user's home, not the repo — the path must be absolute
+  // whatever the topology says.
+  const absServer = path.join(HUB_ROOT, SERVER_REL)
+  return [
+    CODEX_START,
+    "[mcp_servers.synclair]",
+    'command = "node"',
+    `args = ["${absServer}"]`,
+    CODEX_END,
+  ].join("\n")
+}
 
 if (has("--print")) {
   console.log(`topology:  ${mode}`)
   console.log(`hub:       ${HUB_ROOT}`)
   console.log(`host repo: ${hostRoot}`)
-  console.log(`target:    ${targetFile}`)
   console.log(`committable: ${embeddedish ? "yes — relative path" : "no — absolute path, gitignore it"}`)
+  for (const c of CLIENTS) console.log(`  ${c.label.padEnd(12)} → ${path.relative(hostRoot, c.file)}`)
+  console.log(`  ${"Codex".padEnd(12)} → ${path.join(process.env.HOME ?? "~", ".codex/config.toml")} (--codex)`)
   console.log(`\n${JSON.stringify({ mcpServers: { synclair: entry } }, null, 2)}`)
+  console.log(`\n${codexBlock()}`)
   process.exit(0)
 }
 
-// Merge, never clobber: a host repo may already register other MCP servers.
-const existing = readJson(targetFile) ?? {}
-const servers = { ...(existing.mcpServers ?? {}) }
-const had = Boolean(servers.synclair)
-servers.synclair = entry
+for (const client of CLIENTS) {
+  // Merge, never clobber: a host repo may already register other MCP servers.
+  const existing = readJson(client.file) ?? {}
+  const servers = { ...(existing.mcpServers ?? {}) }
+  const had = Boolean(servers.synclair)
+  // Relative to THIS directory — apps/prototype needs ../../synclair/…
+  const fromHere = embeddedish
+    ? path.relative(client.dir, path.join(HUB_ROOT, SERVER_REL))
+    : path.join(HUB_ROOT, SERVER_REL)
+  servers.synclair = { ...entry, args: [fromHere] }
+  mkdirSync(path.dirname(client.file), { recursive: true })
+  writeFileSync(client.file, `${JSON.stringify({ ...existing, mcpServers: servers }, null, 2)}\n`)
+  console.log(`  ${had ? "updated" : "registered"} ${client.label.padEnd(12)} ${path.relative(hostRoot, client.file)}  →  ${fromHere}`)
+}
 
-writeFileSync(targetFile, `${JSON.stringify({ ...existing, mcpServers: servers }, null, 2)}\n`)
+if (has("--codex")) {
+  const codexFile = path.join(process.env.HOME ?? "", ".codex", "config.toml")
+  const current = existsSync(codexFile) ? readFileSync(codexFile, "utf8") : ""
+  const s = current.indexOf(CODEX_START)
+  const e = current.indexOf(CODEX_END)
+  let next
+  if (s !== -1 && e !== -1 && e > s) next = current.slice(0, s) + codexBlock() + current.slice(e + CODEX_END.length)
+  else if (s !== -1 || e !== -1) {
+    console.error("~/.codex/config.toml has only one synclair marker — remove the stray one and re-run.")
+    process.exit(1)
+  } else next = `${current.replace(/\s*$/, "")}\n\n${codexBlock()}\n`
+  mkdirSync(path.dirname(codexFile), { recursive: true })
+  writeFileSync(codexFile, next)
+  console.log(`registered "synclair" for Codex → ${codexFile}`)
+} else {
+  console.log(
+    `\nCodex users: its MCP config is USER-GLOBAL (~/.codex/config.toml), so it`
+    + `\ncannot ship in the repo. Each Codex user runs once:  npm run mcp:install -- --codex`
+  )
+}
 
-console.log(`${had ? "updated" : "registered"} "synclair" in ${targetFile}`)
-console.log(`  topology: ${mode}`)
+console.log(`\n  topology: ${mode}`)
 console.log(`  server:   ${serverPath}`)
 if (!embeddedish) {
   console.log(
-    `\n  This path is absolute and machine-specific — add .mcp.json to the host's\n`
-    + `  .gitignore rather than committing it.`
+    `\n  Paths are absolute and machine-specific — gitignore the written files\n`
+    + `  rather than committing them.`
   )
 }
 console.log(`\n  Restart the agent client to pick it up. Verify with:`)

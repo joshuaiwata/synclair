@@ -24,6 +24,7 @@
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",
     "check:freshness": "node scripts/check-freshness.mjs",
+    "refresh": "node scripts/refresh.mjs",
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "install:hooks": "node scripts/install-hooks.mjs",
     "scan:pages": "node scripts/scan-pages.mjs",

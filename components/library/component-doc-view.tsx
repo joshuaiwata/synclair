@@ -46,6 +46,7 @@ import { getUsageMap, routeLabel } from "@/lib/system/usage"
 import { getUxDocSync } from "@/lib/system/ux-docs"
 import { COMPONENT_MODES, ViewportFrame } from "@/components/viewport-frame"
 import { cn } from "@/lib/utils"
+import { PreviewBoundary } from "./preview-boundary"
 
 const STATUS_TONE: Record<ComponentStatus, "success" | "info" | "warning"> = {
   stable: "success",
@@ -401,13 +402,15 @@ export async function ComponentDocView({
               hint="the host's actual component, imported"
             />
             <ViewportFrame modes={stageModes} fullscreen={isTemplate} zoom={zoomStage}>
-              {hostPreview.theme ? (
-                <ProductThemeScope theme={hostPreview.theme}>
+              <PreviewBoundary name={component.name}>
+                {hostPreview.theme ? (
+                  <ProductThemeScope theme={hostPreview.theme}>
+                    <hostPreview.component />
+                  </ProductThemeScope>
+                ) : (
                   <hostPreview.component />
-                </ProductThemeScope>
-              ) : (
-                <hostPreview.component />
-              )}
+                )}
+              </PreviewBoundary>
             </ViewportFrame>
           </section>
         ) : null}
