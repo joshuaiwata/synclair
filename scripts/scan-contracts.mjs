@@ -132,7 +132,7 @@ console.log(`  ${providers.length} endpoint(s) provided · ${consumers.length} c
 
 const byApp = {}
 for (const l of links) {
-  const k = `${l.consumerApp} → ${l.providerApp}`
+  const k = l.scope === "cross-app" ? `${l.consumerApp} → ${l.providerApp}` : `${l.consumerApp} → its own API`
   byApp[k] = (byApp[k] ?? 0) + 1
 }
 if (Object.keys(byApp).length) {
@@ -147,9 +147,15 @@ if (!confidence.trustworthy) {
   console.log(`  Reporting ${orphans.length} endpoint(s) as unused here would invite someone to`)
   console.log(`  delete a live one. Unknown outranks proven-zero.`)
 } else if (orphans.length) {
-  console.log(`\n  ${orphans.length} endpoint(s) no scanned caller uses:`)
+  /**
+   * "No caller found", never "unused". A static scan cannot prove absence — it
+   * can only report what it saw — and the difference between those two
+   * sentences is whether someone deletes a live endpoint on our say-so.
+   */
+  console.log(`\n  ${orphans.length} endpoint(s) with no caller found — CANDIDATES, verify before acting:`)
   for (const o of orphans.slice(0, 8)) console.log(`    · ${o.method} ${o.path}  (${appOf(o.source)})`)
   if (orphans.length > 8) console.log(`    · +${orphans.length - 8} more`)
+  console.log(`    (a call made through a dynamic URL or an unrecognised helper looks like this too)`)
 }
 
 if (Object.keys(byReason).length) {

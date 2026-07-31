@@ -203,6 +203,35 @@ export function extractConsumers(repoRoot, rel) {
       })
     }
 
+    /**
+     * Bare helper calls with a literal path: `write('/api/areas', {...})`.
+     *
+     * A local wrapper function is extremely common and has no dot to key on.
+     * Missing it is how a real app's `/api/areas` POST/PATCH/DELETE — all three
+     * plainly called through `write(...)` — got reported as unused endpoints.
+     *
+     * The false-positive risk is deliberately accepted: the argument must be a
+     * string literal beginning with `/`, and an over-eager CONSUMER can only
+     * ever produce an extra link or a `no_provider` note. An under-eager one
+     * produces "this endpoint is dead", which is the output that gets live code
+     * deleted. The asymmetry decides the trade.
+     */
+    for (const m of src.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(\s*(['"`])(\/[A-Za-z0-9_\-./:$?{}[\]]*)\2/g)) {
+      const fn = m[1]
+      if (fn === "fetch" || fn === "require" || fn === "import") continue
+      const method = /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)/i.exec(
+        src.slice(m.index, m.index + 300)
+      )?.[1]?.toUpperCase() ?? "GET"
+      out.push({
+        method,
+        path: normalisePath(m[3]),
+        rawUrl: m[3],
+        external: false,
+        source: relFile,
+        via: "helper",
+      })
+    }
+
     // Calls whose URL is a bare identifier: counted, never invented.
     opaque += [...src.matchAll(/\bfetch\s*\(\s*[A-Za-z_$][\w$]*\s*[,)]/g)].length
   }
@@ -244,20 +273,38 @@ export function matchContracts(providers, consumers) {
       unmatched.push({ ...c, reason: "method_mismatch" })
       continue
     }
-    const crossApp = verbMatch.filter((p) => appOf(p.source) !== appOf(c.source))
-    if (!crossApp.length) {
+    /**
+     * A link forms whenever the caller and the handler are DIFFERENT FILES.
+     *
+     * The earlier rule required them to be in different workspace apps, which
+     * silently discarded the most common shape there is: a Next.js app whose
+     * screens call its own `/api/*` routes. On a real single-app repo that
+     * produced 42 calls and ZERO links, and then reported 35 endpoints as
+     * unused — the seam we most want to show, thrown away as "internal".
+     *
+     * App boundaries still matter, so they are recorded as `scope` rather than
+     * used as a filter: a cross-app call is a service contract, an intra-app one
+     * is a screen calling its own backend. Both are the seam; only one crosses a
+     * deployment boundary.
+     */
+    const distinct = verbMatch.filter((p) => p.source !== c.source)
+    if (!distinct.length) {
+      // Same file provides and calls it — not a seam, just a local helper.
       unmatched.push({ ...c, reason: "internal_only" })
       continue
     }
+    const cross = distinct.filter((p) => appOf(p.source) !== appOf(c.source))
+    const chosen = cross.length ? cross : distinct
     // One provider is an exact link; several is a candidate we won't pick between.
     links.push({
       method: c.method,
       path: c.path,
       consumer: c.source,
       consumerApp: appOf(c.source),
-      providers: crossApp.map((p) => p.source),
-      providerApp: appOf(crossApp[0].source),
-      matchType: crossApp.length === 1 ? "exact" : "candidate",
+      providers: chosen.map((p) => p.source),
+      providerApp: appOf(chosen[0].source),
+      scope: cross.length ? "cross-app" : "intra-app",
+      matchType: chosen.length === 1 ? "exact" : "candidate",
     })
   }
 
@@ -307,7 +354,17 @@ export function orphanConfidence({ resolved, opaque, providers, orphans }) {
    * monorepo this is exactly what happened — 19 resolvable calls, 75 of 80
    * endpoints "unused" — and the naive coverage check passed it happily.
    */
-  if (providers >= 10 && orphanRate > 0.6) {
+  /**
+   * 0.35, not 0.6.
+   *
+   * The first threshold was picked by eye and a real repo landed at 56% — just
+   * under it — while every one of those "unused" endpoints was in fact called
+   * through a one-line local helper the scanner didn't recognise. The number has
+   * to sit well below what a plausible dead-code rate looks like, because the
+   * cost of the two errors is nowhere near symmetric: a suppressed finding costs
+   * a feature, a false one costs a live endpoint.
+   */
+  if (providers >= 10 && orphanRate > 0.35) {
     return {
       trustworthy: false,
       coverage,

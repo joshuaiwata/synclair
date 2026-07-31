@@ -94,6 +94,7 @@ try {
     const d = await fetch(someUrl, { method: 'GET' });
     const e = await fetch('https://api.stripe.com/v1/charges');
     const f = list.get('not-a-path');
+    const g = await write('/api/areas', { method: 'PATCH', body });
   `)
   const { consumers, opaque } = extractConsumers(root, "apps/web")
   const hasC = (m, p) => consumers.some((x) => x.method === m && x.path === p)
@@ -105,6 +106,9 @@ try {
   ok("a third-party host is flagged external",
     consumers.some((c) => c.external && /stripe/.test(c.rawUrl)))
   ok("an unresolvable URL is counted, not invented", opaque >= 1, `opaque=${opaque}`)
+  // The miss that reported 35 live endpoints as dead on a real repo.
+  ok("a bare local helper with a literal path is read",
+    hasC("PATCH", "/api/areas"), JSON.stringify(consumers.map((c) => `${c.method} ${c.path}`)))
 
   // ── matching ───────────────────────────────────────────────────────────────
   const { links, unmatched } = matchContracts(providers, consumers)
@@ -116,13 +120,24 @@ try {
   const reasons = new Set(unmatched.map((u) => u.reason))
   ok("every unmatched call carries a reason", [...reasons].every(Boolean) && unmatched.length > 0)
 
-  // Same-app call is intra-service, not a seam.
+  /**
+   * A screen calling its OWN app's API is the commonest seam there is — a
+   * single-app Next repo produced 42 calls and zero links when this was
+   * filtered out as "internal".
+   */
   const intra = matchContracts(
-    [{ method: "GET", path: "/x", source: "apps/api/src/a.ts" }],
-    [{ method: "GET", path: "/x", source: "apps/api/src/b.ts" }]
+    [{ method: "GET", path: "/x", source: "apps/web/app/api/x/route.ts" }],
+    [{ method: "GET", path: "/x", source: "apps/web/src/page.tsx" }]
   )
-  ok("an intra-app call is not reported as a cross-service seam",
-    intra.links.length === 0 && intra.unmatched[0]?.reason === "internal_only")
+  ok("a screen calling its own API IS a link", intra.links.length === 1, JSON.stringify(intra))
+  ok("and it is labelled intra-app, not cross-app", intra.links[0]?.scope === "intra-app")
+
+  const sameFile = matchContracts(
+    [{ method: "GET", path: "/x", source: "apps/api/src/a.ts" }],
+    [{ method: "GET", path: "/x", source: "apps/api/src/a.ts" }]
+  )
+  ok("a file calling itself is not a seam",
+    sameFile.links.length === 0 && sameFile.unmatched[0]?.reason === "internal_only")
 
   const verb = matchContracts(
     [{ method: "GET", path: "/x", source: "apps/api/a.ts" }],
@@ -136,6 +151,14 @@ try {
   // ── the gate that matters ──────────────────────────────────────────────────
   const blind = orphanConfidence({ resolved: 19, opaque: 2, providers: 80, orphans: 75 })
   ok("94% orphan rate is REFUSED, not reported", blind.trustworthy === false, JSON.stringify(blind))
+
+  /**
+   * The threshold that mattered: a real repo landed at 56% orphans and every one
+   * was called through a helper the scanner didn't read. 0.6 let it through.
+   */
+  const justUnderOld = orphanConfidence({ resolved: 42, opaque: 1, providers: 62, orphans: 35 })
+  ok("56% is refused too — the old 0.6 threshold let real fiction through",
+    justUnderOld.trustworthy === false, JSON.stringify(justUnderOld))
   ok("and it explains why in terms of the scanner, not the API",
     /invisible to this scanner/.test(blind.why ?? ""), blind.why)
 
