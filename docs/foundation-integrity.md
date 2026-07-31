@@ -1,6 +1,9 @@
 # Foundation integrity — plan
 
-**Status: M4, M7 ✅ BUILT and validated; M1 ✅ first half; M2, M3, M5, M6, M8 proposed.**
+**Status: M1 (first half), M2 (data half), M4, M6, M7, M8 ✅ BUILT and validated
+against two real hosts; M3 and M5 remain.** The watcher-vs-embedded question is
+settled in [`setup-modes.md`](setup-modes.md): embedded is the recommendation,
+watcher is deprecated but supported.
 Third in the series:
 [`extensibility.md`](extensibility.md) draws the Core/Extension line,
 [`agent-interface.md`](agent-interface.md) covers how Synclair's knowledge
@@ -238,7 +241,7 @@ consumed by two unmapped frontends must never read as "affects no screens".
 Still to do here: feeding cascade into `check:freshness` so staleness travels the
 graph, and into the PR gate's comment.
 
-## M2 — Confidence, made visible ⬜ *foundation*
+## M2 — Confidence, made visible ◐ data half BUILT *foundation*
 
 **The problem.** `provenance.ts` defines `generator` and `confidence`. Three
 scanners set them. **Nothing in the UI reads them.** Phase 1 built the vocabulary,
@@ -368,7 +371,7 @@ confidence. Dismissals leave a tombstone so a rescan never re-proposes them.
 - A confirmed ruling is never walked back to proposed by a later scan.
 - Edit-time notice fires at most once per session per ruling.
 
-## M6 — The seam ⬜
+## M6 — The seam ✅ BUILT (derivation; views remain)
 
 *The one genuinely new artifact, and the most self-maintaining thing we'd own.*
 
@@ -469,7 +472,7 @@ On a clone with no local sources, the new script's output is **byte-identical**
 to the pristine one it replaces. On a blank seed it reports the manifest is empty
 and writes nothing new.
 
-## M8 — Derived health rollup ⬜
+## M8 — Derived health rollup ✅ BUILT
 
 **The problem.** `/synclair/reports` is agent-written — a considered read, but it
 can't be recomputed, so it ages like everything else it describes. There's no
@@ -498,7 +501,7 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M1** Graph ✅ (first half) | yes | nothing |
 | **M3** Anchors | yes | — |
 | **M5** Rulings | no | M1 (governance), M3 (evidence), M4 (delivery) |
-| **M8** Rollup | no | M1–M3 |
+| **M8** Rollup ✅ | no | M1–M3 |
 
 **Recommended order: M4 → M7 → M1 → M2 → M3 → M6 → M5 → M8.** The first two are
 done; M1 is next.
@@ -549,3 +552,64 @@ for decisions and promotes them on observation counts. The method is sound and
 tempting — it would fill M5 automatically — but reading a developer's transcripts
 is a privacy and astonishment surface far larger than anything else in this plan.
 Revisit only as an explicit opt-in Extension, never as foundation behaviour.
+
+---
+
+## Validation: two real hosts, eight degraded scenarios
+
+Everything above was built and re-tested against **freshly re-cut** clones, never
+patched ones — a clone that has already run a harness is no longer pristine, and
+that bit once when discovery reported 6 PRDs instead of 7 because an earlier test
+had deleted one.
+
+**Host A — `toolbeltwork/platform:design`.** Embedded hub, 6 NestJS APIs, 3 web
+apps, 34 knowledge sources, 7 in-repo PRDs, 144 catalog items, 51 pages.
+
+**Host B — `roadmap-app`.** Embedded hub, single Next app, 62 API routes, 36
+catalog items. A completely different shape, and the one that broke two
+assumptions Host A had validated happily.
+
+The stress suite (`scratchpad/stress.mjs`, 106 checks) covers: blank seed;
+populated embedded clone; a synthesized **watcher** pair (deprecated still has to
+mean supported); every data cache corrupted in turn; every data cache deleted in
+turn; no git repository at all; a read-only cursor directory; and three repeat
+runs proving no churn in tracked files.
+
+### The nine defects real data caught
+
+Ordered by how quietly they would have failed:
+
+| # | Defect | Why it was invisible |
+|---|---|---|
+| 1 | `scan:contracts --json` truncated at exactly 8192 bytes | `process.exit()` drops buffered stdout; the reply *looked* like output |
+| 2 | 35 live endpoints reported as "unused" on Host B | calls went through a bare helper the scanner didn't read |
+| 3 | Single-app repos produced **zero** seam links | a link required different workspace apps; a screen calling its own API is the commonest seam there is |
+| 4 | 75 of 80 endpoints "unused" on Host A | only literal `fetch` URLs were read |
+| 5 | SSH host alias disabled local-source detection entirely | matcher required literal `github.com`; this machine uses `github-work` |
+| 6 | Two commits in the same second made an edit vanish | inclusive `--before` picked the newer commit |
+| 7 | `usage.files` resolved against the wrong base | produced `synclair/apps/…`; every component read as used nowhere |
+| 8 | YAML frontmatter titled seven PRDs "Document Identity" | `#` group labels inside `---` parsed as headings |
+| 9 | Foundation UX-doc debt would fire in every clone forever | it ships with Synclair and no product team can fix it |
+
+Every one is now a case in a hermetic check that runs in `verify-ui`.
+
+### The threshold lesson
+
+Defect 2 is the one worth remembering. The gate meant to prevent exactly it —
+"don't claim endpoints are unused if too many look unused" — was set at 60% by
+eye, and the real repo landed at **56%**. Every one of those 35 endpoints was
+called. The threshold is now 0.35, and the wording changed from "unused" to
+"no caller found — CANDIDATES, verify before acting", because **a static scan
+cannot prove absence**. A suppressed finding costs a feature; a false one costs a
+live endpoint.
+
+## What remains
+
+- **M3 (anchors and grounding)** — not started. The largest remaining correctness
+  win: nothing yet verifies that a digest's *claims* still hold, only that its
+  file hasn't moved.
+- **M5 (rulings)** — not started. Depends on M3 for evidence and M4 for delivery.
+- **M2's UI half** — the data is there and `npm run status` reads it; the hub's
+  pages still render derived facts and eight-month-old prose identically.
+- **M6's views** — `data/contracts.json` exists and is honest; `/synclair/system`
+  and `/synclair/pages` don't read it yet.

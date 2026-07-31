@@ -34,6 +34,7 @@
     "install:agent-hooks": "node scripts/install-agent-hooks.mjs",
     "brief": "node scripts/agent-brief.mjs",
     "impact": "node scripts/impact.mjs",
+    "status": "node scripts/status.mjs",
     "scan:pages": "node scripts/scan-pages.mjs",
     "scan:system": "node scripts/scan-system.mjs",
     "scan:contracts": "node scripts/scan-contracts.mjs",
