@@ -270,6 +270,90 @@ function meta(extra = {}) {
   }
 }
 
+/**
+ * RESPONSE BUDGET — a tool result too big for the client's context is not an
+ * answer, it's a file path. Asking this server for the whole catalog returned
+ * ~93k characters of full-paragraph descriptions, which the client spilled to
+ * disk; the agent then had to re-read it in chunks, costing more than opening
+ * `registry.json` would have. That defeats the point of this layer.
+ *
+ * So a search response is projected to one of three widths and, if it still
+ * doesn't fit, degrades a step at a time and SAYS SO. Same principle as
+ * `truncated`: never hand back a quietly reduced answer.
+ *
+ * The budget is in characters, deliberately well under any client's cap —
+ * a tool that fits everywhere beats one tuned to today's limit.
+ */
+const RESPONSE_BUDGET = 40_000
+
+/** Enough to tell two items apart; not the whole doc paragraph. */
+function clip(text, max = 160) {
+  const s = (text ?? "").toString().trim()
+  if (!s) return undefined
+  if (s.length <= max) return s
+  // Prefer a sentence boundary when one lands near the cap — a clean stop reads
+  // as a summary; a mid-word cut reads as corruption.
+  const stop = s.slice(0, max + 40).search(/\.\s/)
+  return stop > 60 ? s.slice(0, stop + 1) : `${s.slice(0, max).trimEnd()}…`
+}
+
+/**
+ * `names` answers "does something like this exist?", `compact` answers "which
+ * one do I want?", `full` is the whole registry record. Full detail is what
+ * `get_component` is for — search should hand you candidates, not documentation.
+ */
+const PROJECTIONS = {
+  names: (i) => ({ name: i.name, tier: i.tier, origin: i.origin, path: i.path }),
+  compact: (i) => ({
+    name: i.name,
+    tier: i.tier,
+    title: i.title,
+    description: clip(i.description),
+    origin: i.origin,
+    status: i.status,
+    path: i.path,
+    surface: i.surface,
+    hasDocs: i.hasDocs,
+    usageCount: i.usageCount,
+    categories: i.categories,
+  }),
+  full: (i) => i,
+}
+
+/** Widest first — degrading walks down this list. */
+const FIELD_WIDTHS = ["full", "compact", "names"]
+
+/**
+ * The BATCHED tools (`get_component`, `get_page` with routes) blow the budget a
+ * different way: the caller sets the fan-out. All 174 components came to 127k
+ * characters, all 51 routes to 69k.
+ *
+ * Their fix is NOT search's. Someone who named an item wants that item's full
+ * record — clipping it is answering a different question. So serve whole
+ * records until the budget fills and hand back the rest as names to ask for
+ * next, which is a request the agent can actually act on.
+ */
+function fitBatch(records, keyOf) {
+  // The envelope isn't free: 131 deferred names cost ~2k on their own, which is
+  // how the first cut of this landed 1,479 characters OVER the budget it was
+  // enforcing. Reserve the worst case (every record deferred) plus the hint and
+  // `_meta`. Over-reserving when little is deferred errs the safe way.
+  const envelope = JSON.stringify(records.map(keyOf)).length + 400
+  const ceiling = RESPONSE_BUDGET - envelope
+
+  const kept = []
+  let size = 0
+  for (const r of records) {
+    const len = JSON.stringify(r).length + 1
+    // Always serve at least one whole record: a single item over budget is a
+    // real answer, while an empty list plus "ask again" is a loop.
+    if (kept.length && size + len > ceiling) break
+    kept.push(r)
+    size += len
+  }
+  return { kept, deferred: records.slice(kept.length).map(keyOf) }
+}
+
 const TOOLS = {
   get_overview: {
     description:
@@ -334,7 +418,8 @@ const TOOLS = {
     description:
       "Search this project's component library — components, blocks, and templates, both Synclair-native "
       + "and cataloged HOST components. Returns matches with tier, origin, status and path. Use before "
-      + "building any UI: the invention gate requires checking what already exists.",
+      + "building any UI: the invention gate requires checking what already exists. Descriptions come "
+      + "back clipped; call get_component for an item's full record.",
     inputSchema: {
       type: "object",
       properties: {
@@ -342,6 +427,14 @@ const TOOLS = {
         tier: { type: "string", enum: ["component", "block", "template"] },
         origin: { type: "string", enum: ["native", "host"] },
         limit: { type: "number", description: "Max results (default 40)." },
+        fields: {
+          type: "string",
+          enum: ["names", "compact", "full"],
+          description:
+            "Detail per item. 'names' (name/tier/origin/path) for a wide inventory sweep, 'compact' "
+            + "(default: adds title, clipped description, status, usage) to pick a candidate, 'full' "
+            + "for whole registry records — 'full' only pays off on a narrow result set.",
+        },
       },
       additionalProperties: false,
     },
@@ -386,15 +479,46 @@ const TOOLS = {
       }
       const limit = Number.isFinite(args.limit) ? args.limit : 40
       const total = items.length
-      return {
+
+      const asked = PROJECTIONS[args.fields] ? args.fields : "compact"
+      const build = (width, count) => ({
         query: args.query ?? null,
         total,
-        returned: Math.min(total, limit),
-        items: items.slice(0, limit),
+        returned: Math.min(total, count),
+        fields: width,
+        items: items.slice(0, count).map(PROJECTIONS[width]),
         // Never silently truncate — say what was dropped.
-        truncated: total > limit ? total - limit : 0,
+        truncated: total > count ? total - count : 0,
         _meta: meta(),
+      })
+
+      // Fit the budget: narrow the projection first (all items, less detail per
+      // item), and only then drop items. Someone sweeping the catalog wants to
+      // know WHAT exists more than they want prose about the first thirty.
+      let width = asked
+      let count = limit
+      let out = build(width, count)
+      const fits = (r) => JSON.stringify(r).length <= RESPONSE_BUDGET
+
+      for (const next of FIELD_WIDTHS.slice(FIELD_WIDTHS.indexOf(asked) + 1)) {
+        if (fits(out)) break
+        width = next
+        out = build(width, count)
       }
+      while (!fits(out) && count > 1) {
+        count = Math.floor(count / 2)
+        out = build(width, count)
+      }
+
+      if (width !== asked) {
+        out._meta.degraded = {
+          from: asked,
+          to: width,
+          why: `${asked} exceeded the ${RESPONSE_BUDGET}-character response budget`,
+          hint: "narrow with query/tier/origin, or call get_component for the items you care about",
+        }
+      }
+      return out
     },
   },
 
@@ -453,7 +577,19 @@ const TOOLS = {
         })
       })
 
-      return { items: found, _meta: meta() }
+      const { kept, deferred } = fitBatch(found, (r) => r.name)
+      return {
+        items: kept,
+        ...(deferred.length
+          ? {
+              deferred,
+              hint:
+                `${deferred.length} more matched but would exceed the response budget — `
+                + "ask for them in a follow-up call, or use search_library for an overview.",
+            }
+          : {}),
+        _meta: meta(),
+      }
     },
   },
 
@@ -543,7 +679,19 @@ const TOOLS = {
           const node = nodes.find((p) => (p.route ?? p.path) === r)
           return node ? withFreshness(node) : { route: r, found: false }
         })
-        return { pages: picked, _meta: meta({ repo: map.repo?.name }) }
+        const { kept, deferred } = fitBatch(picked, (p) => p.route)
+        return {
+          pages: kept,
+          ...(deferred.length
+            ? {
+                deferred,
+                hint:
+                  `${deferred.length} more route(s) would exceed the response budget — `
+                  + "ask for them in a follow-up call, or omit `route` for the sitemap digest.",
+              }
+            : {}),
+          _meta: meta({ repo: map.repo?.name }),
+        }
       }
 
       // Listing mode stays a digest — routes and names, not every node whole.

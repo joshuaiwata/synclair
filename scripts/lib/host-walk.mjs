@@ -50,10 +50,24 @@ export const MAX_FILE_BYTES = 300 * 1024
  */
 export const UI_DIR_SEGMENTS = new Set([
   "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+  // Atomic-design vocabulary — how design-system packages commonly organise themselves. Without
+  // these it reported "0 candidate component files" against 16 cataloged: its
+  // coverage was permanently unverifiable, so a new primitive could never show up
+  // as missing.
+  "primitives", "composites",
 ])
 
+/**
+ * A leading underscore is Next's PRIVATE FOLDER convention (`app/**\/_components/`)
+ * — the folder is opted out of routing, not renamed. Matching the literal
+ * segment missed it, and both of this repo's real web apps colocate their UI
+ * that way: two real web apps in a monorepo host reported "0 candidate component
+ * files" and therefore read as fully covered while 23 components had never
+ * been looked at. Strip the underscore before matching, so `_components`,
+ * `_ui`, `_features` all count as what they say they are.
+ */
 export function isComponentDir(rel) {
-  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg))
+  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg.replace(/^_/, "")))
 }
 
 function walkDir(dir, rootAbs, files, accept) {
@@ -106,6 +120,22 @@ export function exportsOf(abs) {
       pattern.lastIndex = 0
       let m
       while ((m = pattern.exec(src)) !== null) names.add(m[1])
+    }
+    /**
+     * Trailing export lists: `export { Badge, badgeVariants }`. lib/system/
+     * host-scan.ts has always read these; this copy had drifted behind it, and
+     * A shared design-system package that declares EVERY component that way
+     * parses as having no exports at all, and then reports "0 candidate
+     * component files" against a full catalog. camelCase siblings like
+     * `badgeVariants` are filtered out by the PascalCase test, same as above.
+     */
+    const re = /export\s*\{([^}]+)\}/g
+    let m
+    while ((m = re.exec(src)) !== null) {
+      for (const part of m[1].split(",")) {
+        const name = part.trim().split(/\s+as\s+/).pop()?.trim()
+        if (name && /^[A-Z][A-Za-z0-9]*$/.test(name)) names.add(name)
+      }
     }
     return [...names]
   } catch {

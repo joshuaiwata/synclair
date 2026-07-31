@@ -215,7 +215,30 @@ for (const host of hosts) {
       : (liveFileCount(it.name) ?? it.usage?.fileCount ?? 0) === 0
   );
 
-  console.log(`\n${host.name ?? host.root} — ${candidates.length} candidate component files, ${hostItems.length} cataloged`);
+  /**
+   * The headline reports CATALOGED **and** RENDERED, because reading one as the
+   * other is the mistake this line exists to prevent. "14 candidates, 14
+   * cataloged" was taken as full coverage on a surface where all 14 rendered as
+   * bare code placeholders — the rendering gap was real, was listed further down
+   * this same report, and still got read as done.
+   *
+   * Cataloged means documented. Rendered means the browser can back the claim up.
+   * A surface is only covered when both numbers match the candidate count.
+   */
+  const surfaceOfItem = (it) => it.surface ?? host.surface ?? fallbackSurface;
+  const isRendered = (it) =>
+    previewKeys.has(it.name) ||
+    (surfaceOfItem(it) && previewKeys.has(`${surfaceOfItem(it)}:${it.name}`)) ||
+    (it.examples ?? []).some((ex) => ex.image);
+  const renderedCount = registryPresent ? hostItems.filter(isRendered).length : null;
+
+  console.log(
+    `\n${host.name ?? host.root} — ${candidates.length} candidate component files, ` +
+      `${hostItems.length} cataloged` +
+      (renderedCount === null
+        ? ""
+        : `, ${renderedCount} rendered${renderedCount < hostItems.length ? ` (${hostItems.length - renderedCount} documented-only)` : ""}`)
+  );
   if (uncataloged.length > 0) {
     console.log(`\n  Uncataloged candidates (${uncataloged.length}) — the app has these, the catalog doesn't:`);
     for (const c of uncataloged.slice(0, 40)) {

@@ -333,6 +333,61 @@ clone.
 3. **51 of the 144 entries' hashes had drifted** since cataloging — not a bug,
    but confirmation that `sourceHash` agrees with `check:host` on real content.
 
+### A fourth, caught in use: `search_library` couldn't answer "what do we have?"
+
+Same defect as `get_system` above, one tool over. A catalog-wide sweep
+(`limit: 200`, no filter) returned all 174 items as **full registry records** —
+**93,381 characters**, past the client's result cap, so it was spilled to a file
+and the agent had to re-read it in chunks. A tool result that has to be re-read
+off disk is not an answer; it costs more than opening `registry.json` would.
+
+The fix is a projection plus a budget, not a smaller default `limit` — capping
+the count answers *"what do we have?"* with a truncated third of the catalog:
+
+- **`fields: names | compact | full`**, default **`compact`** (title + a clipped
+  description + status/usage/path). Full paragraphs are `get_component`'s job;
+  search hands you candidates.
+- **A 40,000-character response budget.** Over it, the projection **narrows
+  before the item list shortens** — all 174 names beats thirty with prose — and
+  the response reports `_meta.degraded` (`from` → `to`, why, how to narrow).
+  Nothing is quietly reduced, same rule as `truncated`.
+
+Catalog-wide: **93,381 → 18,377 chars (80%)**, all 174 items, no spill. Ordinary
+searches are unaffected (`query: "button"` → 4,595 chars at full `compact`
+detail).
+
+#### Then the same audit across all seven
+
+Worst case per tool, rather than the probe's default args. Five are **bounded by
+construction** — the data sets their size, so no argument can blow them up:
+
+| | worst case | |
+|---|---|---|
+| `get_overview` | 592 | bounded |
+| `get_foundation` | 3,028 | bounded |
+| `get_page` (list mode) | 4,321 | bounded |
+| `get_system` | 6,937 | bounded |
+| `get_knowledge` | 9,199 | bounded |
+| `get_component` (all 174) | **127,278** | caller sets fan-out |
+| `get_page` (all 51 routes) | **68,814** | caller sets fan-out |
+
+The two batch tools fail the same way search did, through a different door: size
+scales with the list you hand in. Their fix is **not** search's, though — someone
+who names an item wants *that item's full record*, and clipping it answers a
+different question. So they serve whole records until the budget fills and return
+the rest as `deferred` names, which is a follow-up call the agent can actually
+make. All 174 components → 53 full records + 131 deferred, 38,965 chars.
+
+A first cut of this landed **1,479 characters over** the budget it was enforcing:
+it counted records but not the envelope, and 131 deferred names cost ~2k on their
+own. `fitBatch` now reserves the worst case (every record deferred) up front.
+
+**Guarded, not just fixed.** `check-mcp-contract.mjs` gained a second pass that
+drives every tool — the batch ones at *max fan-out* — and fails over budget. A
+populated field is worthless in a response the client spills to disk, so the two
+contracts belong in one gate. It also asserts the narrowest search projection
+still carries `name`/`tier`/`origin`/`path`, since that's what a degrade lands on.
+
 ### Guards held
 
 - `scan:pages` correctly **refused** a real host-mode map (`repo.root:

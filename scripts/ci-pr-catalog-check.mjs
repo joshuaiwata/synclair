@@ -111,6 +111,16 @@ function exportsOf(abs) {
       let m;
       while ((m = pattern.exec(src)) !== null) names.add(m[1]);
     }
+    // Trailing export lists: `export { Badge, badgeVariants }` — how many
+    // design-system packages declare components. Kept in step with host-scan.ts.
+    const re = /export\s*\{([^}]+)\}/g;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      for (const part of m[1].split(",")) {
+        const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+        if (name && /^[A-Z][A-Za-z0-9]*$/.test(name)) names.add(name);
+      }
+    }
     return [...names];
   } catch {
     return [];
@@ -121,8 +131,14 @@ function exportsOf(abs) {
 // catalog gate must not go blind to a whole UI tree kept outside components/.
 const UI_DIR_SEGMENTS = new Set([
   "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+  // Atomic-design vocabulary — how design-system packages commonly organise themselves.
+  "primitives", "composites",
 ]);
-const isComponentDir = (rel) => rel.split("/").some((seg) => UI_DIR_SEGMENTS.has(seg));
+// A leading underscore is Next's private-folder convention (app/**/_components/):
+// opted out of routing, not renamed. Strip it before matching, or this gate goes
+// blind to exactly the tree it exists to catch.
+const isComponentDir = (rel) =>
+  rel.split("/").some((seg) => UI_DIR_SEGMENTS.has(seg.replace(/^_/, "")));
 
 // 1. Uncataloged candidates introduced/edited by this PR.
 const uncataloged = [];

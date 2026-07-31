@@ -128,7 +128,8 @@ Re-run the surveyor only on big host changes (new framework). Memory + manifest 
 ## Definition of done (any intake or refresh pass)
 
 - [ ] `data/external-catalog.json` has `hosts` (correct `root` for the topology — `..`/ancestor for embedded) + entries; `npm run check:host` passes
-- [ ] `npm run check:coverage` run and triaged (uncataloged candidates dispatched or consciously deferred; zero-usage entries pruned or flagged)
+- [ ] `npm run check:coverage` run and triaged (uncataloged candidates dispatched or consciously deferred; zero-usage entries pruned or flagged). **Read its `N rendered` column, not just `N cataloged`** — cataloged means documented; a surface reading `14 cataloged, 0 rendered` is half done, and reporting that as "full coverage" is the single most common way an intake gets called finished early
+- [ ] `npm run check:previews` run and GREEN (or every remaining item consciously accepted as documented-only, with the compat-gate reason recorded next to it) — this is the gate that catches code-only entries, and it is not implied by check:coverage passing
 - [ ] `npm run scan:hygiene` run; `/synclair/hygiene` renders the host's foundation drift
 - [ ] **Topology was ASKED, not defaulted** — the user chose embed vs watcher; `data/setup.json` resolved (`"mode": "embedded"` or `"watcher"`, agreeing with the host root), not `null`
 - [ ] Multi-frontend hosts: surfaces declared in `lib/system/seed/surfaces.ts` (user-confirmed) and every catalog entry carries its `surface`

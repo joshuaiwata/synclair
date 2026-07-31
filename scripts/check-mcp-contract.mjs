@@ -40,6 +40,14 @@ const strict = process.argv.includes("--strict")
  */
 const EXPECTATIONS = [
   { tool: "search_library", args: {}, at: (r) => r.items, fields: ["name", "tier", "origin", "path"] },
+  // The narrowest projection is what a big sweep degrades TO, so it has to stay
+  // actionable on its own: an item you can't locate isn't an answer.
+  {
+    tool: "search_library",
+    args: { fields: "names", limit: 200 },
+    at: (r) => r.items,
+    fields: ["name", "tier", "origin", "path"],
+  },
   { tool: "get_page", args: {}, at: (r) => r.pages, fields: ["route", "name"] },
   { tool: "get_system", args: { section: "api" }, at: (r) => r.api, fields: ["path"] },
   { tool: "get_knowledge", args: {}, at: (r) => r.sources, fields: ["id", "title"] },
@@ -120,5 +128,50 @@ console.log(
       + `\n  a null path is worse than an error, because nothing signals it's wrong.\n`
     : "\n  Every checked field is populated on at least one record.\n"
 )
+
+/**
+ * SECOND CONTRACT: can any tool return more than a client will accept?
+ *
+ * A populated field is worthless in a response the client spills to disk. This
+ * caught `search_library` at 93k characters, `get_component` at 127k and
+ * `get_page` at 69k — all three well-formed, all three unusable. The two batch
+ * tools are driven at MAX FAN-OUT here, since that's where the caller, not the
+ * data, sets the size.
+ */
+const BUDGET = 40_000
+const catalog = call("search_library", { fields: "names", limit: 500 }).data
+const sitemap = call("get_page", {}).data
+const everyName = (catalog?.items ?? []).map((i) => i.name)
+const everyRoute = (sitemap?.pages ?? []).map((p) => p.route)
+
+const SIZE_CASES = [
+  ["get_overview", {}],
+  ["get_foundation", {}],
+  ["get_knowledge", {}],
+  ["get_system", {}],
+  ["get_page", {}],
+  ["search_library", { limit: 500 }],
+  ["search_library", { limit: 500, fields: "full" }],
+  ...(everyName.length ? [["get_component", { name: everyName }]] : []),
+  ...(everyRoute.length ? [["get_page", { route: everyRoute }]] : []),
+]
+
+console.log("Response budget — can a tool return more than a client accepts?\n")
+const over = []
+for (const [tool, args] of SIZE_CASES) {
+  const { data, error } = call(tool, args)
+  if (error) continue
+  const size = JSON.stringify(data).length
+  const label = `${tool}${Object.keys(args).length ? ` ${JSON.stringify(args).slice(0, 34)}` : ""}`
+  if (size > BUDGET) over.push(label)
+  console.log(`  ${size > BUDGET ? "FAIL  " : "ok    "} ${label.padEnd(48)} ${size.toLocaleString()} chars`)
+}
+console.log(
+  over.length
+    ? `\n  ${over.length} response(s) over the ${BUDGET.toLocaleString()}-char budget. The client spills these`
+      + `\n  to a file, so the agent re-reads them in chunks — costlier than no tool at all.\n`
+    : `\n  Every response fits the ${BUDGET.toLocaleString()}-char budget, including max fan-out.\n`
+)
+bad.push(...over)
 
 process.exit(strict && bad.length ? 1 : 0)
