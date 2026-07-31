@@ -412,6 +412,16 @@ function build() {
       lookupReads: lookups.reduce((n, l) => n + l.reads, 0),
     },
     mcp,
+    /**
+     * The costliest descriptions, so the capability gate can be quantitative
+     * instead of a judgment call. Descriptions are NOT waste — they're what lets
+     * a capability auto-trigger — but they're paid every session by every
+     * conversation, including the ones that never use them.
+     */
+    heaviest: [...ambient.skills.entries, ...ambient.agents.entries]
+      .sort((a, b) => b.surfacedChars - a.surfacedChars)
+      .slice(0, 5)
+      .map((e) => ({ name: e.name, surfacedChars: e.surfacedChars })),
     /** Capability hygiene — a missing classifier degrades /synclair/ai-setup. */
     unclassified: [...ambient.skills.entries, ...ambient.agents.entries]
       .filter((e) => e.missingCategory || e.missingLayer)
@@ -512,6 +522,17 @@ function print(snap, prev) {
       + ` and every response carries freshness a file read can't.`)
   } else if (snap.mcp?.error) {
     console.log(`\nMCP — probe failed: ${snap.mcp.error}`)
+  }
+
+  if (snap.heaviest?.length) {
+    console.log(
+      `\n  Heaviest ambient descriptions — every session pays these before any task.`
+      + `\n  Use when deciding whether capability #${snap.ambient.skills.count + snap.ambient.agents.count + 1}`
+      + ` earns its place:`
+    )
+    for (const e of snap.heaviest) {
+      console.log(`    ${String(e.surfacedChars).padStart(5)} ch  ${e.name}`)
+    }
   }
 
   if (snap.unclassified.length) {

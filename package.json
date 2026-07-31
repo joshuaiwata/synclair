@@ -28,6 +28,7 @@
     "host:up": "node scripts/host-servers.mjs up",
     "call-home": "node scripts/call-home.mjs",
     "measure:agent-cost": "node scripts/measure-agent-cost.mjs",
+    "gen:agents-block": "node scripts/gen-agents-block.mjs",
     "mcp": "node scripts/mcp-server.mjs",
     "mcp:probe": "node scripts/mcp-server.mjs --probe",
     "mcp:install": "node scripts/mcp-install.mjs",
