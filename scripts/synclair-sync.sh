@@ -48,7 +48,7 @@ MIXED=(
 
 cmd="${1:-}"
 [[ "$cmd" == "status" || "$cmd" == "pull" ]] || {
-  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+  awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"
   exit 1
 }
 
@@ -102,7 +102,9 @@ git merge-base HEAD "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1 || {
   merge_flags+=(--allow-unrelated-histories)
 }
 
-if git merge "${merge_flags[@]}" --no-edit "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1; then
+# ${arr[@]+"${arr[@]}"}: stock macOS bash 3.2 + set -u errors on expanding an
+# empty array — and the array IS empty on every normal (shared-ancestry) sync.
+if git merge ${merge_flags[@]+"${merge_flags[@]}"} --no-edit "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1; then
   echo "✓ merged clean, no conflicts."
 else
   kept=0; brain=(); mixed=()

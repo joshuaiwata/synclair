@@ -1,4 +1,6 @@
-import { BookMarked, ExternalLink } from "lucide-react"
+import { BookMarked, ExternalLink, Plus } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
@@ -51,8 +53,18 @@ export default function ReferencesPage() {
   return (
     <HubPage
       title="References"
+      action={
+        <AgentAsk
+          label="Add reference"
+          icon={<Plus />}
+          title="Add a reference"
+          prompt="Add this to Synclair's references, with a short note on why it matters: [paste the link]"
+          note="lib/system/references.ts"
+          align="end"
+        />
+      }
       meta={
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground font-mono text-xs">
           {references.length} reference{references.length === 1 ? "" : "s"}
         </span>
       }
@@ -99,7 +111,7 @@ export default function ReferencesPage() {
                 title={CATEGORY_LABEL[group.category]}
                 hint={`${group.items.length}`}
               />
-              <div className="overflow-hidden rounded-lg border">
+              <div className="bg-card overflow-hidden rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow>

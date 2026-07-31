@@ -1,5 +1,7 @@
 "use client"
 
+/** Registry-exempt (infra): the next-themes wrapper mounted once in the root layout. */
+
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 

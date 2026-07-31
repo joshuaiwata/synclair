@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { readdir } from "node:fs/promises"
 import path from "node:path"
 
@@ -28,7 +30,10 @@ const SOURCE_OVERRIDES: Record<string, string> = {
   "design-system-architect": "adapted",
 }
 
-export async function getAgents(): Promise<AgentEntry[]> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getAgents = cache(getAgentsUncached)
+
+async function getAgentsUncached(): Promise<AgentEntry[]> {
   let files: string[] = []
   try {
     files = (await readdir(AGENTS_DIR)).filter((f) => f.endsWith(".md"))

@@ -8,6 +8,7 @@ import {
   BASE_COLOR_GROUPS,
   FONT_FAMILIES,
   FONT_WEIGHTS,
+  MOTION_TOKENS,
   OPACITY_STEPS,
   RADIUS_TOKENS,
   SPACING_STEPS,
@@ -20,13 +21,21 @@ import {
   type FoundationSection,
 } from "@/lib/system/seed/foundation"
 import { isExistingProjectMode } from "@/lib/system/external"
+import { sanitizeSvg } from "@/lib/system/sanitize-svg"
 import { project } from "@/lib/system/seed/project"
 import { FoundationExampleTiles } from "@/lib/system/seed/foundation-tiles"
 import { Markdown } from "@/components/markdown"
 import { ColorSwatch } from "@/components/library/color-swatch"
+import { fontStack } from "@/components/library/font-stack"
+import { SpecimenFonts } from "@/components/library/specimen-fonts"
 import { cn } from "@/lib/utils"
 
-function ColorGroupBlock({ group }: { group: ColorGroup }) {
+export function ColorGroupBlock({ group }: { group: ColorGroup }) {
+  // ONE treatment for every group — labeled swatch chips on the same grid,
+  // so name + hex are always visible and step-scaled ramps read the same as
+  // semantic groups. (The old continuous-strip special case for numeric ramps
+  // made sibling cards render two different ways.) The header bead still
+  // previews the group as a ramp at a glance.
   return (
     <section className="bg-card flex flex-col gap-4 rounded-xl border p-5 shadow-sm">
       <header className="flex flex-col gap-1">
@@ -43,7 +52,7 @@ function ColorGroupBlock({ group }: { group: ColorGroup }) {
           <p className="text-muted-foreground max-w-3xl text-xs leading-relaxed">{group.hint}</p>
         )}
       </header>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
         {group.tokens.map((t) => (
           <ColorSwatch key={t.name} name={t.name} value={t.value} usage={t.usage} bg={t.bg} />
         ))}
@@ -117,6 +126,9 @@ export function ProjectTypography() {
     return <NotCaptured what="typography" />
   return (
     <div className="flex flex-col gap-8">
+      {/* Load the REAL faces for the specimens — a bare fontFamily of an
+          unbundled font silently rendered the browser's default serif. */}
+      <SpecimenFonts families={fonts.map((f) => f.family)} />
       {roles.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline gap-2">
@@ -126,20 +138,21 @@ export function ProjectTypography() {
             </span>
           </div>
           <div className="flex flex-col divide-y">
-            {roles.map((r) => (
+            {roles.map((r) => {
+              return (
               <div
                 key={r.role}
                 className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-4"
               >
                 <p
-                  className="min-w-0 flex-1 truncate"
+                  className="min-w-0 flex-1 break-words"
                   style={{
                     fontSize: r.size,
                     lineHeight: r.line,
                     fontWeight: r.weight
                       ? (Number(r.weight) as React.CSSProperties["fontWeight"])
                       : undefined,
-                    fontFamily: r.mono ? monoFamily : sansFamily,
+                    fontFamily: fontStack(r.mono ? monoFamily : sansFamily, r.mono),
                   }}
                 >
                   {r.sample ?? "The quick brown fox"}
@@ -160,7 +173,8 @@ export function ProjectTypography() {
                   )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -177,7 +191,7 @@ export function ProjectTypography() {
                   {f.family}
                 </span>
               </div>
-              <p className="text-2xl" style={{ fontFamily: f.family }}>
+              <p className="text-2xl" style={{ fontFamily: fontStack(f.family, /mono/i.test(f.role)) }}>
                 Ag 123
               </p>
               {f.usage && (
@@ -479,7 +493,7 @@ export function IconographyFoundation() {
             <div
               className="size-16 shrink-0 [&>svg]:size-full"
               // Trusted seed SVG (self-colored brand mark).
-              dangerouslySetInnerHTML={{ __html: icons.markSvg }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSvg(icons.markSvg) }}
             />
             {icons.markLabel && (
               <span className="text-xs text-muted-foreground">
@@ -506,7 +520,7 @@ export function IconographyFoundation() {
                 <div
                   className="size-6 text-foreground [&>svg]:size-full"
                   // Trusted seed SVG (host icon glyph, currentColor).
-                  dangerouslySetInnerHTML={{ __html: g.svg }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeSvg(g.svg) }}
                 />
                 <code className="max-w-full truncate text-2xs text-muted-foreground">
                   {g.name}
@@ -705,6 +719,72 @@ export function OpacityFoundation() {
             <span className="text-2xs text-muted-foreground">
               {OPACITY_STEPS[i].label}
             </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * New-project mode "Motion": the hub's own chrome-motion vocabulary from
+ * `lib/system/tokens.ts` MOTION_TOKENS, with hover-replayed specimens for the
+ * two entrance moves. Demos are scoped CSS (replay = animation re-applies on
+ * hover) and flatten under prefers-reduced-motion, like everything they document.
+ */
+export function HubMotionFoundation() {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Demo timings mirror .stagger-children in app/globals.css (0.3s ease-out,
+          40ms steps) — keep the two in lockstep if the vocabulary changes. */}
+      <style>{`
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item { animation: hub-enter 0.3s ease-out both; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(2) { animation-delay: 40ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(3) { animation-delay: 80ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(4) { animation-delay: 120ms; }
+        .tbf-hub-motion-demo:hover .tbf-hub-motion-item:nth-child(5) { animation-delay: 160ms; }
+        @media (prefers-reduced-motion: reduce) { .tbf-hub-motion-demo:hover .tbf-hub-motion-item { animation: none !important; } }
+      `}</style>
+      <p className="max-w-2xl text-xs text-muted-foreground">
+        Two entrance moves — a page-level fade-rise and a short child stagger — plus fast
+        hover/resize transitions. Opacity and small translates only; layout properties never
+        animate, and everything flattens under{" "}
+        <code className="font-mono">prefers-reduced-motion</code>. Utilities live in{" "}
+        <code className="font-mono">app/globals.css</code>.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="tbf-hub-motion-demo flex flex-col gap-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <code className="font-mono text-xs font-medium">page-enter</code>
+            <span className="text-2xs text-muted-foreground">hover to replay</span>
+          </div>
+          <div className="tbf-hub-motion-item bg-muted flex h-20 flex-col gap-2 rounded-md border p-3">
+            <div className="bg-border h-2 w-1/3 rounded-full" />
+            <div className="bg-border h-2 w-2/3 rounded-full" />
+            <div className="bg-border h-2 w-1/2 rounded-full" />
+          </div>
+        </div>
+        <div className="tbf-hub-motion-demo flex flex-col gap-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <code className="font-mono text-xs font-medium">stagger-children</code>
+            <span className="text-2xs text-muted-foreground">hover to replay</span>
+          </div>
+          <div className="flex h-20 items-stretch gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} className="tbf-hub-motion-item bg-muted flex-1 rounded-md border" />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col divide-y">
+        {MOTION_TOKENS.map((m) => (
+          <div key={m.name} className="flex items-baseline gap-4 py-3">
+            <span className="w-32 shrink-0 text-xs font-medium">{m.name}</span>
+            <code className="shrink-0 font-mono text-2xs text-muted-foreground">
+              {m.className}
+            </code>
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">{m.usage}</span>
+            <span className="shrink-0 font-mono text-2xs text-muted-foreground">{m.timing}</span>
           </div>
         ))}
       </div>

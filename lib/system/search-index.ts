@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { getAgents } from "./agents"
 import { getCatalog, isFoundationVisible, isLibraryVisible } from "./components"
 import { getKnowledgeSources } from "./knowledge/sources"
@@ -45,13 +47,19 @@ const PAGES: SearchEntry[] = [
   { id: "page:components", label: "Components", group: "Pages", href: synclair("/components"), keywords: ["library", "ui", "docs"] },
   { id: "page:blocks", label: "Blocks", group: "Pages", href: synclair("/blocks"), keywords: ["library", "panels", "docs"] },
   { id: "page:templates", label: "Templates", group: "Pages", href: synclair("/templates"), keywords: ["views", "screens"] },
+  { id: "page:reports", label: "Reports", group: "Pages", href: synclair("/reports"), keywords: ["build", "coverage", "audit", "recommendations"] },
+  { id: "page:references", label: "References", group: "Pages", href: synclair("/references"), keywords: ["library", "prior art", "research", "findings"] },
+  { id: "page:hygiene", label: "Hygiene", group: "Pages", href: synclair("/hygiene"), keywords: ["drift", "inline styles", "raw colors", "foundation"] },
 ]
 
 /**
  * One flat, server-built index of everything searchable in the system:
  * registry items, skills, agents, and routes. Passed to the ⌘K palette.
  */
-export async function getSearchIndex(): Promise<SearchEntry[]> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getSearchIndex = cache(getSearchIndexUncached)
+
+async function getSearchIndexUncached(): Promise<SearchEntry[]> {
   // getCatalog, not getComponents: the index must agree with the galleries,
   // which show natives and (in existing-project mode) host externals too.
   const [components, skills, agents, foundationVisible] = await Promise.all([

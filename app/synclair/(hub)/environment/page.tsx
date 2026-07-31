@@ -1,9 +1,11 @@
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, RefreshCw } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { DefinitionList } from "@/components/definition-list"
 import { HubPage } from "@/components/hub-page"
-import { PillToggle } from "@/components/pill-toggle"
 import { SectionHeader } from "@/components/section-header"
+import { TabsNav } from "@/components/tabs-nav"
 import { StatGrid } from "@/components/stat-grid"
 import { StatusBadge } from "@/components/status-badge"
 import {
@@ -44,9 +46,9 @@ export default async function EnvironmentPage({
   const companion = Boolean(host)
   const projectHasData = stackFacts.length > 0 || integrations.length > 0
 
-  // Same pill vocabulary as the library FilterBar / AI Setup Origin filter, so
-  // every Project↔Synclair toggle across the app reads identically.
-  const pills = [
+  // View switch, not a filter — so it wears tab chrome (TabsNav), like every
+  // other "switch what this page shows" control across the hub.
+  const views = [
     { value: "project", label: project.name, href: synclair("/environment") },
     { value: "synclair", label: "Synclair", href: `${synclair("/environment")}?view=synclair` },
   ]
@@ -77,6 +79,16 @@ export default async function EnvironmentPage({
   return (
     <HubPage
       title="Environment"
+      action={
+        <AgentAsk
+          label="Check for updates"
+          icon={<RefreshCw />}
+          title="Check the foundation for updates"
+          prompt="Check whether this Synclair clone is behind the mother repo, and tell me what changed."
+          note="synclair-sync skill"
+          align="end"
+        />
+      }
       meta={<span className="text-muted-foreground font-mono text-xs">stack &amp; services</span>}
       lead={
         <>
@@ -89,12 +101,12 @@ export default async function EnvironmentPage({
         </>
       }
     >
-      <PillToggle aria-label="Environment view" value={active} options={pills} />
+      <TabsNav aria-label="Environment view" value={active} options={views} />
 
       {/* Project — the product's own environment, pulled live from the System Map. */}
       {active === "project" &&
         (!projectHasData ? (
-          <div className="text-muted-foreground rounded-lg border p-4 text-sm">
+          <div className="text-muted-foreground bg-card rounded-lg border p-4 text-sm">
             No environment digest yet — run the{" "}
             <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">codebase-map</code>{" "}
             skill to generate the System Map, and {project.name}&rsquo;s stack &amp; services show
@@ -112,28 +124,30 @@ export default async function EnvironmentPage({
             {integrations.length > 0 && (
               <section className="flex flex-col gap-3">
                 <SectionHeader title="Services" hint="external systems it runs against" />
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-56">Service</TableHead>
-                      <TableHead className="w-32">Kind</TableHead>
-                      <TableHead>Role</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {integrations.map((s, i) => (
-                      <TableRow key={`${s.name}-${i}`}>
-                        <TableCell className="font-medium">{s.name}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {s.kind ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground whitespace-normal">
-                          {s.summary ?? "—"}
-                        </TableCell>
+                <div className="bg-card overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-56">Service</TableHead>
+                        <TableHead className="w-32">Kind</TableHead>
+                        <TableHead>Role</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {integrations.map((s, i) => (
+                        <TableRow key={`${s.name}-${i}`}>
+                          <TableCell className="font-medium">{s.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {s.kind ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-normal">
+                            {s.summary ?? "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </section>
             )}
 
@@ -269,42 +283,44 @@ export default async function EnvironmentPage({
 
           <section className="flex flex-col gap-3">
             <SectionHeader title="Stack" hint="what Synclair is built on" />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-44">Layer</TableHead>
-                  <TableHead className="w-32">Status</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stack.map((row) => (
-                  <TableRow key={row.layer}>
-                    <TableCell className="font-medium">
-                      {row.href ? (
-                        <a
-                          href={row.href}
-                          target={row.href.startsWith("http") ? "_blank" : undefined}
-                          rel={row.href.startsWith("http") ? "noreferrer" : undefined}
-                          className="group inline-flex items-center gap-1 underline-offset-2 hover:underline"
-                        >
-                          {row.layer}
-                          <ArrowUpRight className="text-muted-foreground/60 size-3" />
-                        </a>
-                      ) : (
-                        row.layer
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-normal">
-                      {row.notes}
-                    </TableCell>
+            <div className="bg-card overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-44">Layer</TableHead>
+                    <TableHead className="w-32">Status</TableHead>
+                    <TableHead>Notes</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {stack.map((row) => (
+                    <TableRow key={row.layer}>
+                      <TableCell className="font-medium">
+                        {row.href ? (
+                          <a
+                            href={row.href}
+                            target={row.href.startsWith("http") ? "_blank" : undefined}
+                            rel={row.href.startsWith("http") ? "noreferrer" : undefined}
+                            className="group inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                          >
+                            {row.layer}
+                            <ArrowUpRight className="text-muted-foreground/60 size-3" />
+                          </a>
+                        ) : (
+                          row.layer
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground whitespace-normal">
+                        {row.notes}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </section>
         </div>
       )}

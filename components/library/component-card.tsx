@@ -14,6 +14,7 @@ import type {
   RegistryComponent,
 } from "@/lib/system/components"
 import { getDoc } from "@/lib/system/docs"
+import { isNewlyAdded } from "@/lib/system/item-meta"
 import type { HostUsage } from "@/lib/system/host-usage"
 import { itemHref } from "@/lib/system/tiers"
 import type { ItemUsage } from "@/lib/system/usage"
@@ -42,6 +43,12 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   // neither, an honest `<name />` placeholder — never a misleading stand-in.
   const isHost = component.origin === "external"
   const hostPreview = isHost ? getHostPreview(component.name, component.surface) : undefined
+  // Blocks and templates are FLUID (panels, forms, layouts sized by their
+  // container) — thumb LIVE previews of them on a logical stage width so they
+  // lay out like a page column instead of collapsing to max-content (see
+  // CardThumb). Matches the doc view's stage-mode tier split; components
+  // stay 1:1 intrinsic, and image previews keep their natural size.
+  const stageWidth = component.kind !== "component" ? 768 : undefined
   if (hostPreview) {
     const Live = hostPreview.component
     const node = hostPreview.theme ? (
@@ -52,8 +59,8 @@ function CardPreview({ component }: { component: RegistryComponent }) {
       <Live />
     )
     return (
-      <div className="bg-muted/30 relative h-36 overflow-hidden border-b">
-        <CardThumb>{node}</CardThumb>
+      <div className="stage-canvas relative h-36 overflow-hidden border-b">
+        <CardThumb stageWidth={stageWidth}>{node}</CardThumb>
       </div>
     )
   }
@@ -79,10 +86,12 @@ function CardPreview({ component }: { component: RegistryComponent }) {
   const preview = first ? adapterFor(component.surface).renderPreview(first) : null
 
   return (
-    <div className="bg-muted/30 relative flex h-36 items-center justify-center overflow-hidden border-b">
+    <div className="stage-canvas relative flex h-36 items-center justify-center overflow-hidden border-b">
       {preview ? (
         // Non-interactive, zoom-to-fit thumbnail (Storybook-canvas semantics).
-        <CardThumb>{preview}</CardThumb>
+        <CardThumb stageWidth={first && first.kind !== "image" ? stageWidth : undefined}>
+          {preview}
+        </CardThumb>
       ) : (
         <span className="text-muted-foreground/60 font-mono text-xs">
           {`<${component.name} />`}
@@ -125,11 +134,11 @@ export function ComponentCard({
     // real anchors (breadcrumb, filter chips) and HTML forbids <a> inside <a>
     // — as a sibling under the overlay the preview stays valid markup.
     <div className="group relative">
-      <Card className="group-hover:border-foreground/20 gap-0 overflow-hidden py-0 transition-colors">
+      <Card className="group-hover:border-foreground/20 card-lift gap-0 overflow-hidden py-0">
         <CardPreview component={component} />
         <div className="flex flex-col gap-1.5 p-4">
-          <div className="flex items-center gap-2">
-            <h3 className="flex-1 truncate text-sm font-medium">{component.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 className="mr-auto min-w-0 text-sm font-medium">{component.title}</h3>
             {chips?.map((chip) => (
               <Badge key={chip} variant="outline" className="text-muted-foreground text-3xs">
                 {chip}
@@ -160,6 +169,13 @@ export function ComponentCard({
               <StatusBadge status={STATUS_TONE[component.status]} className="text-3xs">
                 {component.status}
               </StatusBadge>
+            )}
+            {/* Rightmost blue dot = recency (entered the catalog < 48h ago). */}
+            {isNewlyAdded(component.addedAt) && (
+              <span
+                className="bg-info size-1.5 shrink-0 rounded-full"
+                title="Added in the last 48 hours"
+              />
             )}
           </div>
           <p className="text-muted-foreground line-clamp-2 text-xs">{component.description}</p>

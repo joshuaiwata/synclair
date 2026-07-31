@@ -49,7 +49,7 @@ const doc: ComponentDoc = {
   responsive: [
     { viewport: "mobile", behavior: "Single column; tables scroll horizontally in place." },
     { viewport: "tablet", behavior: "Same column, wider preview frames." },
-    { viewport: "desktop", behavior: "Reading column at max-w-3xl; templates widen the page to a max-w-6xl lane so the render areas (Live preview, Examples) breathe while prose, tables, and code stay at the reading width. Template examples also offer fullscreen in the viewport frame." },
+    { viewport: "desktop", behavior: "Reading column at max-w-3xl; templates widen the page to a max-w-6xl lane so the render areas (Live preview, Examples) breathe while prose, tables, and code stay at the reading width. Block and template previews render zoom-to-fit when their layout outgrows the column: laid out at full width (capped at the 1280 logical desktop; 1920 in wide mode) and scaled down, so whole surfaces read as zoomed-out screens while small pieces stay 1:1. Template examples also offer fullscreen in the viewport frame." },
   ],
   props: [
     { name: "name", type: "string", description: "The registry item (or concept) to render." },

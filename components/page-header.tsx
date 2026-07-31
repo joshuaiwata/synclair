@@ -3,8 +3,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 export interface PageHeaderProps {
-  /** A plain string is rendered as the page's <h1>; a node (e.g. a breadcrumb
-   *  trail) is rendered as-is in the title slot. */
+  /** A plain string is rendered as a muted context label — the page's real
+   *  `<h1>` lives in the body (`PageTitle`). A node (e.g. a breadcrumb trail)
+   *  is rendered as-is in the title slot. */
   title: React.ReactNode
   className?: string
   /** Right-aligned slot for path text, status, or actions. */
@@ -19,7 +20,7 @@ export function PageHeader({ title, className, children }: PageHeaderProps) {
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 !h-4 !self-center" />
       {typeof title === "string" ? (
-        <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+        <span className="text-muted-foreground text-sm font-medium">{title}</span>
       ) : (
         title
       )}

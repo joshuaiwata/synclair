@@ -1,3 +1,5 @@
+
+/** Registry-exempt (infra): the scoped product-theme wrapper for host previews (rendering-parity contract) — plumbing for the preview pipeline, never product UI. */
 import { cn } from "@/lib/utils"
 
 /**

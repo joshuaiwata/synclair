@@ -1,5 +1,8 @@
+import { Plus } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 import { SourceEditorProvider } from "@/components/blocks/source-editor"
-import { PageBody, PageLead } from "@/components/hub-page"
+import { PageBody, PageTitle } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
 import { StepLadder } from "@/components/step-ladder"
@@ -37,21 +40,35 @@ export default async function AiSetupPage() {
 
   return (
     <>
-      <PageHeader title="AI Setup" />
+      <PageHeader title="AI Setup">
+        <AgentAsk
+          label="Add capability"
+          icon={<Plus />}
+          title="Add a skill or agent"
+          prompt="Add a new skill or agent to this project — check first that no existing capability already covers it."
+          note="synclair skill · capability gate"
+          align="end"
+        />
+      </PageHeader>
 
       <SourceEditorProvider>
         <PageBody>
-          <PageLead>
-            What your agents build with — this repo&rsquo;s skills, agents, connected services, and
-            the method they follow. Skills and agents read live from{" "}
-            <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">.claude/</code>; click
-            any row to read or edit its markdown in place. The{" "}
-            <span className="text-foreground font-medium">Origin</span> tag marks what ships with the
-            Synclair foundation (and syncs from upstream) vs. what&rsquo;s this repo&rsquo;s own —
-            personal &amp; global capabilities are on their own tab.
-          </PageLead>
+          <PageTitle
+            title="AI Setup"
+            lead={
+              <>
+                What your agents build with — this repo&rsquo;s skills, agents, connected services,
+                and the method they follow. Skills and agents read live from{" "}
+                <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">.claude/</code>;
+                click any row to read or edit its markdown in place. The{" "}
+                <span className="text-foreground font-medium">Origin</span> tag marks what ships
+                with the Synclair foundation (and syncs from upstream) vs. what&rsquo;s this
+                repo&rsquo;s own — personal &amp; global capabilities are on their own tab.
+              </>
+            }
+          />
 
-          <Tabs defaultValue="skills" className="gap-3">
+          <Tabs defaultValue="skills" className="gap-6">
             <TabsList>
               {[
                 { value: "skills", label: "Skills", count: skills.length },
@@ -88,28 +105,30 @@ export default async function AiSetupPage() {
             </TabsContent>
 
             <TabsContent value="mcp" className="flex flex-col gap-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-52">Server</TableHead>
-                    <TableHead className="w-32">Status</TableHead>
-                    <TableHead>Role in the flow</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mcpServers.map((row) => (
-                    <TableRow key={row.name}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-normal">
-                        {row.role}
-                      </TableCell>
+              <div className="bg-card overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-52">Server</TableHead>
+                      <TableHead className="w-32">Status</TableHead>
+                      <TableHead>Role in the flow</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {mcpServers.map((row) => (
+                      <TableRow key={row.name}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={row.status}>{row.statusLabel}</StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-normal">
+                          {row.role}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </TabsContent>
 
             <TabsContent value="method" className="flex flex-col gap-4">
@@ -136,30 +155,32 @@ export default async function AiSetupPage() {
             </TabsContent>
 
             <TabsContent value="global" className="flex flex-col gap-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-52">Name</TableHead>
-                    <TableHead className="w-24">Kind</TableHead>
-                    <TableHead>Purpose</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {global.map((row) => (
-                    <TableRow key={`${row.kind}-${row.name}`}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.kind === "plugin" ? "secondary" : "outline"}>
-                          {row.kind}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-normal">
-                        {row.purpose}
-                      </TableCell>
+              <div className="bg-card overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-52">Name</TableHead>
+                      <TableHead className="w-24">Kind</TableHead>
+                      <TableHead>Purpose</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {global.map((row) => (
+                      <TableRow key={`${row.kind}-${row.name}`}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.kind === "plugin" ? "secondary" : "outline"}>
+                            {row.kind}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-normal">
+                          {row.purpose}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <p className="text-muted-foreground/70 text-xs">
                 Personal skills from{" "}
                 <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">~/.claude/skills/</code>{" "}

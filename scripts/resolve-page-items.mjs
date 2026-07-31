@@ -36,7 +36,16 @@ if (!existsSync(mapPath)) {
   console.log("Pages map: data/pages-map.json not present — nothing to resolve.");
   process.exit(0);
 }
-const map = JSON.parse(readFileSync(mapPath, "utf8"));
+let map;
+try {
+  map = JSON.parse(readFileSync(mapPath, "utf8"));
+} catch (e) {
+  console.error(
+    `Pages map: data/pages-map.json is not valid JSON (${e.message}). ` +
+      "Fix the file by hand or regenerate it via the pages-map skill — schema: lib/system/pages-map.ts."
+  );
+  process.exit(1);
+}
 const pages = Array.isArray(map.pages) ? map.pages : [];
 if (!map.repo || pages.length === 0) {
   console.log("Pages map: blank seed — nothing to resolve.");

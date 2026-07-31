@@ -7,7 +7,7 @@ import { live, scene, type ComponentDoc } from "@/lib/system/doc-types"
  */
 const doc: ComponentDoc = {
   intent:
-    "The live style guide behind /synclair/foundations: color ramps with click-to-copy swatches, the type scale, spacing, radius, opacity, shape/elevation, motion, and iconography — every value rendered FROM lib/system/tokens.ts and the seed, so the page cannot drift from globals.css. It exists so designers and stakeholders audit the actual tokens, not a transcription of them.",
+    "The live style guide behind /synclair/foundations: compact click-to-copy color chips for discrete tokens and continuous RampStrips for step-scaled ramps (50…950, the Storybook/Radix idiom), the type scale, spacing, radius, opacity, shape/elevation, motion, and iconography — every value rendered FROM lib/system/tokens.ts and the seed, so the page cannot drift from globals.css. It exists so designers and stakeholders audit the actual tokens, not a transcription of them.",
   examples: [
     {
       title: "Live",

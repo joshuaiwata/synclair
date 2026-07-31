@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
-import { ShieldCheck } from "lucide-react"
+import { RefreshCw, ShieldCheck } from "lucide-react"
 
+import { AgentAsk } from "@/components/agent-ask"
+
+import { HubPage } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { StatCard } from "@/components/stat-card"
 import {
   Empty,
   EmptyDescription,
@@ -27,7 +29,7 @@ import {
 } from "@/lib/system/host-hygiene"
 
 export const metadata: Metadata = {
-  title: "Foundation hygiene",
+  title: "Hygiene",
   description:
     "Where the host codebase steps outside its own design foundation — inline styles, raw colors, arbitrary values, bypassed primitives.",
 }
@@ -44,15 +46,16 @@ export default async function HygienePage() {
 
   if (!report) {
     return (
-      <main className="flex flex-col gap-8 p-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold">Foundation hygiene</h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
+      <HubPage
+        title="Hygiene"
+        lead={
+          <>
             Where the codebase steps outside its own design foundation — inline
             styles, raw hex colors, arbitrary Tailwind values, native elements
             where a design-system primitive exists.
-          </p>
-        </div>
+          </>
+        }
+      >
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -66,7 +69,7 @@ export default async function HygienePage() {
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      </main>
+      </HubPage>
     )
   }
 
@@ -79,44 +82,52 @@ export default async function HygienePage() {
   }
 
   return (
-    <main className="flex max-w-4xl flex-col gap-8 p-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-base font-semibold">Foundation hygiene</h1>
-          <span className="text-muted-foreground font-mono text-xs">
-            {report.totals.findings} findings · {report.totals.files} of{" "}
-            {report.totals.scannedFiles} scanned files · scanned{" "}
-            {formatDay(report.scannedAt)}
-            {report.hosts.map((h) => (h.commit ? ` · ${h.name}@${h.commit}` : ` · ${h.name}`))}
-          </span>
-        </div>
-        <p className="text-muted-foreground max-w-2xl text-sm">
+    <HubPage
+      title="Hygiene"
+      action={
+        <AgentAsk
+          label="Rescan"
+          icon={<RefreshCw />}
+          title="Rescan for hygiene"
+          prompt="Rescan the codebase for foundation hygiene and refresh the findings."
+          note="scan:hygiene"
+          align="end"
+        />
+      }
+      meta={
+        <span className="text-muted-foreground font-mono text-xs">
+          {report.totals.findings} findings · {report.totals.files} of{" "}
+          {report.totals.scannedFiles} scanned files · {formatDay(report.scannedAt)}
+        </span>
+      }
+      lead={
+        <>
           Where the codebase steps outside its own design foundation. Advisory —
           a readout for the team, not a build gate. Re-run with{" "}
-          <code>npm run scan:hygiene</code> after the host moves.
-        </p>
-      </div>
-
+          <code>npm run scan:hygiene</code> after the host moves. Scanned:{" "}
+          <span className="font-mono text-xs">
+            {report.hosts
+              .map((h) => (h.commit ? `${h.name}@${h.commit}` : h.name))
+              .join(" · ")}
+          </span>
+          .
+        </>
+      }
+    >
       {/* Per-rule summary tiles */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Numeric census — the standard StatCard row (same unit as the Pages
+          and Figma Manifest summaries). Each rule's DESCRIPTION lives with its
+          findings below, where the samples give it meaning. */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {report.rules.map((r) => {
           const meta = ruleMeta(r.rule)
           return (
-            <Card key={r.rule} className="gap-1.5 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">{meta.label}</h3>
-                <Badge
-                  variant={r.count > 0 ? "secondary" : "outline"}
-                  className="font-mono text-xs"
-                >
-                  {r.count}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-xs">{meta.description}</p>
-              <p className="text-muted-foreground/70 text-2xs">
-                {r.files} file{r.files === 1 ? "" : "s"}
-              </p>
-            </Card>
+            <StatCard
+              key={r.rule}
+              value={String(r.count)}
+              label={meta.label}
+              note={`${r.files} file${r.files === 1 ? "" : "s"}`}
+            />
           )
         })}
       </section>
@@ -171,6 +182,9 @@ export default async function HygienePage() {
                     </span>
                   </summary>
                   <div className="flex flex-col gap-1 px-3 pb-3">
+                    {meta.description && (
+                      <p className="text-muted-foreground pb-1 text-xs">{meta.description}</p>
+                    )}
                     {findings.map((f, i) => (
                       <div
                         key={`${f.hostPath}:${f.line}:${i}`}
@@ -188,6 +202,6 @@ export default async function HygienePage() {
             })}
         </div>
       </section>
-    </main>
+    </HubPage>
   )
 }

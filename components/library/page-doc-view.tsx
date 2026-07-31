@@ -1,3 +1,5 @@
+
+/** Registry-exempt (route-bound view): the /synclair/pages/[id] detail — it loads by id from the pages map and 404s without one, so it cannot render as a library preview on a blank seed. Analogous to a route file, not a reusable block. */
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowUpRight, ExternalLink } from "lucide-react"
@@ -110,7 +112,7 @@ export async function PageDocView({ id }: { id: string }) {
       {previewSrc ? (
         <PageViewport url={previewSrc} route={node.route} />
       ) : (
-        <div className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
+        <div className="text-muted-foreground bg-card rounded-lg border border-dashed p-6 text-sm">
           {hostDown ? (
             <>
               Preview paused — the host{" "}
@@ -141,7 +143,7 @@ export async function PageDocView({ id }: { id: string }) {
       )}
 
       {/* Source + gating facts. */}
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 sm:grid-cols-2">
+      <dl className="bg-card grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border p-4 sm:grid-cols-2">
         <Fact label="Source">
           <code className="text-xs">{node.file || "—"}</code>
         </Fact>
@@ -161,8 +163,11 @@ export async function PageDocView({ id }: { id: string }) {
         )}
         {node.previewUrl && (
           <Fact label="Live route">
+            {/* Host routes carry a SERVER-RELATIVE previewUrl ("/marketplace"),
+                so it needs the host's origin — bare, it resolved against the
+                hub and sent you to the hub's own route instead of the app. */}
             <a
-              href={node.previewUrl}
+              href={hostServer?.url ? `${hostServer.url}${node.previewUrl}` : node.previewUrl}
               target="_blank"
               rel="noreferrer"
               className="text-foreground inline-flex items-center gap-1 underline underline-offset-2"
@@ -173,9 +178,38 @@ export async function PageDocView({ id }: { id: string }) {
         )}
       </dl>
 
+      {/* Navigation edges — how this page ties to the others. Shown above the
+          composed items so the sitemap relationships read first. */}
+      {node.links && node.links.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Links to</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {node.links.map((route) => {
+              const targetId = routeToId.get(route)
+              return targetId ? (
+                <Link
+                  key={route}
+                  href={synclair(`/pages/${targetId}`)}
+                  className="hover:bg-muted bg-muted/50 rounded px-2 py-1 font-mono text-xs"
+                >
+                  {route}
+                </Link>
+              ) : (
+                <span
+                  key={route}
+                  className="text-muted-foreground bg-muted/30 rounded px-2 py-1 font-mono text-xs"
+                >
+                  {route}
+                </span>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Composed items, grouped by tier, linked into the library. */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold">
+        <h2 className="text-lg font-semibold tracking-tight">
           Composes{" "}
           <span className="text-muted-foreground font-normal tabular-nums">{cataloged.length}</span>
           <span className="text-muted-foreground/70 ml-1 text-xs font-normal">
@@ -221,34 +255,6 @@ export async function PageDocView({ id }: { id: string }) {
           </div>
         )}
       </section>
-
-      {/* Navigation edges — how this page ties to the others. */}
-      {node.links && node.links.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Links to</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {node.links.map((route) => {
-              const targetId = routeToId.get(route)
-              return targetId ? (
-                <Link
-                  key={route}
-                  href={synclair(`/pages/${targetId}`)}
-                  className="hover:bg-muted bg-muted/50 rounded px-2 py-1 font-mono text-xs"
-                >
-                  {route}
-                </Link>
-              ) : (
-                <span
-                  key={route}
-                  className="text-muted-foreground bg-muted/30 rounded px-2 py-1 font-mono text-xs"
-                >
-                  {route}
-                </span>
-              )
-            })}
-          </div>
-        </section>
-      )}
       </PageBody>
     </>
   )

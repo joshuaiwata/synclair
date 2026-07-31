@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { readFile, readdir } from "node:fs/promises"
 import path from "node:path"
 
@@ -32,7 +34,10 @@ async function lockedSkillDirs(): Promise<Set<string>> {
   }
 }
 
-export async function getSkills(): Promise<SkillEntry[]> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getSkills = cache(getSkillsUncached)
+
+async function getSkillsUncached(): Promise<SkillEntry[]> {
   let dirs: string[] = []
   try {
     const dirents = await readdir(SKILLS_DIR, { withFileTypes: true })

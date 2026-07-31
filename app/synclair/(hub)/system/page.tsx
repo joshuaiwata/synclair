@@ -27,7 +27,9 @@ import { HubPage } from "@/components/hub-page"
 import { StatGrid } from "@/components/stat-grid"
 import { DataModelDiagram } from "@/components/library/data-model-diagram"
 import { formatDay } from "@/lib/system/format-date"
-import { Network, TriangleAlert } from "lucide-react"
+import { Network, RefreshCw, TriangleAlert } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import {
   getSurfaces,
@@ -432,6 +434,16 @@ export default async function SystemMapPage() {
   return (
     <HubPage
       title="System Map"
+      action={
+        <AgentAsk
+          label="Remap"
+          icon={<RefreshCw />}
+          title="Remap the system"
+          prompt="Remap the system — re-read the codebase and refresh the System Map."
+          note="codebase-map skill"
+          align="end"
+        />
+      }
       meta={
         <>
           <span className="font-mono text-xs text-muted-foreground">{repo!.name}</span>
@@ -463,7 +475,7 @@ export default async function SystemMapPage() {
       }
     >
         {tabs.length > 0 && (
-          <Tabs defaultValue={tabs[0].value} className="gap-5">
+          <Tabs defaultValue={tabs[0].value} className="gap-6">
             <TabsList>
               {tabs.map((t) => (
                 <TabsTrigger key={t.value} value={t.value}>

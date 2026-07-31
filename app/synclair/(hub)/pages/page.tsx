@@ -1,6 +1,8 @@
-import { Map as MapIcon, TriangleAlert } from "lucide-react"
+import Link from "next/link"
+import { Map as MapIcon, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -8,14 +10,20 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { HubPage } from "@/components/hub-page"
-import { StatGrid } from "@/components/stat-grid"
+import { AgentAsk } from "@/components/agent-ask"
+import { HubPage, PageBody, PageTitle } from "@/components/hub-page"
+import { PageHeader } from "@/components/page-header"
+import { StatCard } from "@/components/stat-card"
 import { PagesExplorer, type FlatPage } from "@/components/pages/pages-explorer"
 import { SitemapChart } from "@/components/pages/sitemap-chart"
 import { type SitemapDatum } from "@/components/pages/sitemap-tree"
 import { HostStatus } from "@/components/pages/host-status"
 import { formatDay } from "@/lib/system/format-date"
 import { getPagesMap, hasPagesMap, type PageNode } from "@/lib/system/pages-map"
+import { synclair } from "@/lib/system/routes"
+import { NotesSections } from "@/components/library/notes-sections"
+import { SURFACE_NOTES } from "@/lib/system/seed/surface-notes"
+import { getSurfaces, PLATFORM_BADGE, surfaceLabel } from "@/lib/system/surfaces"
 import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
 export const dynamic = "force-dynamic"
@@ -28,7 +36,12 @@ export const dynamic = "force-dynamic"
  * lib/system/pages-map.ts); regenerated via the `pages-map` skill / `page-mapper`
  * agent, kept honest by `npm run check:pages`.
  */
-export default async function PagesOverview() {
+export default async function PagesOverview({
+  searchParams,
+}: {
+  searchParams?: Promise<{ surface?: string }>
+}) {
+  const { surface: activeSurface } = (await searchParams) ?? {}
   const map = await getPagesMap()
 
   if (map.unreadable) {
@@ -72,23 +85,23 @@ export default async function PagesOverview() {
     )
   }
 
-  const { repo, pages } = map
+  const { repo, pages: allPages } = map
 
-  const totalUses = pages.reduce((n, p) => n + p.items.length, 0)
-  const uncatalogued = new Set(
-    pages.flatMap((p) => p.items.filter((i) => i.catalogued === false).map((i) => i.name))
-  )
+  // Multi-surface digests follow the LIBRARY pattern: /synclair/pages is a
+  // per-surface card LANDING; entering a surface (?surface=<id>, or "all" for
+  // the combined sitemap) scopes the view, and the breadcrumb walks back.
+  const multiSurface = allPages.some((p) => p.surface)
+  const scoped = !multiSurface || Boolean(activeSurface)
+  const pages =
+    activeSurface && activeSurface !== "all"
+      ? allPages.filter((p) => p.surface === activeSurface)
+      : allPages
 
-  const stats = [
-    { label: "Pages", value: String(pages.length) },
-    { label: "Component uses", value: String(totalUses) },
-    {
-      label: "Uncatalogued",
-      value: String(uncatalogued.size),
-      note: uncatalogued.size ? "used but not in the library yet" : undefined,
-    },
-    { label: "Router", value: map.routerKind ?? "—" },
-  ]
+  const usesOf = (of: typeof allPages) => of.reduce((n, p) => n + p.items.length, 0)
+  const uncataloguedOf = (of: typeof allPages) =>
+    new Set(of.flatMap((p) => p.items.filter((i) => i.catalogued === false).map((i) => i.name)))
+  const totalUses = usesOf(pages)
+  const uncatalogued = uncataloguedOf(pages)
 
   // Live host detection: in companion mode, route previews render from the host
   // dev server when it's running (resolved here), and show a "boot it" banner
@@ -109,44 +122,183 @@ export default async function PagesOverview() {
     previewSrc: resolvePreviewSrc(p, liveBaseUrl),
   }))
 
+  const repoMeta = (
+    <>
+      <span className="text-muted-foreground font-mono text-xs">{repo!.name}</span>
+      <Badge variant="outline" className="text-2xs text-muted-foreground">
+        {repo!.root === null ? "this repo" : "host repo"}
+      </Badge>
+    </>
+  )
+  const lead = (
+    <>
+      The app sitemap — every view, how they tie together, and what each one composes. Search or
+      browse, then open a page for its live preview and the components it uses.{" "}
+      <span className="text-muted-foreground/70">
+        A snapshot digested {formatDay(repo!.digestedAt)}
+        {repo!.commit && (
+          <>
+            {" "}
+            at commit{" "}
+            <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+              {repo!.commit.slice(0, 7)}
+            </code>
+          </>
+        )}
+        , not live — regenerate via the{" "}
+        <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">pages-map</code> skill,
+        or run <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">check:pages</code>{" "}
+        to see what drifted.
+      </span>
+    </>
+  )
+  const banner = <HostStatus isHost={isHost} server={hostServer} liveBaseUrl={liveBaseUrl} />
+
+  // Multi-surface LANDING — the library-home pattern, same card treatment:
+  // header row (label + platform pill + stack), stats, root footer. EVERY app
+  // surface gets a card; unmapped ones state it honestly instead of hiding.
+  if (multiSurface && !scoped) {
+    const surfaces = getSurfaces()
+    const mappedCount = surfaces.filter((s) =>
+      allPages.some((p) => p.surface === s.id)
+    ).length
+    return (
+      <>
+        <PageHeader title="Pages">
+        <AgentAsk
+          label="Remap"
+          icon={<RefreshCw />}
+          title="Remap the app's pages"
+          prompt="Remap the app's pages — walk the routes and refresh the sitemap."
+          note="pages-map skill"
+          align="end"
+        />
+      </PageHeader>
+        <PageBody>
+          <PageTitle title="Pages" meta={repoMeta} lead={lead} />
+          {banner}
+          <div className="stagger-children grid gap-4 sm:grid-cols-2">
+            {surfaces.map((s) => {
+              const of = allPages.filter((p) => p.surface === s.id)
+              const uncat = uncataloguedOf(of).size
+              const empty = of.length === 0
+              return (
+                <div key={s.id} className="group relative">
+                  <Card className="group-hover:border-foreground/20 card-lift flex h-full flex-col gap-4 p-5">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <h2 className="text-lg font-semibold tracking-tight">{s.label}</h2>
+                      <Badge variant="secondary" className="text-3xs">
+                        {PLATFORM_BADGE[s.platform]}
+                      </Badge>
+                      <span className="text-muted-foreground ml-auto text-xs">
+                        {s.framework ?? ""}
+                      </span>
+                    </div>
+                    {empty ? (
+                      <p className="text-muted-foreground text-sm">
+                        Not mapped yet — no pages from this surface are in the sitemap
+                        digest. The <code>pages-map</code> skill inventories it.
+                      </p>
+                    ) : (
+                      <div className="flex items-baseline gap-8">
+                        <span className="flex flex-col gap-0.5">
+                          <span className="font-mono text-2xl tabular-nums">{of.length}</span>
+                          <span className="text-muted-foreground text-xs">Pages</span>
+                        </span>
+                        <span className="flex flex-col gap-0.5">
+                          <span className="font-mono text-2xl tabular-nums">{usesOf(of)}</span>
+                          <span className="text-muted-foreground text-xs">Component uses</span>
+                        </span>
+                        {uncat > 0 && (
+                          <span className="text-muted-foreground ml-auto self-start text-xs">
+                            {uncat} uncatalogued
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {s.root && (
+                      <span className="text-muted-foreground/70 mt-auto font-mono text-2xs">
+                        {s.root}
+                      </span>
+                    )}
+                  </Card>
+                  <Link
+                    href={`${synclair("/pages")}?surface=${s.id}`}
+                    className="absolute inset-0"
+                    aria-label={`${s.label} sitemap`}
+                  >
+                    <span className="sr-only">{s.label}</span>
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {allPages.length} pages · {mappedCount} of {surfaces.length} surfaces mapped.{" "}
+            <Link
+              href={`${synclair("/pages")}?surface=all`}
+              className="underline underline-offset-2"
+            >
+              Combined sitemap
+            </Link>
+            .
+          </p>
+          {/* Multi-surface only: with several frontends the counts stop
+              speaking for themselves — an unmapped surface reads the same as
+              an empty one unless the intent is written down. */}
+          {surfaces.length > 1 && (
+            <NotesSections
+              sections={SURFACE_NOTES.pages}
+              meta="how coverage and previews work here"
+            />
+          )}
+        </PageBody>
+      </>
+    )
+  }
+
+  // Scoped view (a surface entered, the combined "all" view, or a
+  // single-surface project) — the breadcrumb walks back to the landing.
+  const scopeLabel = !multiSurface
+    ? null
+    : activeSurface === "all"
+      ? "All surfaces"
+      : surfaceLabel(activeSurface!)
   return (
-    <HubPage
-      title="Pages"
-      meta={
-        <>
-          <span className="text-muted-foreground font-mono text-xs">{repo!.name}</span>
-          <Badge variant="outline" className="text-2xs text-muted-foreground">
-            {repo!.root === null ? "this repo" : "host repo"}
-          </Badge>
-        </>
-      }
-      lead={
-        <>
-          The app sitemap — every view, how they tie together, and what each one composes. Search or
-          browse, then open a page for its live preview and the components it uses.{" "}
-          <span className="text-muted-foreground/70">
-            A snapshot digested {formatDay(repo!.digestedAt)}
-            {repo!.commit && (
-              <>
-                {" "}
-                at commit{" "}
-                <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
-                  {repo!.commit.slice(0, 7)}
-                </code>
-              </>
-            )}
-            , not live — regenerate via the{" "}
-            <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">pages-map</code> skill,
-            or run <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">check:pages</code>{" "}
-            to see what drifted.
-          </span>
-        </>
-      }
-    >
-      <StatGrid items={stats} />
-      <HostStatus isHost={isHost} server={hostServer} liveBaseUrl={liveBaseUrl} />
-      <PagesExplorer tree={tree} pages={flatPages} chart={<SitemapChart nodes={tree} />} />
-    </HubPage>
+    <>
+      <PageHeader
+        title={
+          scopeLabel ? (
+            <span className="text-muted-foreground flex items-center gap-1.5 text-sm font-medium">
+              <Link href={synclair("/pages")} className="hover:text-foreground">
+                Pages
+              </Link>
+              <span aria-hidden>/</span>
+              <span>{scopeLabel}</span>
+            </span>
+          ) : (
+            "Pages"
+          )
+        }
+      />
+      <PageBody>
+        <PageTitle title={scopeLabel ?? "Pages"} meta={repoMeta} lead={lead} />
+        {banner}
+        {/* Numeric census — the standard StatCard row (same unit as the Figma
+            Manifest and Hygiene summaries). */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard value={String(pages.length)} label="Pages" />
+          <StatCard value={String(totalUses)} label="Component uses" />
+          <StatCard
+            value={String(uncatalogued.size)}
+            label="Uncatalogued"
+            note={uncatalogued.size ? "used but not in the library yet" : undefined}
+          />
+          <StatCard value={map.routerKind ?? "—"} label="Router" />
+        </div>
+        <PagesExplorer tree={tree} pages={flatPages} chart={<SitemapChart nodes={tree} />} />
+      </PageBody>
+    </>
   )
 }
 

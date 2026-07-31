@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { readdir } from "node:fs/promises"
 import path from "node:path"
 
@@ -217,7 +219,10 @@ export interface NativePrimitive {
  * The installed upstream primitives — every `components/ui/*.tsx` file.
  * Filesystem-derived so it never drifts from what `npx shadcn add` installed.
  */
-export async function getNativePrimitives(): Promise<NativePrimitive[]> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getNativePrimitives = cache(getNativePrimitivesUncached)
+
+async function getNativePrimitivesUncached(): Promise<NativePrimitive[]> {
   let entries: string[]
   try {
     entries = await readdir(path.join(process.cwd(), UI_DIR))

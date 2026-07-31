@@ -41,10 +41,19 @@ export const EXPORT_PATTERNS = [
 /** Skip pathologically large files rather than stalling a scan on generated code. */
 export const MAX_FILE_BYTES = 300 * 1024
 
-/** Components live under a `components/` or `ui/` segment — the near-universal convention. */
+/**
+ * Where UI lives. Beyond the design-system convention (`components/`, `ui/`),
+ * include feature-organised locations — coverage is advisory triage, so
+ * over-surfacing a feature tree beats leaving it invisible.
+ *
+ * Keep in sync with lib/system/host-scan.ts and ci-pr-catalog-check.mjs.
+ */
+export const UI_DIR_SEGMENTS = new Set([
+  "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+])
+
 export function isComponentDir(rel) {
-  const segs = rel.split(path.sep)
-  return segs.includes("components") || segs.includes("ui")
+  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg))
 }
 
 function walkDir(dir, rootAbs, files, accept) {

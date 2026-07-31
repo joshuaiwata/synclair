@@ -86,6 +86,9 @@ if (cmd === "up") {
     }
     const logFile = path.join(logDir, `${s.id}.log`);
     const out = openSync(logFile, "a");
+    // TRUST BOUNDARY: s.command comes from data/dev-servers.json and runs
+    // through a shell, verbatim — same trust level as an npm script. Only
+    // commit commands you'd put in package.json; review on intake.
     const child = spawn(s.command, {
       cwd,
       shell: true,

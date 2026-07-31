@@ -53,7 +53,7 @@ export const BASE_COLOR_GROUPS: ColorGroup[] = [
     label: "Semantic",
     hint: "reach for these first",
     tokens: [
-      { name: "background", bg: "bg-background", value: "#ffffff", usage: "App canvas — the base surface everything sits on.", outline: true },
+      { name: "background", bg: "bg-background", value: "#fafaf9", usage: "App canvas — one step tinted so white cards read as raised surfaces.", outline: true },
       { name: "foreground", bg: "bg-foreground", value: "#0c0a09", usage: "High-emphasis text: headings, key labels, active values." },
       { name: "body-content", bg: "bg-body-content", value: "#44403ccc", usage: "Softer body/reading text — one step gentler than foreground. Prefer for long-form copy and paragraph text." },
       { name: "card", bg: "bg-card", value: "#ffffff", usage: "Raised surfaces: cards, panels, popover bodies.", outline: true },
@@ -188,4 +188,58 @@ export const OPACITY_STEPS = [
   { label: "main", mod: "/30", pct: "30%" },
   { label: "dark", mod: "/40", pct: "40%" },
   { label: "darker", mod: "/50", pct: "50%" },
+]
+
+// ── Foundation groups ─────────────────────────────────────────────────────────
+// The token groups the Foundations page documents in new-project mode. The
+// page builds its tabs from this list and the Overview counts it — one source,
+// so the count can never drift from the tabs (it used to be hardcoded).
+export const FOUNDATION_GROUPS = [
+  "Colors",
+  "Typography",
+  "Spacing",
+  "Radius",
+  "Opacity",
+  "Motion",
+] as const
+
+// ── Motion ────────────────────────────────────────────────────────────────────
+// The hub-chrome motion vocabulary (utilities defined in app/globals.css).
+// Two entrance moves only — opacity plus a small translate; never animate
+// layout properties. Overlay primitives (dialog/sheet/tooltip) keep their
+// vendored tw-animate-css enters. Everything flattens under
+// prefers-reduced-motion.
+export interface MotionToken {
+  name: string
+  className: string
+  timing: string
+  usage: string
+}
+
+export const MOTION_TOKENS: MotionToken[] = [
+  {
+    name: "page enter",
+    className: "page-enter",
+    timing: "350ms · ease-out",
+    usage: "Whole-page entrance — every PageBody fades in and rises 6px on load.",
+  },
+  {
+    name: "stagger children",
+    className: "stagger-children",
+    timing: "300ms · ease-out · 40ms steps",
+    usage:
+      "Grid/list entrance — direct children cascade in; delays cap at 240ms so long lists never read as slow.",
+  },
+  {
+    name: "hover feedback",
+    className: "transition-colors",
+    timing: "150ms",
+    usage: "Hover/focus color feedback on links, rows, and interactive cards.",
+  },
+  {
+    name: "in-place resize",
+    className: "transition-[width] duration-200 ease-out",
+    timing: "200ms · ease-out",
+    usage: "Width/size shifts that keep context — e.g. the doc-preview viewport frame.",
+  },
 ]

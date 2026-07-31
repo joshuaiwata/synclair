@@ -2,6 +2,7 @@
 name: product-spec
 category: knowledge
 layer: foundation
+ambient: true
 description: Distilled product requirements for this project — the compressed, per-area digest of what each view/feature must do, sourced from the PRDs/specs/decks in the knowledge manifest. Use when building or scoping a specific product area and you need the requirements, entities, states, and rules — before or alongside build-view. Complements the project's domain skill (industry knowledge) with THIS product's decisions.
 ---
 
@@ -16,6 +17,27 @@ docs every time. It is the product-decisions counterpart to the project's domain
 manifest (`lib/system/knowledge/sources.ts`, surfaced at `/knowledge`). This skill
 holds the distillation; each area's digest links back to its source of record.
 
+## The intake contract — link *and* distill, in the same pass
+
+**Adding a source to the manifest and distilling it are one operation, not two.** A
+manifest entry with no `distilledInto` is unfinished work — the KB is a set of
+*digests with links back*, never a bag of undigested links. So whenever you add (or
+materially change) a source:
+
+1. **Link** it — add/patch the `sources.ts` entry (`url`/`ref`, `kind`, `area`, `notes`).
+2. **Distill** it in the same change — write the digest and set `distilledInto` +
+   `distilledAt`. Route by kind:
+   - `prd` / `spec` / `doc` / `deck` → a `product-spec:references/<name>.md` digest (this skill).
+   - `figma` → a `figma-distiller:references/...` digest (use the `figma-distiller` skill).
+3. **Only defer** when you genuinely can't distill now (source unreachable, connector
+   unauthorized, needs a product ruling). Then leave `distilledInto` unset **and record
+   an explicit `TODO: distill …` in `notes` saying why** — a deliberate, visible IOU,
+   not silence.
+
+This is the same flywheel as the write-back loop below, moved earlier: distill at
+**intake** so the first builder to touch the area reads a cheap digest instead of
+paying the full dig. Write-back then *refines* the digest as builds surface new detail.
+
 ## How to use it
 
 1. Identify the **area** you're building.
@@ -24,7 +46,9 @@ holds the distillation; each area's digest links back to its source of record.
    manifest and launch the **`prd-retriever`** agent to fetch the source of record
    in its own context and return a brief.
 4. **Write back:** when a dig surfaces durable requirements, add/update
-   `references/<area>.md` and set `distilledInto` on the manifest entry. That's the
+   `references/<area>.md` and set `distilledInto` on the manifest entry — as
+   `product-spec:references/<area>.md` (the `<skill>:references/…` token is what
+   makes the row open the digest drawer on `/synclair/knowledge`). That's the
    flywheel — the next build reads a cheap digest instead of digging again.
 
 ## What a good area digest contains

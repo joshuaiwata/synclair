@@ -210,8 +210,10 @@ function propsOfComponent(
  */
 export function deriveHostProps(hostRootAbs: string, hostPath: string): DocProp[] | null {
   const abs = path.resolve(hostRootAbs, hostPath)
-  // Never follow a hostPath outside the host root.
-  if (!abs.startsWith(hostRootAbs) || !existsSync(abs)) return null
+  // Never follow a hostPath outside the host root. path.relative, not
+  // startsWith: "/x/app-evil".startsWith("/x/app") passes the prefix test.
+  const rel = path.relative(hostRootAbs, abs)
+  if (rel.startsWith("..") || path.isAbsolute(rel) || !existsSync(abs)) return null
   try {
     const hash = fileHash(abs)
     const cached = derivedCache.get(abs)

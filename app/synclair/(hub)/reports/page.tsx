@@ -1,12 +1,16 @@
 import {
   ClipboardList,
   LayoutGrid,
+  Plus,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
 } from "lucide-react"
 
+import { AgentAsk } from "@/components/agent-ask"
+import { PageBody } from "@/components/hub-page"
 import { PageHeader } from "@/components/page-header"
+import { PillToggle } from "@/components/pill-toggle"
 import { SectionHeader } from "@/components/section-header"
 import {
   Empty,
@@ -63,7 +67,7 @@ export default async function ReportsPage({
     return (
       <>
         <PageHeader title="Reports" />
-        <main className="mx-auto w-full max-w-6xl p-6">
+        <PageBody>
           <Empty className="border">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -78,7 +82,7 @@ export default async function ReportsPage({
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
-        </main>
+        </PageBody>
       </>
     )
   }
@@ -99,28 +103,36 @@ export default async function ReportsPage({
           {mismatches.length ? <ShieldAlert className="size-3" /> : <ShieldCheck className="size-3" />}
           {mismatches.length ? `${mismatches.length} count mismatch` : "verified"} · {r.date}
         </Badge>
+        <AgentAsk
+          label="New report"
+          icon={<Plus />}
+          title="Run a new build report"
+          prompt="Run a new build report for this project — a fresh dated run, with the open recommendations carried forward."
+          note="build-report skill"
+          align="end"
+        />
       </PageHeader>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 p-6 md:p-8">
-        {/* Archive — past runs, never destroyed */}
+      <PageBody className="gap-12">
+        {/* Archive — past runs, never destroyed. A filter facet (which run am I
+            reading?), so it wears PillToggle per the tab rule. */}
         {all.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-muted-foreground font-mono text-2xs uppercase tracking-wider">
               archive
             </span>
-            {all.map((doc) => (
-              <a
-                key={doc.id}
-                href={doc.id === (id ?? all[0].id) ? synclair("/reports") : `${synclair("/reports")}?id=${doc.id}`}
-                className={`rounded-md border px-2 py-1 font-mono text-2xs ${
-                  doc.id === r.id
-                    ? "border-primary text-primary"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {doc.date}
-              </a>
-            ))}
+            <PillToggle
+              aria-label="Report run"
+              value={r.id}
+              options={all.map((doc) => ({
+                value: doc.id,
+                label: doc.date,
+                href:
+                  doc.id === all[0].id
+                    ? synclair("/reports")
+                    : `${synclair("/reports")}?id=${doc.id}`,
+              }))}
+            />
           </div>
         )}
 
@@ -140,14 +152,21 @@ export default async function ReportsPage({
           </Card>
         )}
 
-        {/* Hero */}
+        {/* Hero — DELIBERATELY editorial (text-3xl/4xl bold), not PageTitle:
+            a report reads like an article with a headline, dek, and stat strip;
+            the hub scale would flatten it. The one sanctioned exception. */}
         <section className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="gap-1.5">
-              <ClipboardList className="size-3" />
+          {/* Kicker — flat mono, deliberately NOT a Badge. A filled Badge here is
+              byte-identical to PillToggle's active pill, so it read as a second
+              selected archive tab. On this page a pill means "switchable run";
+              report metadata stays unpilled so only the archive looks clickable. */}
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs">
+            <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
+              <ClipboardList className="size-3" aria-hidden="true" />
               {r.type}
-            </Badge>
-            <span className="text-muted-foreground font-mono text-xs">
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
               subject: {r.subject}
               {r.lens ? ` · ${r.lens}` : ""} · {r.date}
             </span>
@@ -211,10 +230,14 @@ export default async function ReportsPage({
                     {p.hint && <div className="text-muted-foreground font-mono text-2xs">{p.hint}</div>}
                   </div>
                   <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-                    <div className="bg-primary h-full rounded-full" style={{ width: `${p.score}%` }} />
+                    {/* score is a 0–5 rubric (ReportPillar) — map to bar fill. */}
+                    <div
+                      className="bg-primary h-full rounded-full"
+                      style={{ width: `${Math.min(Math.max(p.score, 0), 5) * 20}%` }}
+                    />
                   </div>
                   <div className="text-muted-foreground w-12 shrink-0 text-right font-mono text-sm font-bold tabular-nums">
-                    {p.score}
+                    {p.score}/5
                   </div>
                 </div>
               ))}
@@ -323,7 +346,7 @@ export default async function ReportsPage({
           Synclair · report verified against hub data · {r.date}
           {all.length > 1 ? ` · ${all.length} in archive` : ""}
         </footer>
-      </main>
+      </PageBody>
     </>
   )
 }

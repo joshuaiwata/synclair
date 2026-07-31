@@ -157,7 +157,7 @@ export function FilesTable({
           {groups.map((g) => {
             const isCollapsed = collapsed.has(g.id)
             return (
-              <div key={g.id} className="overflow-hidden rounded-lg border">
+              <div key={g.id} className="bg-card overflow-hidden rounded-lg border">
                 <button
                   type="button"
                   onClick={() => toggle(g.id)}

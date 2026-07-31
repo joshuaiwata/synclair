@@ -121,33 +121,35 @@ export function CapabilityTables({
               </div>
               <p className="text-muted-foreground text-xs">{category.description}</p>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-56">{label}</TableHead>
-                  <TableHead className="w-36">Origin</TableHead>
-                  <TableHead>Summary</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((row) => (
-                  <SourceRow
-                    key={row.name}
-                    item={
-                      {
-                        kind,
-                        name: row.name,
-                        source: row.source,
-                        layer: row.layer,
-                        summary: row.summary,
-                        file: row.file,
-                      } satisfies SourceItem
-                    }
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            <div className="bg-card overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-56">{label}</TableHead>
+                    <TableHead className="w-36">Origin</TableHead>
+                    <TableHead>Summary</TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((row) => (
+                    <SourceRow
+                      key={row.name}
+                      item={
+                        {
+                          kind,
+                          name: row.name,
+                          source: row.source,
+                          layer: row.layer,
+                          summary: row.summary,
+                          file: row.file,
+                        } satisfies SourceItem
+                      }
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </section>
         ))
       )}

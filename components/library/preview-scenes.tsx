@@ -1,3 +1,5 @@
+
+/** Registry-exempt (infra): the standalone preview-scene registry for embed previews — doc-pipeline plumbing, never product UI. */
 import type { ReactNode } from "react"
 
 import { AppSidebar } from "@/components/blocks/app-sidebar"

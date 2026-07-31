@@ -50,7 +50,11 @@ export async function readCommit(hash: string): Promise<CommitDetail> {
     ),
     exec("git", ["show", "--stat", "--format=", "--no-color", hash], opts),
     exec("git", ["show", "--patch", "--format=", "--no-color", hash], opts),
-  ]).catch(() => {
+  ]).catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err)
+    // A >maxBuffer patch is not a missing commit — say what actually happened.
+    if (/maxBuffer|ENOBUFS/i.test(msg))
+      throw new Error("Commit diff exceeds the read budget — inspect it locally with `git show`")
     throw new Error("Commit not found in the local repository")
   })
 

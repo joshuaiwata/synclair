@@ -50,7 +50,7 @@ The backend/architecture half of visibility: launch the `system-mapper` with the
 Returns proposed `KnowledgeSource` entries, distillation priorities, and questions. Write back:
 
 - Entries → `lib/system/knowledge/sources.ts`. Respect the manifest convention: sources that are pure pointers with no digest yet stay `access: "linked"` (host-repo docs too — `kind`/`access: "repo"` is reserved for digests distilled into THIS repo), but a source only *earns* its place once distilled — so distill the top priorities next, not later.
-- Distill the top 2-3 priorities now (or launch `prd-retriever` per area): digests land in `product-spec` `references/<area>.md`, then set `distilledInto`/`distilledAt` on the manifest entries.
+- Distill the top 2-3 priorities now (or launch `prd-retriever` per area): digests land in `product-spec` `references/<area>.md`, then set `distilledInto`/`distilledAt` on the manifest entries — write `distilledInto` as the token `product-spec:references/<area>.md`, which is what wires the row to the in-app digest drawer.
 - Figma files it found → the `figma-distiller` flow, not manual digests.
 - Ask the user its open questions (where PRDs live, etc.) before inventing entries.
 

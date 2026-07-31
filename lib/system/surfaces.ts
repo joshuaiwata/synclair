@@ -38,6 +38,15 @@ export interface Surface {
    * intake decision. Host (external) components never live-render regardless.
    */
   liveRender?: boolean
+  /**
+   * SELF-CONTAINED surface: it does NOT consume the shared package(s), so shared
+   * items must NOT bleed into its scoped library (see `inheritsShared`). Default
+   * (undefined/false) keeps the normal monorepo assumption — a platform-matched
+   * surface inherits the shared design system. Set true when a surface ships its
+   * OWN component set and is deliberately decoupled from `packages/ui` (e.g. a
+   * prototype kept isolated pending a design-review / extraction gate).
+   */
+  standalone?: boolean
 }
 
 /** The single implicit surface every project has when the seed declares none. */
@@ -96,7 +105,9 @@ export const SHARED_PLATFORM: SurfacePlatform = "web"
  */
 export function inheritsShared(surfaceId: string | undefined): boolean {
   const s = getSurface(surfaceId)
-  return !!s && s.platform === SHARED_PLATFORM
+  // A standalone surface ships its own components and does not consume the
+  // shared package — shared items must not bleed into its scoped library.
+  return !!s && s.platform === SHARED_PLATFORM && !s.standalone
 }
 
 /** Short badge text per platform, for cards and search sublabels. */

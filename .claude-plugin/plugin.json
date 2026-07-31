@@ -26,6 +26,13 @@
       "source": ".claude/skills/build-view/SKILL.md"
     },
     {
+      "name": "building-in-this-repo",
+      "description": "How to build a screen, page, component, or feature in THIS product app without drifting from the foundation — reuse before you invent, build from the design and requirements (don't approximate or invent), and use design tokens (not raw colors). Use whenever you're about to add or change UI in the app, especially as a fast-moving/\"vibe\" build. The ambient, host-safe front door to the deeper build skills that live in the co-located Synclair hub.",
+      "category": "build",
+      "layer": "foundation",
+      "source": ".claude/skills/building-in-this-repo/SKILL.md"
+    },
+    {
       "name": "co-locate-synclair",
       "description": "Place Synclair INSIDE a product repo as a subdirectory (co-located mode) instead of as a sibling clone, and isolate the two apps so the product's build/lint/typecheck/deploy don't trip over Synclair's. Use when a team wants one repo and one clone — so agents building in the product repo get Synclair's skills/knowledge ambiently — and asks to \"put synclair in the repo\", \"vendor synclair\", \"embed the hub\", \"co-locate\", or \"keep the two apps from colliding\". NOT the default — the foundation recommends the SIBLING model (docs/existing-project.md); reach here only when single-repo ergonomics outweigh losing easy foundation sync.",
       "category": "intake",

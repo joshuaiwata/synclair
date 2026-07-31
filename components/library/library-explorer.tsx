@@ -2,7 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { ChevronRight, RefreshCw } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -14,7 +17,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -31,6 +33,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { PageHeader } from "@/components/page-header"
+import { isNewlyAdded } from "@/lib/system/item-meta"
 import type {
   LibraryTreeData,
   TreeLeaf,
@@ -44,9 +47,9 @@ import { cn } from "@/lib/utils"
 
 /**
  * The LIBRARY EXPLORER — the two-pane shell every library route renders in:
- * a FLOATING sidebar on the left (two selectors — surface + tier — over a
- * grouped, filterable item list, shadcn/Storybook style), the routed page on
- * the right under the shared page-header bar.
+ * a flat, hairline-separated rail on the left (two selectors — surface + tier
+ * — over a grouped, filterable item list, shadcn/Storybook docs style), the
+ * routed page on the right under the shared page-header bar.
  *
  * The old accordion tree stacked every tier at once and made you expand to
  * reach anything; the two selectors collapse that to one clear "which surface,
@@ -86,21 +89,25 @@ export function LibraryExplorer({
 }) {
   const router = useRouter()
   const { pathname, scopeId, tier } = useLocation(tree)
-  const [filter, setFilter] = React.useState("")
-  const filterRef = React.useRef<HTMLInputElement>(null)
+  const searchParams = useSearchParams()
+  // Grouping is URL state (?group=area) like every other explorer choice, so
+  // the rail and the gallery page regroup together and views stay shareable.
+  const groupMode: GroupMode = searchParams.get("group") === "area" ? "area" : "function"
+  const [query, setQuery] = React.useState("")
+  const searchRef = React.useRef<HTMLInputElement>(null)
 
   // The active tier drives both the select value and the list; default to the
   // first tier so a surface home (no tier in the path) still shows something.
   const activeKind: ComponentKind = tier?.kind ?? TIERS[0].kind
 
-  // "/" focuses the filter from anywhere in the explorer.
+  // "/" focuses the search from anywhere in the explorer.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return
       e.preventDefault()
-      filterRef.current?.focus()
+      searchRef.current?.focus()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -117,74 +124,164 @@ export function LibraryExplorer({
     ? [scopedRoot, ...tree.roots.filter((r) => r.id === "shared" && r.id !== scopedRoot.id)]
     : tree.roots
 
-  const groups = buildGroups(visibleRoots, activeKind, scopedRoot?.id, filter.trim().toLowerCase())
+  const groups = buildGroups(
+    visibleRoots,
+    activeKind,
+    scopedRoot?.id,
+    query.trim().toLowerCase(),
+    groupMode
+  )
+
+  // The multi-surface library HOME is the overview dashboard — the page IS
+  // the surface picker, so a second sidebar beside it reads as noise. The
+  // rail appears once a surface (or an all-surfaces tier) is entered.
+  const isOverview = tree.multiSurface && pathname === LIBRARY_BASE
 
   return (
     <div className="flex min-h-svh flex-col">
       <ExplorerHeader tree={tree} pathname={pathname} />
       <div className="flex min-h-0 flex-1">
-        {/* Floating sidebar — a nested panel with its own rounded, ringed card. */}
-        <aside className="sticky top-2 m-2 flex max-h-[calc(100svh-4.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden rounded-lg border bg-sidebar shadow-sm ring-1 ring-sidebar-border">
+        {/* Explorer rail — a FLAT second column, hairline-separated (the
+            Storybook/docs double-sidebar pattern). No card chrome: a floating
+            shadowed panel in the same tint as the app sidebar read as a
+            duplicate sidebar, not a nested level. */}
+        {/* top-14/-3.5rem pairs with the sticky ExplorerHeader (h-14): the rail
+            is always fully visible, so the item list scrolls INTERNALLY
+            instead of running below the fold. */}
+        {!isOverview && (
+        <aside className="sticky top-14 flex max-h-[calc(100svh-3.5rem)] w-64 shrink-0 flex-col self-start overflow-hidden border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             {tree.multiSurface && (
               <Select
-                value={scopeId ?? "all"}
+                value={scopeId ?? ""}
                 // Switching surface keeps the tier you're on so the two selects compose.
+                // The dropdown offers SURFACES only — back to the library home
+                // (or the all-surfaces views) via the breadcrumb, not the select.
                 onValueChange={(v) =>
-                  router.push(tierHref(v === "all" ? undefined : v, activeKind))
+                  router.push(withGroup(tierHref(v, activeKind), groupMode))
                 }
               >
-                <SelectTrigger size="sm" className="w-full text-xs">
+                {/* The PARENT select — a workspace-switcher, not a field: a
+                    taller two-line trigger (surface name over its census) so
+                    it reads a level above the tier/group selects below it.
+                    bg-card: on the tinted canvas (background == sidebar tint
+                    since the facelift) a bg-background control is same-color-
+                    on-same-color — fields sit one step ABOVE their surface,
+                    which is bg-card now. */}
+                <SelectTrigger
+                  size="sm"
+                  className="bg-card w-full py-1.5 text-left text-xs data-[size=sm]:h-auto *:data-[slot=select-value]:line-clamp-none"
+                >
+                  {/* Unscoped tier routes (/synclair/blocks) have no selected
+                      surface — the placeholder names the view instead. */}
+                  <SelectValue
+                    placeholder={
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium">All surfaces</span>
+                        <span className="text-muted-foreground text-2xs">
+                          every surface at once
+                        </span>
+                      </span>
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {tree.scopes.map((s) => {
+                    const root = tree.roots.find((r) => r.id === s.id)
+                    return (
+                      <SelectItem key={s.id} value={s.id} className="py-2 text-xs">
+                        <span className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            {s.label}
+                            {s.badge && (
+                              <span className="text-muted-foreground font-mono text-3xs">
+                                {s.badge}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-muted-foreground text-2xs font-normal">
+                            {root?.count ?? 0} items
+                          </span>
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+            {/* Tier select only when surfaces exist: it composes with the
+                surface select (switch surface, keep tier). Single-surface
+                projects already switch tiers from the app sidebar and the
+                breadcrumb names the tier — a third control is redundant. */}
+            {tree.multiSurface && (
+              <Select
+                value={activeKind}
+                onValueChange={(v) =>
+                  router.push(withGroup(tierHref(scopeId, v as ComponentKind), groupMode))
+                }
+              >
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">
-                    All surfaces
-                  </SelectItem>
-                  {tree.scopes.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="text-xs">
-                      {s.label}
-                      {s.badge && (
-                        <span className="text-muted-foreground font-mono text-3xs">{s.badge}</span>
-                      )}
+                  {TIERS.map((t) => (
+                    <SelectItem key={t.kind} value={t.kind} className="text-xs">
+                      {t.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
-            <Select
-              value={activeKind}
-              onValueChange={(v) => router.push(tierHref(scopeId, v as ComponentKind))}
-            >
-              <SelectTrigger size="sm" className="w-full text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIERS.map((t) => (
-                  <SelectItem key={t.kind} value={t.kind} className="text-xs">
-                    {t.label}
+            {/* Grouping axis — only inside a surface scope: the all-surfaces
+                list groups by surface, which IS its axis. Changing it lands on
+                the tier gallery so rail and page regroup together. */}
+            {scopedRoot && (
+              <Select
+                value={groupMode}
+                onValueChange={(v) =>
+                  router.push(withGroup(tierHref(scopeId, activeKind), v as GroupMode))
+                }
+              >
+                <SelectTrigger size="sm" className="bg-card w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="function" className="text-xs">
+                    By function
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <SelectItem value="area" className="text-xs">
+                    By app area
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <div className="relative">
               <Input
-                ref={filterRef}
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setFilter("")}
-                placeholder="Filter…"
-                className="h-7 pr-7 text-xs"
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+                placeholder="Search…"
+                className="bg-card h-7 pr-7 text-xs"
               />
               <kbd className="bg-muted text-muted-foreground pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 font-mono text-3xs">
                 /
               </kbd>
             </div>
           </div>
-          <ScrollArea className="min-h-0 flex-1">
-            <ItemList groups={groups} pathname={pathname} tier={tier ?? TIERS.find((t) => t.kind === activeKind)!} />
-          </ScrollArea>
+          {/* Native overflow, not Radix ScrollArea: its viewport doesn't
+              reliably clamp to a flexed max-height parent, which left this
+              list unscrollable. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ItemList
+              groups={groups}
+              pathname={pathname}
+              tier={tier ?? TIERS.find((t) => t.kind === activeKind)!}
+              filtering={query.trim().length > 0}
+            />
+          </div>
         </aside>
+        )}
 
         <div className="min-w-0 flex-1">{children}</div>
       </div>
@@ -193,6 +290,14 @@ export function LibraryExplorer({
 }
 
 /* --------------------------------- grouping -------------------------------- */
+
+/** The rail's grouping axis: shadcn-style categories, or app areas. */
+type GroupMode = "function" | "area"
+
+/** Append the grouping to a nav href; "function" is the default and stays clean. */
+function withGroup(href: string, mode: GroupMode): string {
+  return mode === "area" ? `${href}?group=area` : href
+}
 
 interface ItemGroup {
   key: string
@@ -206,7 +311,9 @@ const byTitle = (a: TreeLeaf, b: TreeLeaf) => a.title.localeCompare(b.title)
 
 /**
  * Bucket the selected tier's items for the list. Entered a surface: its OWN
- * items grouped by CATEGORY, then a distinct "Shared" group for the packages
+ * items grouped by CATEGORY (function, the default) or by APP AREA
+ * (`groupMode` — derived from source paths, item-meta), then a distinct
+ * "Shared" group for the packages
  * every surface inherits (matches the gallery, which shows own + shared badged)
  * — kept as its own labeled group so switching surfaces reads clearly instead
  * of looking like one undifferentiated list. All-surfaces: one group per
@@ -216,7 +323,8 @@ function buildGroups(
   roots: TreeRootNode[],
   kind: ComponentKind,
   scopeId: string | undefined,
-  filter: string
+  filter: string,
+  groupMode: GroupMode = "function"
 ): ItemGroup[] {
   const match = (i: TreeLeaf) => !filter || i.terms.includes(filter)
   const leavesOf = (root: TreeRootNode | undefined) =>
@@ -224,12 +332,25 @@ function buildGroups(
 
   if (scopeId) {
     const groups: ItemGroup[] = []
-    // The entered surface's own items, grouped by category.
+    // The entered surface's own items, grouped by category or by app area.
     const own = roots.find((r) => r.id === scopeId)
     const ownTier = own?.tiers.find((t) => t.kind === kind)
-    for (const cat of ownTier?.categories ?? []) {
-      const items = cat.items.filter(match).sort(byTitle)
-      if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+    if (groupMode === "area") {
+      const byArea = new Map<string, TreeLeaf[]>()
+      for (const leaf of (ownTier?.categories ?? []).flatMap((c) => c.items)) {
+        const list = byArea.get(leaf.area) ?? []
+        list.push(leaf)
+        byArea.set(leaf.area, list)
+      }
+      for (const [area, leaves] of byArea) {
+        const items = leaves.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `area:${area}`, label: area, items })
+      }
+    } else {
+      for (const cat of ownTier?.categories ?? []) {
+        const items = cat.items.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+      }
     }
     groups.sort((a, b) => a.label.localeCompare(b.label))
     // Shared packages, inherited by platform-compatible surfaces only (a web
@@ -246,7 +367,38 @@ function buildGroups(
     return groups
   }
 
-  // All-surfaces: one group per surface.
+  // Single surface: grouping by surface would put every item in ONE group, so
+  // the axis carries no information and the rail degrades to a flat list beside
+  // a gallery that IS grouped. Fall through to the same category/area grouping
+  // the scoped branch uses — library-tree's contract is that a single-surface
+  // project renders "without the root level", and this is that level collapsing.
+  // Hrefs are left alone: with no surface to enter, there is nothing to re-home.
+  if (roots.length === 1) {
+    const tier = roots[0].tiers.find((t) => t.kind === kind)
+    const groups: ItemGroup[] = []
+
+    if (groupMode === "area") {
+      const byArea = new Map<string, TreeLeaf[]>()
+      for (const leaf of (tier?.categories ?? []).flatMap((c) => c.items)) {
+        const list = byArea.get(leaf.area) ?? []
+        list.push(leaf)
+        byArea.set(leaf.area, list)
+      }
+      for (const [area, leaves] of byArea) {
+        const items = leaves.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `area:${area}`, label: area, items })
+      }
+    } else {
+      for (const cat of tier?.categories ?? []) {
+        const items = cat.items.filter(match).sort(byTitle)
+        if (items.length) groups.push({ key: `cat:${cat.label}`, label: cat.label, items })
+      }
+    }
+
+    return groups.sort((a, b) => a.label.localeCompare(b.label))
+  }
+
+  // Multi-surface, nothing entered: one group per surface — the salient axis.
   return roots
     .map((root) => ({
       key: root.id,
@@ -259,15 +411,26 @@ function buildGroups(
 
 /* ---------------------------------- list ----------------------------------- */
 
+/** Groups larger than this start collapsed — scanning headers beats scrolling. */
+const COLLAPSE_OVER = 10
+
 function ItemList({
   groups,
   pathname,
   tier,
+  filtering,
 }: {
   groups: ItemGroup[]
   pathname: string
   tier: TierMeta
+  /** A rail filter is active — force groups open so matches stay visible. */
+  filtering: boolean
 }) {
+  // Manual open/close choices, kept across navigation (the explorer layout
+  // stays mounted). Everything without an override derives: big groups start
+  // collapsed, except the group holding the current page's item.
+  const [openOverrides, setOpenOverrides] = React.useState<Record<string, boolean>>({})
+
   if (groups.length === 0) {
     return (
       <p className="text-muted-foreground px-4 py-6 text-xs">
@@ -277,19 +440,35 @@ function ItemList({
   }
   return (
     <div className="py-1">
-      {groups.map((group) => (
+      {groups.map((group) => {
+        const hasActive = group.items.some((i) => i.href === pathname)
+        const open = filtering
+          ? true
+          : (openOverrides[group.key] ??
+            (group.items.length <= COLLAPSE_OVER || hasActive))
+        return (
         <SidebarGroup key={group.key} className="py-1">
-          <SidebarGroupLabel className="gap-1.5 text-3xs tracking-wide uppercase">
-            <span className="truncate">{group.label}</span>
-            {group.badge && (
-              <Badge variant="outline" className="text-muted-foreground px-1 text-3xs">
-                {group.badge}
-              </Badge>
-            )}
-            <span className="text-muted-foreground/70 ml-auto font-mono text-2xs normal-case">
-              {group.items.length}
-            </span>
+          <SidebarGroupLabel asChild className="gap-1.5 text-3xs tracking-wide uppercase">
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpenOverrides((o) => ({ ...o, [group.key]: !open }))}
+            >
+              <ChevronRight
+                className={cn("!size-3 shrink-0 transition-transform", open && "rotate-90")}
+              />
+              <span className="truncate">{group.label}</span>
+              {group.badge && (
+                <Badge variant="outline" className="text-muted-foreground px-1 text-3xs">
+                  {group.badge}
+                </Badge>
+              )}
+              <span className="text-muted-foreground/70 ml-auto font-mono text-2xs normal-case">
+                {group.items.length}
+              </span>
+            </button>
           </SidebarGroupLabel>
+          {open && (
           <SidebarGroupContent>
             <SidebarMenu>
               {group.items.map((item) => (
@@ -308,14 +487,24 @@ function ItemList({
                       {item.status === "beta" && (
                         <span className="bg-info ml-auto size-1.5 shrink-0 rounded-full" title="beta" />
                       )}
+                      {/* Right-side blue dot = recency (new to the catalog).
+                          ml-auto collapses when a status dot already pushed. */}
+                      {isNewlyAdded(item.addedAt) && (
+                        <span
+                          className="bg-info ml-auto size-1.5 shrink-0 rounded-full"
+                          title="Added in the last 48 hours"
+                        />
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+          )}
         </SidebarGroup>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -355,16 +544,26 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
   const last = crumbs.length - 1
 
   return (
+    // Sticky: the rail pins at top-14 right below this bar, so together they
+    // form the always-visible explorer chrome while the page scrolls.
     <PageHeader
+      className="sticky top-0 z-20"
       title={
         <Breadcrumb>
-          <BreadcrumbList className="text-xs">
+          {/* Same voice as every other page's context bar (PageHeader string
+              title: text-sm font-medium text-muted-foreground) — the trail is
+              context chrome, not the page's h1. */}
+          <BreadcrumbList className="text-sm">
             {crumbs.map((c, i) => (
               <React.Fragment key={`${c.label}-${i}`}>
                 {i > 0 && <BreadcrumbSeparator />}
                 <BreadcrumbItem>
                   {i === last || !c.href ? (
-                    <BreadcrumbPage className={cn(c.mono && "font-mono")}>{c.label}</BreadcrumbPage>
+                    <BreadcrumbPage
+                      className={cn("text-muted-foreground font-medium", c.mono && "font-mono")}
+                    >
+                      {c.label}
+                    </BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link href={c.href}>{c.label}</Link>
@@ -376,6 +575,19 @@ function ExplorerHeader({ tree, pathname }: { tree: LibraryTreeData; pathname: s
           </BreadcrumbList>
         </Breadcrumb>
       }
-    />
+    >
+      {/* The library's one agent action, declared here rather than per route:
+          this bar IS the chrome for every library page (home, scoped, each
+          tier gallery, each item), and the catalog they all read is written
+          by an agent, not by this UI. */}
+      <AgentAsk
+        label="Rescan"
+        icon={<RefreshCw />}
+        title="Rescan for components"
+        prompt="Rescan the codebase for components and update the library catalog."
+        note="component-library skill"
+        align="end"
+      />
+    </PageHeader>
   )
 }

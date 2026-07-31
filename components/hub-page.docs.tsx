@@ -1,4 +1,4 @@
-import { PageBody, PageLead } from "@/components/hub-page"
+import { PageBody, PageLead, PageTitle } from "@/components/hub-page"
 import { SectionHeader } from "@/components/section-header"
 import { live, type ComponentDoc } from "@/lib/system/doc-types"
 
@@ -7,7 +7,7 @@ const doc: ComponentDoc = {
     {
       title: "A whole page",
       description:
-        "The 90% case: title, an optional right `meta` slot, one `lead` paragraph, then sections. Renders its own PageHeader, so it's shown as code (it needs the sidebar shell to run).",
+        "The 90% case: the slim context bar, then the in-body PageTitle (display-scale h1 + right `meta` slot + one `lead` paragraph), then sections. Renders its own PageHeader, so it's shown as code (it needs the sidebar shell to run).",
       code: `<HubPage
   title="Environment"
   meta={<span className="text-muted-foreground font-mono text-xs">stack & services</span>}
@@ -21,19 +21,28 @@ const doc: ComponentDoc = {
       preview: { kind: "code" },
     },
     {
-      title: "Lead",
-      description: "The single muted intro paragraph that opens a page, capped at a readable width.",
-      code: `<PageLead>The project's sources of truth — so agents never start blank.</PageLead>`,
+      title: "Page title",
+      description:
+        "The in-body identity block — the page's real `<h1>` at display scale, the meta slot beside it, the lead beneath.",
+      code: `<PageTitle
+  title="Knowledge"
+  meta={<span className="text-muted-foreground font-mono text-xs">4 sources</span>}
+  lead="The project's sources of truth — so agents never start blank."
+/>`,
       preview: live(
-        <PageLead>The project&rsquo;s sources of truth — so agents never start blank.</PageLead>
+        <PageTitle
+          title="Knowledge"
+          meta={<span className="text-muted-foreground font-mono text-xs">4 sources</span>}
+          lead="The project's sources of truth — so agents never start blank."
+        />
       ),
     },
     {
       title: "Body only",
       description:
-        "Compose `PageBody` + `PageLead` directly when `<main>` must sit inside a provider (e.g. an editor context) that the header stays outside of.",
+        "Compose `PageBody` + `PageTitle` directly when the body must sit inside a provider (e.g. an editor context) that the header stays outside of.",
       code: `<PageBody>
-  <PageLead>What your agents build with.</PageLead>
+  <PageTitle title="AI Setup" lead="What your agents build with." />
   <SectionHeader title="Skills" hint=".claude/skills/" />
 </PageBody>`,
       preview: live(
@@ -45,11 +54,16 @@ const doc: ComponentDoc = {
     },
   ],
   props: [
-    { name: "title", type: "string", description: "Page title, rendered in the sticky header." },
+    {
+      name: "title",
+      type: "string",
+      description:
+        "Page title — the muted context label in the top bar AND the display-scale in-body `<h1>`.",
+    },
     {
       name: "meta",
       type: "ReactNode",
-      description: "Right-aligned header slot — mono path text, a status badge, or an action.",
+      description: "Right-aligned title slot — mono path text, a status badge, or an action.",
     },
     {
       name: "lead",
@@ -60,11 +74,11 @@ const doc: ComponentDoc = {
     {
       name: "className",
       type: "string",
-      description: "Overrides on the `<main>` (e.g. a wider gap for a long-form page).",
+      description: "Overrides on the body column (e.g. a wider gap for a long-form page).",
     },
   ],
   notes:
-    "The one scaffold every /synclair route composes from — it ended the per-page copy-paste of the header + `max-w-6xl` main + intro lead. Exceptions by design: the library explorer (its own breadcrumb shell) opts out. Exports `HubPage` (all-in-one), plus `PageBody` and `PageLead` for pages that need to wrap `<main>` in a provider.",
+    "The one scaffold every /synclair route composes from — it ended the per-page copy-paste of the header + `max-w-6xl` column + intro lead. The body enters with the `page-enter` move and runs a `gap-10` section rhythm; the real `<h1>` lives in the body (`PageTitle`) while the top bar carries a muted context label — the `<main>` landmark itself belongs to the sidebar shell. Exceptions by design: the library explorer (its own breadcrumb shell) opts out. Exports `HubPage` (all-in-one), plus `PageBody`, `PageTitle`, and `PageLead` for pages that need to wrap the body in a provider.",
 }
 
 export default doc

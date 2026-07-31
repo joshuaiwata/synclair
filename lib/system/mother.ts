@@ -111,6 +111,9 @@ export async function getFoundationStatus(): Promise<FoundationStatus> {
   const record = await getMotherRecord()
   if (!record.callHome) return { state: "off", record }
   if (!record.commit) return { state: "unanchored", record }
+  // The anchor goes into the API URL — a poisoned mother.json must not be able
+  // to redirect the authenticated call (same hash rule as git-actions.ts).
+  if (!/^[0-9a-f]{7,40}$/.test(record.commit)) return { state: "unanchored", record }
 
   try {
     const token = await getGithubToken()

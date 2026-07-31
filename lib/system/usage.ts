@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { readdir, readFile } from "node:fs/promises"
 import path from "node:path"
 
@@ -66,7 +68,10 @@ async function collectFiles(root: string, dir: string, out: string[]): Promise<v
  * Compute usage for every catalog item in one pass over the source tree.
  * Returned map is keyed by item name; items nobody imports get empty usage.
  */
-export async function getUsageMap(
+/** Request-memoised — one build per render pass (react cache). */
+export const getUsageMap = cache(getUsageMapUncached)
+
+async function getUsageMapUncached(
   catalog: RegistryComponent[]
 ): Promise<Map<string, ItemUsage>> {
   const root = process.cwd()

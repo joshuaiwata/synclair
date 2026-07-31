@@ -19,6 +19,7 @@ import {
   type RegistryComponent,
 } from "@/lib/system/components"
 import { getHostCoverage } from "@/lib/system/host-scan"
+import { itemArea } from "@/lib/system/item-meta"
 import { countHostUsage, jsxTagPattern, type HostUsage } from "@/lib/system/host-usage"
 import { synclair } from "@/lib/system/routes"
 import {
@@ -46,6 +47,8 @@ export interface GalleryFilters {
   origin?: string
   /** "all" | "used" | "unused" */
   usage?: string
+  /** Section grouping: absent/"function" = category (default), "area" = app area. */
+  group?: string
   /** Legacy deep links (?surface=) — the page redirects these to scoped paths. */
   surface?: string
 }
@@ -93,19 +96,17 @@ export async function TierGallery({
     ? 0
     : catalog.filter((c) => c.kind === kind && c.layer === "foundation").length
 
-  // Scope: an entered surface sees its own items PLUS shared packages (badged),
-  // so a web dev never has to leave scope to see what packages/ui offers. Shared
-  // only carries over to platform-compatible surfaces — an RN surface doesn't
-  // inherit the web design system.
-  const items = scope
-    ? allOfTier.filter(
-        (c) =>
-          surfaceOf(c) === scope ||
-          (scope !== SHARED_SURFACE_ID &&
-            inheritsShared(scope) &&
-            surfaceOf(c) === SHARED_SURFACE_ID)
-      )
-    : allOfTier
+  // Scope: an entered surface's OWN items only — the census answers "what does
+  // THIS surface's library hold", and 0 is an honest answer (the surface home
+  // says the same). Shared packages stay discoverable via the rail's badged
+  // Shared group and the pointer under the header, not by inflating this
+  // surface's numbers. (Shared only concerns platform-compatible surfaces —
+  // an RN surface doesn't inherit the web design system.)
+  const items = scope ? allOfTier.filter((c) => surfaceOf(c) === scope) : allOfTier
+  const sharedAvailable =
+    scope && scope !== SHARED_SURFACE_ID && inheritsShared(scope)
+      ? allOfTier.filter((c) => surfaceOf(c) === SHARED_SURFACE_ID).length
+      : 0
 
   const origin = filters.origin ?? "all"
   const usageFilter = filters.usage ?? "all"
@@ -253,24 +254,23 @@ export async function TierGallery({
   } else {
     entries = filtered.map((c) => ({
       primary: c,
-      // Inside a surface scope, inherited Shared items link WITHIN that surface
-      // (not off to the Shared scope), so browsing stays put. The doc resolver
-      // falls back to the shared item for these surface-scoped URLs.
       href: multiSurface
-        ? itemHref(kind, c.name, scope && scope !== SHARED_SURFACE_ID ? scope : surfaceOf(c))
+        ? itemHref(kind, c.name, surfaceOf(c))
         : itemHref(kind, c.name),
-      // Inside a surface scope, mark items that actually live in Shared.
-      chips:
-        scope && scope !== SHARED_SURFACE_ID && surfaceOf(c) === SHARED_SURFACE_ID
-          ? ["Shared"]
-          : undefined,
     }))
   }
 
-  // Group entries by the primary item's first category.
+  // Group entries by the primary item's first category (function, default) or
+  // by its APP AREA (?group=area — same axis the explorer rail offers, derived
+  // from source paths in item-meta).
+  const groupByArea = filters.group === "area"
   const grouped = new Map<string, GalleryEntry[]>()
   for (const e of entries) {
-    const key = e.primary.categories[0] ? prettyCategory(e.primary.categories[0]) : UNCATEGORIZED
+    const key = groupByArea
+      ? itemArea(e.primary.files)
+      : e.primary.categories[0]
+        ? prettyCategory(e.primary.categories[0])
+        : UNCATEGORIZED
     const list = grouped.get(key) ?? []
     list.push(e)
     grouped.set(key, list)
@@ -302,10 +302,10 @@ export async function TierGallery({
     : 0
 
   return (
-    <main className="flex max-w-6xl flex-col gap-8 p-6">
+    <div className="page-enter mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-8 md:px-8">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-base font-semibold">{t.label}</h1>
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t.label}</h1>
           <span className="text-muted-foreground font-mono text-xs">
             {hasHost
               ? `${items.length} ${t.label.toLowerCase()} · ${basisCount("shadcn")} shadcn · ${basisCount("custom")} custom · ${usedCount} in use`
@@ -322,7 +322,22 @@ export async function TierGallery({
                 }`}
           </span>
         </div>
-        <p className="text-muted-foreground max-w-2xl text-sm">{t.description}</p>
+        <p className="text-body-content max-w-2xl text-base">{t.description}</p>
+        {/* Shared stays discoverable without padding this surface's census. */}
+        {sharedAvailable > 0 && (
+          <p className="text-muted-foreground text-xs">
+            {sharedAvailable} shared package {t.label.toLowerCase()}
+            {sharedAvailable === 1 ? " is" : " are"} also available to this
+            surface —{" "}
+            <Link
+              href={synclair(`/library/${SHARED_SURFACE_ID}/${tierSlug(kind)}`)}
+              className="underline underline-offset-2"
+            >
+              browse Shared
+            </Link>
+            .
+          </p>
+        )}
         {(uncatalogedCount > 0 || unusedCount > 0 || unrenderedCount > 0) && (
           <p className="text-muted-foreground/80 max-w-2xl text-xs">
             Live host scan:
@@ -354,7 +369,13 @@ export async function TierGallery({
           </p>
         )}
         {items.length > 0 && (
-          <FilterBar basePath={basePath} groups={groups} active={{ origin, usage: usageFilter }} />
+          <FilterBar
+            basePath={basePath}
+            groups={groups}
+            active={{ origin, usage: usageFilter }}
+            // Keep the section grouping (?group=area) across facet clicks.
+            preserve={{ group: filters.group }}
+          />
         )}
       </div>
 
@@ -408,12 +429,14 @@ export async function TierGallery({
         </Empty>
       ) : (
         sections.map(([category, group]) => (
-          <section key={category} className="flex flex-col gap-3">
+          <section key={category} className="flex flex-col gap-4">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-sm font-semibold">{category}</h2>
-              <span className="text-muted-foreground text-xs">{group.length}</span>
+              <h2 className="text-lg font-semibold tracking-tight">{category}</h2>
+              <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                {group.length}
+              </span>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((e) => (
                 <ComponentCard
                   key={`${surfaceOf(e.primary)}:${e.primary.name}`}
@@ -428,7 +451,7 @@ export async function TierGallery({
           </section>
         ))
       )}
-    </main>
+    </div>
   )
 }
 

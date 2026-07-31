@@ -43,7 +43,7 @@ export function PageThumb({
   return (
     <div
       ref={ref}
-      className="bg-muted/30 pointer-events-none overflow-hidden border-b"
+      className="stage-canvas pointer-events-none overflow-hidden border-b"
       style={{ height }}
     >
       {visible ? <EmbedFrame url={url} title={title} height={height} /> : null}

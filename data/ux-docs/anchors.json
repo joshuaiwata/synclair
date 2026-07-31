@@ -1,6 +1,11 @@
 {
   "anchors": [
     {
+      "name": "agent-ask",
+      "sourceHash": "34a339ab1d87a573664040c8e5b0a3b238e0a639838a82413732c7cac2082539",
+      "anchoredAt": "2026-07-28T08:15:16.105Z"
+    },
+    {
       "name": "app-sidebar",
       "sourceHash": "e1ddcbafe44d57905d39f5208cab071da88daeb0212aeed4fc839cfa5bd91db3",
       "anchoredAt": "2026-07-20T18:20:28.817Z"
@@ -12,18 +17,23 @@
     },
     {
       "name": "component-doc-view",
-      "sourceHash": "0be5a6c5ffb541de95716b8cca507dd210ae30d986a380d5b89e726f3214d227",
-      "anchoredAt": "2026-07-17T18:03:00.275Z"
+      "sourceHash": "6494352bb4bcf69fb734ec652f516676e0994aa6f848939f6aec6b27a2c8a21b",
+      "anchoredAt": "2026-07-25T00:12:16.195Z"
     },
     {
       "name": "data-model-diagram",
-      "sourceHash": "9b4de06c04f20202cb2fe4bde20aa84db051dde2629dc6b08b1ef2d3f5185f19",
-      "anchoredAt": "2026-07-16T05:08:51.586Z"
+      "sourceHash": "fca84ffbe40538da526916ab5fb24083cf62d0e8dd91e56cefc9e70fc3214fda",
+      "anchoredAt": "2026-07-25T00:12:15.842Z"
     },
     {
       "name": "definition-list",
-      "sourceHash": "44c049e34c0671efa58d2b72de1f6070c378e010845076ed6d4e209f9df08c63",
-      "anchoredAt": "2026-07-14T19:51:20.495Z"
+      "sourceHash": "fc4be596e2ad9b2269ae427247e91ae550d4ecaf10ee55be614c137d541b1056",
+      "anchoredAt": "2026-07-25T00:12:15.482Z"
+    },
+    {
+      "name": "embed-frame",
+      "sourceHash": "17aee0afd6e62d11f13426481d53f560beb33497708726e4e975ddeb78de8607",
+      "anchoredAt": "2026-07-24T04:58:27.545Z"
     },
     {
       "name": "filter-bar",
@@ -32,33 +42,38 @@
     },
     {
       "name": "foundations-sections",
-      "sourceHash": "5d8d685895ef0f6c317c5953e0db4dc2bbba341b8989301238c1d235263fe0f1",
-      "anchoredAt": "2026-07-20T17:55:20.563Z"
+      "sourceHash": "7e4e0580077a9d375629897bb7ed293f9615da1745d6e4038be97de2a8bddd7b",
+      "anchoredAt": "2026-07-25T00:12:16.320Z"
     },
     {
       "name": "hub-page",
-      "sourceHash": "6a50785fe8db0abfe96822dd2e550173c1782dc8282447e1d05f90537f9f451f",
-      "anchoredAt": "2026-07-20T18:20:28.712Z"
+      "sourceHash": "a1e814e8a939dad568061a3f85be639054dfc6512be3d8afc7c8f94a2abb38ab",
+      "anchoredAt": "2026-07-28T08:15:16.225Z"
     },
     {
       "name": "library-explorer",
-      "sourceHash": "086463168e212950fadf3aa38ba937f3a36b5804dd0305afc56e271e0def7d7d",
-      "anchoredAt": "2026-07-16T17:24:48.649Z"
+      "sourceHash": "754f42fd405cafced5dd9e2251ee08da58b00d0003200db6e421d69f15e0bd0f",
+      "anchoredAt": "2026-07-28T08:15:16.349Z"
     },
     {
       "name": "library-tier-page",
-      "sourceHash": "6efef7f9ce5b8127da095f28bd21717ba71991a3361ad021ae8889ba06180110",
-      "anchoredAt": "2026-07-16T21:43:19.672Z"
+      "sourceHash": "81712599430f1b3ba3e725e75d082ecf8b3b28010b0515f6dfabc8adcbfa1f91",
+      "anchoredAt": "2026-07-25T00:12:16.440Z"
     },
     {
       "name": "markdown",
-      "sourceHash": "5235f41dbba4bb781b84af3b7994baa44ea0bbf811948e0f7fa77e0f11493281",
-      "anchoredAt": "2026-07-16T05:08:51.230Z"
+      "sourceHash": "6311d467e327fc4c999eaea2814ab0b56fdcb49b0df59394699149acb29be12b",
+      "anchoredAt": "2026-07-24T02:43:51.448Z"
     },
     {
       "name": "page-header",
-      "sourceHash": "ed3da5028bbd3458590344675d02a7c97573e52f9041c914c0cea081acc6b335",
-      "anchoredAt": "2026-07-16T00:26:02.518Z"
+      "sourceHash": "0236a2d9970fd861d8996f99182be607cc42eb915979636b352c7e4071e381ff",
+      "anchoredAt": "2026-07-24T01:00:02.376Z"
+    },
+    {
+      "name": "pages-explorer",
+      "sourceHash": "d20666afcc0a604b34da0e208a37b848032237946c4913532f577342265630ef",
+      "anchoredAt": "2026-07-25T00:12:16.556Z"
     },
     {
       "name": "pill-toggle",
@@ -67,8 +82,13 @@
     },
     {
       "name": "section-header",
-      "sourceHash": "ddd2341ff5bd43c2412fe557bddfe3bdc52efc7509f94f8977096f555762a094",
-      "anchoredAt": "2026-07-12T08:30:54.046Z"
+      "sourceHash": "8950fe889e29e491b8b4f88235af7401ed5ad9d5f188ee34af0eebebb8f8d7d0",
+      "anchoredAt": "2026-07-24T01:00:02.375Z"
+    },
+    {
+      "name": "section-toolbar",
+      "sourceHash": "d50960a48fe2a7896d18fbea3ea1a2172b37e75bdc01f67905dc296cabe0d314",
+      "anchoredAt": "2026-07-25T00:12:16.791Z"
     },
     {
       "name": "source-editor",
@@ -77,13 +97,13 @@
     },
     {
       "name": "stat-card",
-      "sourceHash": "d8910e0ade76199c03971f82c98a1d6fb206e5a21a0033df96b7573beb5b1c2b",
-      "anchoredAt": "2026-07-12T08:30:54.046Z"
+      "sourceHash": "bfd2861abdcf3d7bb2348dd9b1d65d288882fc14c72c5c17e92ebf7463988e46",
+      "anchoredAt": "2026-07-25T00:12:15.364Z"
     },
     {
       "name": "stat-grid",
-      "sourceHash": "c22c371ca77459e91d40055141f0576c144266da9fa17f625d5127e444468d4f",
-      "anchoredAt": "2026-07-14T19:51:20.495Z"
+      "sourceHash": "550119d32b6d91c1465bb9b5c2b079b2be4ed02e7bf9922e3197b302e063cece",
+      "anchoredAt": "2026-07-25T00:12:15.603Z"
     },
     {
       "name": "status-badge",
@@ -92,8 +112,8 @@
     },
     {
       "name": "step-ladder",
-      "sourceHash": "a1ac3c70ef659c06ccf972021ac3a80c18ca224b831e26e6d6a8b8c7bce11709",
-      "anchoredAt": "2026-07-12T08:30:54.046Z"
+      "sourceHash": "c1bd9f29ea16f336f63bedddaf1eab999ddaa301721aec21eda66b7e612a4972",
+      "anchoredAt": "2026-07-25T00:12:15.247Z"
     },
     {
       "name": "summary-shell",
@@ -101,14 +121,29 @@
       "anchoredAt": "2026-07-16T05:08:51.348Z"
     },
     {
+      "name": "surface-switcher",
+      "sourceHash": "a137a6f0f92d0bca56a62d56c2a48ccdb20fd5a1bfe57e4278d3100c7b3b6bcc",
+      "anchoredAt": "2026-07-24T01:00:02.376Z"
+    },
+    {
+      "name": "tabs-nav",
+      "sourceHash": "345065c28e812500e4b75c637a4255d1db5d2e525c9676c8061a5ac9a1f00ca5",
+      "anchoredAt": "2026-07-24T03:33:30.053Z"
+    },
+    {
       "name": "tier-gallery",
-      "sourceHash": "cbcfdb072fcf15711efd5bcb8eee7bffd2293ec7e5239f9746b6d6bf307435d3",
-      "anchoredAt": "2026-07-17T21:34:51.356Z"
+      "sourceHash": "adb82a24a1c245813e51b9d451018f93d4c240918ac24884fb629ee61d50469a",
+      "anchoredAt": "2026-07-25T00:12:16.077Z"
+    },
+    {
+      "name": "token-systems",
+      "sourceHash": "deab4d16c54518f4aaac7a4c4d38b8434ad0cdb8faadabf6792e64afb030b378",
+      "anchoredAt": "2026-07-25T00:12:16.674Z"
     },
     {
       "name": "viewport-frame",
-      "sourceHash": "73e2a5f90f2eb11b1c4a3c6fed94930afe0f2301b3cd261f27eef2d24a4dd1a6",
-      "anchoredAt": "2026-07-20T16:39:59.883Z"
+      "sourceHash": "6d50cfeddb4ab99849147001491a3dca2b1febcf714755db2fadda58028940db",
+      "anchoredAt": "2026-07-25T00:12:15.723Z"
     },
     {
       "name": "wireframe-kit",

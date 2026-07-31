@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
@@ -29,7 +31,8 @@ import { defaultSurfaceId } from "./surfaces"
  * `sourceHash`.
  */
 
-const CATALOG_PATH = path.join(process.cwd(), "data", "external-catalog.json")
+/** Exported so derived layers (host-scan.ts) can anchor caches on the file's change-stamp. */
+export const CATALOG_PATH = path.join(process.cwd(), "data", "external-catalog.json")
 
 /**
  * A host app this catalog was surveyed from. Single-frontend projects have one;
@@ -130,7 +133,10 @@ const EMPTY: ExternalCatalog = { hosts: [], items: [] }
 
 const VALID_KINDS = new Set<string>(["component", "block", "template"])
 
-export async function getExternalCatalog(): Promise<ExternalCatalog> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getExternalCatalog = cache(getExternalCatalogUncached)
+
+async function getExternalCatalogUncached(): Promise<ExternalCatalog> {
   try {
     const raw = await readFile(CATALOG_PATH, "utf8")
     const parsed = JSON.parse(raw) as Partial<ExternalCatalog> & { host?: ExternalHost | null }
@@ -245,7 +251,7 @@ export async function getExternalDoc(name: string, surface?: string): Promise<Co
   const host = hosts.find((h) => h.surface === (it.surface ?? fallbackSurface)) ?? hosts[0] ?? null
 
   const provenance = [
-    `Documented from the host app${host ? ` (**${host.name}**)` : ""} — source \`${it.hostPath}\`, cataloged ${it.catalogedAt}.`,
+    `Documented from the host app${host ? ` (**${host.name}**)` : ""} — source \`${it.hostPath}\`, cataloged ${it.catalogedAt || "date unknown"}.`,
     "To make it first-class in this library, port it through the `component-library` invention gate.",
   ].join(" ")
 

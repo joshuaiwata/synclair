@@ -94,11 +94,13 @@ so when an agent trips a guardrail, the message is a perfectly-timed re-prompt.
 
 ## The flywheel
 
-The payoff compounds. The first time an agent digs into an area (reads the PRD,
-surveys the host code), it's expensive. But diggers **write the durable part back**
-into a skill — so the next agent loads it as a cheap one-line description instead of
-re-reading the source. Over time the distilled brain converges on "what a builder
-routinely needs," and raw sources get consulted only for genuinely new detail.
+The payoff compounds, and it starts at intake: **linking a source and distilling it
+are one act** — adding a PRD to the knowledge manifest includes writing its digest in
+the same pass, so no builder ever hits a linked-but-undigested source. From there,
+diggers **write the durable part back** whenever a deeper read surfaces something new
+— so the next agent loads a cheap one-line description instead of re-reading the
+source. Over time the distilled brain converges on "what a builder routinely needs,"
+and raw sources get consulted only for genuinely new detail.
 
 <Card title="Next: install it" icon="download" href="/installation">
   Two topologies — embed it in one repo, or watch it from a separate one.

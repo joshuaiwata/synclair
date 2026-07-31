@@ -81,27 +81,48 @@ away from the folder.
 > and confirm the bridged files actually stage (`git status .claude/`). The
 > co-located `synclair/` source has the same requirement — commit the source, git-ignore only its `node_modules`/`.next`.
 
-## The deliberate exception — agents SEE Synclair
+## The deliberate exception — agents SEE Synclair (run the bridge)
 
 Everything above hides `synclair/` from *compilers*. Agents are the opposite —
-the whole reason to co-locate. Claude Code auto-loads skills from `.claude/skills/`
-at the repo root, so bridge the **portable** skills (knowledge/domain — NOT
-Synclair's build-mechanics skills like `build-view`/`component-library`, which
-assume Synclair's own app structure):
+the whole reason to co-locate. But agent tools only scan for skills at the repo
+**root** (where engineers launch them), not in subdirectories — so skills sitting
+in `synclair/.claude/skills/` are invisible until you bridge them up. And the
+bridge has to serve **every** tool your team uses, because each reads a *different*
+directory:
+
+| Tool | Skill directory it scans | Router file it reads |
+|---|---|---|
+| **Claude Code** | `.claude/skills/` | `CLAUDE.md` (imports `AGENTS.md`) |
+| **Codex** | `.agents/skills/` (also walks up to repo root) | `AGENTS.md` |
+| **Cursor** | `.cursor/skills/` | `AGENTS.md` |
+
+All three auto-trigger `SKILL.md` skills by their description (progressive
+disclosure) — this is no longer Claude-only. The format is shared; only the
+*doorway* differs. So the bridge copies each **ambient** skill into all three
+doorways at the host root and writes an `AGENTS.md` router block the non-Claude
+tools read.
+
+**One command does it — do not hand-symlink.** Symlinks break on Windows
+checkouts (mixed-OS teams), so the bridge uses plain copies with the canonical
+source in `synclair/.claude/skills/`:
 
 ```bash
-# from product repo root — symlink keeps a single source of truth
-mkdir -p .claude/skills
-for s in product-spec project-identity; do
-  ln -s ../../synclair/.claude/skills/$s .claude/skills/$s
-done
+node synclair/scripts/bridge-agents.mjs        # write/refresh the doorways
+node synclair/scripts/bridge-agents.mjs --check  # CI drift guard (add to the host's checks)
 ```
 
-Then a pointer in the product repo's `CLAUDE.md` / `AGENTS.md`:
+It selects skills whose `SKILL.md` frontmatter sets **`ambient: true`** — the
+knowledge-**consumption** skills (`product-spec`, `project-identity`), NOT
+knowledge-production (`product-summary`, `figma-distiller`) or build-mechanics
+skills (`build-view`, `component-library`), which assume Synclair's own app
+structure. Commit the generated `.claude/`, `.agents/`, `.cursor/`, and
+`AGENTS.md` so the whole team gets them on `git pull`.
 
-> **Synclair foundation** lives in `synclair/` (its own app — `cd synclair &&
-> npm run dev` → :4100/synclair). Its knowledge digests and catalog document THIS
-> repo. Build tools ignore the folder by design; only agents look in.
+> **The `.gitignore` trap (check this):** many repos ignore `.claude/` to keep
+> personal agent config out of git — which also excludes the bridged skills, so
+> the team clones and gets *nothing*. Run `git check-ignore .claude/skills`; if it
+> matches, un-ignore the shared folders (`!.claude/skills/`, `!.agents/`,
+> `!.cursor/`) and scope the ignore to `.claude/settings.local.json` instead.
 
 Isolation for the compilers, visibility for the agents — they pull opposite
 directions on purpose. That is the whole job.

@@ -1,3 +1,7 @@
+import { Plus } from "lucide-react"
+
+import { AgentAsk } from "@/components/agent-ask"
+
 import { HubPage } from "@/components/hub-page"
 import { getGitDates } from "@/lib/system/git-dates"
 import { readArchivedSources } from "@/lib/system/knowledge/archived-sources"
@@ -73,8 +77,18 @@ export default async function KnowledgePage() {
   return (
     <HubPage
       title="Knowledge"
+      action={
+        <AgentAsk
+          label="Add document"
+          icon={<Plus />}
+          title="Add a document to Knowledge"
+          prompt="Add this document to Synclair's knowledge and distill it: [paste the link or file path]"
+          note="knowledge manifest · product-spec skill"
+          align="end"
+        />
+      }
       meta={
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground font-mono text-xs">
           {activeCount} source{activeCount === 1 ? "" : "s"}
         </span>
       }

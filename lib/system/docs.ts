@@ -5,22 +5,29 @@ import appSidebar from "@/components/blocks/app-sidebar.docs"
 import commandPalette from "@/components/blocks/command-palette.docs"
 import sourceEditor from "@/components/blocks/source-editor.docs"
 import definitionList from "@/components/definition-list.docs"
+import embedFrame from "@/components/embed-frame.docs"
 import hubPage from "@/components/hub-page.docs"
 import componentDocView from "@/components/library/component-doc-view.docs"
 import dataModelDiagram from "@/components/library/data-model-diagram.docs"
 import filterBar from "@/components/library/filter-bar.docs"
 import foundationsSections from "@/components/library/foundations.docs"
 import libraryExplorer from "@/components/library/library-explorer.docs"
+import pagesExplorer from "@/components/pages/pages-explorer.docs"
 import tierGallery from "@/components/library/tier-gallery.docs"
+import tokenSystems from "@/components/library/token-systems.docs"
+import agentAsk from "@/components/agent-ask.docs"
 import markdown from "@/components/markdown.docs"
 import pageHeader from "@/components/page-header.docs"
 import pillToggle from "@/components/pill-toggle.docs"
 import sectionHeader from "@/components/section-header.docs"
+import sectionToolbar from "@/components/section-toolbar.docs"
 import statCard from "@/components/stat-card.docs"
 import statGrid from "@/components/stat-grid.docs"
 import statusBadge from "@/components/status-badge.docs"
 import stepLadder from "@/components/step-ladder.docs"
 import summaryShell from "@/components/summary-shell.docs"
+import surfaceSwitcher from "@/components/surface-switcher.docs"
+import tabsNav from "@/components/tabs-nav.docs"
 import viewportFrame from "@/components/viewport-frame.docs"
 import wireframeKit from "@/components/wireframe-kit.docs"
 
@@ -40,10 +47,14 @@ export const docs: Record<string, ComponentDoc> = {
   "step-ladder": stepLadder,
   "stat-card": statCard,
   "section-header": sectionHeader,
+  "section-toolbar": sectionToolbar,
   "page-header": pageHeader,
   "hub-page": hubPage,
   "pill-toggle": pillToggle,
+  "tabs-nav": tabsNav,
+  "surface-switcher": surfaceSwitcher,
   "definition-list": definitionList,
+  "embed-frame": embedFrame,
   "stat-grid": statGrid,
   "viewport-frame": viewportFrame,
   "wireframe-kit": wireframeKit,
@@ -52,9 +63,12 @@ export const docs: Record<string, ComponentDoc> = {
   "command-palette": commandPalette,
   "markdown": markdown,
   "summary-shell": summaryShell,
+  "agent-ask": agentAsk,
   "filter-bar": filterBar,
   "data-model-diagram": dataModelDiagram,
   "library-explorer": libraryExplorer,
+  "pages-explorer": pagesExplorer,
+  "token-systems": tokenSystems,
   "tier-gallery": tierGallery,
   "component-doc-view": componentDocView,
   "foundations-sections": foundationsSections,

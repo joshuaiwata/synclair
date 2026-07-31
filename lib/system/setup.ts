@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { access, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 
@@ -70,7 +72,10 @@ export const SETUP_MODE_META: Record<SetupMode, { label: string; blurb: string }
  * unresolved**, the safe fallback. A corrupt (non-ENOENT) file is logged, not
  * thrown, so a bad byte degrades to "unresolved" rather than crashing a page.
  */
-export async function getSetupRecord(): Promise<SetupRecord | null> {
+/** Request-memoised — one build per render pass (react cache). */
+export const getSetupRecord = cache(getSetupRecordUncached)
+
+async function getSetupRecordUncached(): Promise<SetupRecord | null> {
   try {
     const raw = await readFile(SETUP_PATH, "utf8")
     const parsed = JSON.parse(raw) as Record<string, unknown>
