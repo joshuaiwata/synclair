@@ -24,6 +24,48 @@ set -euo pipefail
 UPSTREAM_URL="https://github.com/joshuaiwata/synclair.git"
 UPSTREAM_BRANCH="main"
 
+# ── TOPOLOGY ─────────────────────────────────────────────────────────────────
+# Where this clone sits decides where the merge must land (docs/setup-modes.md).
+#
+#   standalone/watcher — the clone IS the git repo. Upstream's root maps to the
+#                        repo root; a plain merge is correct.
+#   embedded           — the clone is a SUBDIRECTORY of the product repo, so git
+#                        operates on the HOST repo. A plain merge would land
+#                        upstream's AGENTS.md, app/, lib/ and .claude/ at the
+#                        PRODUCT ROOT — dumping the whole foundation over the
+#                        product. `-X subtree=<prefix>` is what maps it back
+#                        under the clone.
+#
+# This was missing, and it is why no embedded clone has ever had shared
+# ancestry: the sanctioned tool could not give it any without damaging the host.
+SYNCLAIR_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GIT_ROOT="$(git -C "$SYNCLAIR_ROOT" rev-parse --show-toplevel)"
+
+if [[ "$SYNCLAIR_ROOT" == "$GIT_ROOT" ]]; then
+  PREFIX=""
+  TOPOLOGY="standalone"
+else
+  PREFIX="${SYNCLAIR_ROOT#"$GIT_ROOT"/}"
+  TOPOLOGY="embedded"
+  # A prefix we can't express relative to the git root means we cannot say where
+  # the merge would land. Refusing is the only safe answer — the failure mode
+  # here is a product repo with a foundation emptied over it.
+  if [[ -z "$PREFIX" || "$PREFIX" == "$SYNCLAIR_ROOT" || "$PREFIX" == /* ]]; then
+    echo "error: cannot resolve this clone's path inside the repo." >&2
+    echo "  synclair: $SYNCLAIR_ROOT" >&2
+    echo "  git root: $GIT_ROOT" >&2
+    echo "  Refusing to merge — a wrong prefix writes the foundation over the product." >&2
+    exit 1
+  fi
+fi
+
+# All git work happens from the git root so paths are repo-relative throughout.
+cd "$GIT_ROOT"
+
+# Conflict paths come back repo-relative, so the seed/mixed lists need the
+# prefix too or every seed file in an embedded clone is silently misclassified.
+qualify() { [[ -n "$PREFIX" ]] && echo "$PREFIX/$1" || echo "$1"; }
+
 # SEED — always the project's own; on conflict keep OURS automatically.
 SEED_OURS=(
   "lib/system/seed/"
@@ -62,19 +104,20 @@ ensure_upstream() {
 
 is_seed() {
   local p="$1"
-  for s in "${SEED_OURS[@]}"; do [[ "$p" == "$s"* ]] && return 0; done
+  for s in "${SEED_OURS[@]}"; do [[ "$p" == "$(qualify "$s")"* ]] && return 0; done
   return 1
 }
 
 is_mixed() {
   local p="$1"
-  for m in "${MIXED[@]}"; do [[ "$p" == "$m" ]] && return 0; done
+  for m in "${MIXED[@]}"; do [[ "$p" == "$(qualify "$m")" ]] && return 0; done
   return 1
 }
 
 ensure_upstream
 
 if [[ "$cmd" == "status" ]]; then
+  echo "topology: $TOPOLOGY${PREFIX:+ (clone at $PREFIX/)}"
   if base=$(git merge-base HEAD "upstream/$UPSTREAM_BRANCH" 2>/dev/null); then
     behind=$(git rev-list --count HEAD.."upstream/$UPSTREAM_BRANCH")
     echo "shared ancestry: yes (base $(git rev-parse --short "$base"))"
@@ -83,7 +126,15 @@ if [[ "$cmd" == "status" ]]; then
   else
     echo "shared ancestry: NO — this clone predates history-preserving setup."
     echo "‹pull› will do the one-time adoption merge (--allow-unrelated-histories)."
-    echo "files that differ from upstream: $(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" | wc -l | tr -d ' ')"
+    # Scope the count to the clone. Comparing a whole PRODUCT repo against the
+    # foundation counts every application file as "differing", which is true and
+    # useless — in this repo it read 2,644.
+    if [[ -n "$PREFIX" ]]; then
+      differing=$(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" -- "$PREFIX" | wc -l | tr -d ' ')
+    else
+      differing=$(git diff --name-only HEAD "upstream/$UPSTREAM_BRANCH" | wc -l | tr -d ' ')
+    fi
+    echo "files in this clone that differ from upstream: $differing"
   fi
   exit 0
 fi
@@ -97,6 +148,9 @@ git switch -c "$sync_branch" >/dev/null 2>&1 || { echo "error: branch $sync_bran
 echo "› merging upstream/$UPSTREAM_BRANCH into $sync_branch (from $start_branch)…"
 
 merge_flags=()
+# Map upstream's root under this clone's directory. Without it, an embedded
+# clone's merge lands the foundation at the PRODUCT root.
+[[ -n "$PREFIX" ]] && merge_flags+=(-X "subtree=$PREFIX")
 git merge-base HEAD "upstream/$UPSTREAM_BRANCH" >/dev/null 2>&1 || {
   echo "› no shared ancestry — one-time adoption merge."
   merge_flags+=(--allow-unrelated-histories)
