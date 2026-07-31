@@ -313,9 +313,38 @@ const TOOLS = {
       if (args.tier) items = items.filter((i) => i.tier === args.tier)
       if (args.origin) items = items.filter((i) => i.origin === args.origin)
       if (q) {
-        items = items.filter((i) =>
-          [i.name, i.title, i.description, ...(i.categories ?? [])].some((f) => lower(f).includes(q))
-        )
+        /**
+         * Rank, don't just filter. A flat substring match returned Synclair's
+         * own `pill-toggle` above the host's `button` for the query "button",
+         * because it matched on a description. In companion mode that is the
+         * wrong answer twice over: the match is weaker AND it's the hub's own
+         * chrome, when someone building the product means the PRODUCT's button.
+         *
+         * Whoever reads only the first few results should get the right ones.
+         */
+        const hasHost = items.some((i) => i.origin === "host")
+        const score = (i) => {
+          const name = lower(i.name)
+          let s = 0
+          if (name === q) s = 100
+          else if (name.startsWith(q)) s = 80
+          else if (name.includes(q)) s = 60
+          else if (lower(i.title).includes(q)) s = 40
+          else if ((i.categories ?? []).some((c) => lower(c).includes(q))) s = 30
+          else if (lower(i.description).includes(q)) s = 20
+          if (s === 0) return 0
+          // In a companion clone the product's catalogue is what's being asked
+          // about; the hub's own components are a fallback, not the lead.
+          if (hasHost && i.origin === "host") s += 10
+          // Something the app actually renders beats something it doesn't.
+          if ((i.usageCount ?? 0) > 0) s += 5
+          return s
+        }
+        items = items
+          .map((i) => ({ i, s: score(i) }))
+          .filter((x) => x.s > 0)
+          .sort((a, b) => b.s - a.s || a.i.name.localeCompare(b.i.name))
+          .map((x) => x.i)
       }
       const limit = Number.isFinite(args.limit) ? args.limit : 40
       const total = items.length
