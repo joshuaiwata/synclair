@@ -267,20 +267,32 @@ if (hostAliasTargets.length > 0 && existsSync(hostPreviewsDir)) {
        * clone two stale scenes 500'd all 148. Catching it here turns a total
        * outage into a named finding.
        *
-       * node_modules is exempt below (dependency resolution isn't ours), and a
-       * missing host tree is not a failure — that's a clone whose host simply
+       * A missing host tree is NOT a failure — that's a clone whose host simply
        * isn't checked out, which `check:host` already reports.
+       *
+       * node_modules is deliberately NOT exempt. These are explicit `@host/…`
+       * paths an author wrote, not bare specifiers the resolver invents, and a
+       * scene reaching into the host's own `node_modules` (to share a package
+       * instance with the host's build) breaks exactly the same way when it's
+       * absent. Exempting it hid a real failure in testing — the remedy just
+       * differs, so the message differs.
        */
       const hostTreePresent = hostAliasTargets.some((t) => existsSync(t));
-      if (hostTreePresent && !m[1].split("/").includes("node_modules")) {
+      if (hostTreePresent) {
         const found = [".ts", ".tsx", ".js", ".jsx", ""].some((ext) => existsSync(resolved + ext))
-          || ["/index.ts", "/index.tsx", "/index.js"].some((ix) => existsSync(resolved + ix));
+          || ["/index.ts", "/index.tsx", "/index.js", "/package.json"].some((ix) =>
+            existsSync(resolved + ix)
+          );
         if (!found) {
+          const isDep = m[1].split("/").includes("node_modules");
           errors.push(
             `host-previews: ${f} imports "@host/${m[1]}", which does not exist. `
             + `registry.tsx imports every scene statically, so this breaks the ENTIRE library `
-            + `route, not just this card. Fix the path, or unregister the scene until the host `
-            + `component lands.`
+            + `route, not just this card. `
+            + (isDep
+              ? `That path is inside the host's node_modules — install the host's dependencies `
+                + `(e.g. pnpm install at the workspace root) so the preview can share its package instance.`
+              : `Fix the path, or unregister the scene until the host component lands.`)
           );
         }
       }

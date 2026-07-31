@@ -7,6 +7,20 @@
       "runtimeArgs": ["run", "dev"],
       "port": 4100,
       "autoPort": true
+    },
+    {
+      "name": "toolbelt-hub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/hal/GitHub/work/platform-design-test/synclair",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "4101"
+      ],
+      "port": 4101
     }
   ]
 }
