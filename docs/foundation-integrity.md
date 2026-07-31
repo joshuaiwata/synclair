@@ -1,6 +1,6 @@
 # Foundation integrity — plan
 
-**Status: M4 and M7 ✅ BUILT and validated; M1, M2, M3, M5, M6, M8 proposed.**
+**Status: M4, M7 ✅ BUILT and validated; M1 ✅ first half; M2, M3, M5, M6, M8 proposed.**
 Third in the series:
 [`extensibility.md`](extensibility.md) draws the Core/Extension line,
 [`agent-interface.md`](agent-interface.md) covers how Synclair's knowledge
@@ -179,7 +179,7 @@ this plan in miniature.
 
 Three foundations, then five things they unlock.
 
-## M1 — One dependency graph ⬜ *foundation*
+## M1 — One dependency graph ✅ BUILT (first half) *foundation*
 
 **The problem.** Six checks each answer "has *my* artifact drifted." None answers
 "what else did that change invalidate." Yet the edges already exist and are
@@ -206,6 +206,37 @@ without limit reports everything and therefore nothing.
 - Cascade is reproducible — same inputs, identical output, no ordering nondeterminism.
 - Against the real clone: a known component edit flags exactly the pages that render it, verified by hand against `pages-map`.
 - Existing per-artifact checks keep their current output byte-identically; the graph is additive.
+
+### What shipped
+
+`scripts/lib/edges.mjs` (the graph) and `npm run impact` (blast radius), with 15
+hermetic checks in `npm run check:edges`, part of `verify-ui`. On the reference
+clone the graph assembles **410 files, 173 items, 50 pages** from artifacts that
+already existed — no new derivation, no model, no network.
+
+Working answer: changing `apps/prototype/src/components/toolbelt-ui/primitives.tsx`
+reports **7 catalog items and 50 screens**, because that file is a barrel holding
+seven components. Nothing in the hub could answer that before.
+
+**The hard part was never the graph, it was the paths.** Three artifacts record
+them against three different bases — `pages-map.sourceFiles` against `repo.root`,
+`external-catalog.hostPath` against that item's host root (found by matching
+`item.surface` to `hosts[].surface`), and `usage.files` against the product repo.
+Getting one wrong doesn't yield a wrong graph, it yields an **empty** one that
+reports "nothing affected" and reads exactly like a clean change. That happened:
+`usage.files` were resolved against the hub, producing `synclair/apps/...`, and
+every component came back used nowhere. The self-test was then verified by
+reintroducing the bug and confirming it fails — a regression test that cannot
+fail is decoration.
+
+Two honesty rules carried over rather than reinvented: an item whose surface no
+host declares gets **no edge** (a guessed base points at a file that doesn't
+exist), and an item whose surface the pages map doesn't cover reports **reach
+unknown**, which sorts above proven-zero and says why. A shared component
+consumed by two unmapped frontends must never read as "affects no screens".
+
+Still to do here: feeding cascade into `check:freshness` so staleness travels the
+graph, and into the PR gate's comment.
 
 ## M2 — Confidence, made visible ⬜ *foundation*
 
@@ -464,7 +495,7 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M7** Local sources ✅ | **yes** | nothing; better with M1, M3 |
 | **M6** Seam | **yes** | reuses `scan-system` |
 | **M2** Confidence | **yes** | fields already exist; better with M3 |
-| **M1** Graph | yes | nothing |
+| **M1** Graph ✅ (first half) | yes | nothing |
 | **M3** Anchors | yes | — |
 | **M5** Rulings | no | M1 (governance), M3 (evidence), M4 (delivery) |
 | **M8** Rollup | no | M1–M3 |
