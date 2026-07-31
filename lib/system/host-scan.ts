@@ -107,10 +107,22 @@ const UI_DIR_SEGMENTS = new Set([
   "features",
   "blocks",
   "layouts",
+  // Atomic-design vocabulary — how design-system packages commonly organise themselves. Without
+  // these it reported "0 candidate component files" against 16 cataloged: coverage
+  // it could never verify.
+  "primitives",
+  "composites",
 ])
 
+/**
+ * A leading underscore is Next's PRIVATE FOLDER convention (`app/**\/_components/`)
+ * — opted out of routing, not renamed — so it must match the same segment names.
+ * Missing it costs exactly what the comment above warns about: an app that
+ * colocates its UI this way reports "0 candidate component files" and so reads
+ * as fully covered, while every one of its components sits unexamined.
+ */
 function isComponentDir(rel: string): boolean {
-  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg))
+  return rel.split(path.sep).some((seg) => UI_DIR_SEGMENTS.has(seg.replace(/^_/, "")))
 }
 
 async function walk(

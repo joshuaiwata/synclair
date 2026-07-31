@@ -84,6 +84,41 @@ untouched. Host trees come from the hub tsconfig's `@host/*` targets, or pass
 Clear `.next` after wiring. Hosts that self-reference via bare workspace
 specifiers (`@acme/ui`) don't need this.
 
+### The host imports SIBLING WORKSPACE packages (monorepo hosts)
+Symptom: `Cannot find module '@acme/ui'` on any live import, and
+`require.resolve` from the hub fails. A co-located hub is deliberately OUTSIDE
+the host's pnpm/npm workspace, so the host's own `@scope/*` specifiers resolve
+for the host and not for the hub — root `node_modules/@scope` typically holds
+only shared tooling. Fix: alias each package in the CLONE's tsconfig, mirroring
+that package's `exports` map (`"@acme/ui": ["../packages/ui/src/index.ts"]`,
+plus a line per subpath). Point at **source**, not `dist/index.js` — a built
+`.js` carries no type exports and every `import type` from it fails.
+
+**Third-party deps need the SAME INSTANCE, not just any copy.** A provider the
+harness renders and a hook the host component calls must come from one module
+instance or the context never matches — the hook sits pending or throws
+"must be used within a Provider" while both look correctly imported. Alias
+react-query / next-intl / react-hook-form and friends to the exact path the HOST
+resolves (`readlink apps/<host>/node_modules/<dep>`), not to a hub copy.
+
+### TWO hosts that both self-alias via `@/` (the fallback only serves one)
+The `@/*`-fallback fix above silently breaks down at the second self-aliasing
+host. TypeScript resolves a `paths` entry by which target **exists**, not by
+which file is importing — so with two host roots mapped, files in host B
+type-resolve against host A's modules whenever a filename exists in both.
+Monorepo siblings collide constantly: `hooks/useAuth`, `hooks/useAbility`,
+`lib/guards/*`, `lib/validation/*`, `lib/test-utils`.
+
+It fails as **wrong types, not "module not found"**, which is the dangerous
+shape — the error names a property rather than a path, so it reads like the
+host's bug. Reordering only moves the breakage; it is symmetric.
+
+The runtime loader resolves this correctly per-file; `tsc` runs no loaders, and
+verify-ui is the gate. So today: **live-import ONE self-aliasing host per clone
+and keep the others documented**, recording the reason next to the registry
+entries. A second host needs a per-file mechanism on the type side too — a
+transformer or a generated per-host declaration set — not another `paths` line.
+
 ### The host shifted frameworks (stale preview wrappers)
 When an intake predates a host re-platform, preview wrappers can carry the old
 stack's providers. Vite + react-router → Next, for example: drop `MemoryRouter`
