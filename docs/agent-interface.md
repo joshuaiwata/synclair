@@ -324,24 +324,52 @@ only prose may differ.
 The `generator` field from Phase 1 is what lets the hub distinguish derived facts
 from written judgment once this lands.
 
-## Phase 4 — riders ⬜ PLANNED
+## Phase 4 — riders ✅ BUILT
 
-Cheap once the above exists:
+**4a — `gen:agents-block`.** A marker-delimited block in `AGENTS.md` carrying
+what *this clone* is populated with (product, setup mode + hosts, library counts,
+pages, system map, knowledge, hygiene). 711 chars on the mother repo, ~800 on a
+real clone, replacing six file reads.
 
-- **Generated `AGENTS.md` block.** The "Where things live" table, between
-  markers, deterministic, no LLM. It's the most drift-prone section of the first
-  thing every agent reads. Repowise targets 150–250 lines on the grounds that
-  bloated config files get ignored — a fair challenge to the router's length.
-- **Blast-radius ranking.** Rank hygiene and Reports findings by how many pages
-  consume the offending file, using the component→page edges already in
-  `pages-map.json`. No dependency graph needed; makes "what to do next"
-  defensible instead of count-driven.
-- **Post-commit hook that marks stale, not one that regenerates.** Regeneration
-  means an agent run until Phase 3 lands, which must not fire on every commit.
-- **Consolidate `check:*` into `check:freshness`**, old names kept as wrappers.
-  Deliberately last — it touches `verify-ui`.
+The "Where things live" table is deliberately **not** generated — it's
+architecture identical in every clone, foundation content that syncs, and
+generating it would be churn. What's generated is only what differs per clone.
+Append when no markers exist, replace only between them, refuse on a lone marker
+rather than guess, refuse to conjure `AGENTS.md` if missing. Verified all six
+paths, including that router content outside the block stays byte-identical.
 
-## Phase 5 — registry convergence ⬜ PLANNED
+`measure-agent-cost` also now lists the heaviest ambient descriptions, so the
+capability gate can be quantitative. Current worst: `ui-designer` at 1,274 chars.
+
+**4b — `rank:hygiene`.** Ranks findings by how many pages consume the file, using
+the component→page edges already in `pages-map.json` — no dependency graph
+needed. On real ToolBelt data this changes the answer: `Assembly.tsx` (8 findings,
+2 pages) outranks `MarketMap.tsx` (19 findings, 1 page), and `PostDetail.tsx` (12
+findings) falls to the bottom because nothing renders it.
+
+*Reach unknown is not reach zero.* A hygiene report can span several hosts while
+the pages map covers one, so unknowns sort **above** proven-zero and say why —
+"we couldn't tell" is a worse reason to ignore something than "we checked".
+
+**4d — `check:freshness`.** One report across every artifact in the shared
+`fresh | stale | unanchored | absent` vocabulary. `unanchored` and `absent` are
+not failures — a blank clone has generated nothing and a host may not be checked
+out — so it exits 0 by default, `--strict` for CI. `verify-ui` and the existing
+`check:*` scripts are untouched.
+
+It cross-validates against the independent acceptance harness on the real clone
+(73 fresh / 71 stale catalog entries, exact match), and surfaced something worth
+knowing there: **50 of 51 mapped routes have drifted** since 2026-07-22.
+
+**4c — `install:hooks`.** A post-commit hook that only *reports*. It can't
+regenerate — several artifacts still need an agent for their prose, and firing an
+agent run on every commit would be expensive and astonishing. Marker-delimited so
+an existing hook survives (verified: another tool's hook still runs, and
+`--remove` leaves it intact), silent when clean, and never exits non-zero since
+the commit already happened. Uses the hub's absolute path because in embedded
+topology the git root is the *product* repo, not the hub.
+
+## Phase 5 — registry convergence ✅ BUILT (first half)
 
 **Settled: the `.claude-plugin` manifest is the Extension registry's declaration
 layer, not a second system.** A plugin manifest declaring skills + agents + MCP
@@ -349,15 +377,33 @@ tools is most of what [`extensibility.md`](extensibility.md) says an Extension
 must declare. Building them separately would mean maintaining two registries that
 describe the same capabilities.
 
+`gen:plugin-manifest` now derives `.claude-plugin/plugin.json` from what's on
+disk — 20 skills, 16 agents, and the MCP server, each with the description and
+`category`/`layer` taken from its own frontmatter. The declaration can't fall out
+of step with reality because it *is* reality, read back.
+
+The MCP server sits **in** that manifest rather than beside it. Skills, agents and
+tools are one capability set, and the Extension contract in
+[`extensibility.md`](extensibility.md) is a superset of the same shape.
+
+Missing classifiers are **reported, never invented** — a guessed category is worse
+than a visible gap, because `/synclair/ai-setup` renders it as fact. This repo (36
+capabilities) and the real ToolBelt clone (37) both come back fully classified.
+
 Consequences:
 
-- **Hold `synclair#23` (`bridge-agents.mjs`) rather than merging it.** Copying
-  ambient skills into `.claude/`, `.agents/`, and `.cursor/` and a plugin
-  manifest are competing answers to the same problem. The copies drift; the
-  manifest doesn't. The MCP server already removes the *data* half of what the
-  bridge was for.
-- Amend the extensibility RFC's open question on registry format before Phase 2's
-  registration hardens.
+- **Hold `synclair#23` (`bridge-agents.mjs`).** The MCP server removed the *data*
+  half of what the bridge was for; the manifest removes the *declaration* half.
+  Copies drift; a derived manifest can't.
+- **The Extension registry must extend this manifest, not sit beside it.** That
+  answers the extensibility RFC's open question on registry format.
+
+### Still to do here
+
+- Wire the manifest into the visibility layer (RFC Phase 1) so enable/disable
+  reads from one place.
+- The edit-time `PostToolUse` hook on `components/**`, now that ambient cost is
+  measurable.
 
 Edit-time enforcement (a `PostToolUse` hook on `components/**` injecting the
 registry entry and token rules) lands here too — narrowly scoped, after ambient
