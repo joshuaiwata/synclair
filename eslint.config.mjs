@@ -117,6 +117,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent worktrees are throwaway checkouts of OTHER branches that happen to
+    // live inside this one. Linting them means grading unrelated (often
+    // mid-refactor) code as if it were ours: every clone with a worktree failed
+    // `npm run lint` — and therefore `verify-ui` — on 4,039 errors, none of
+    // which were in real source. The gate everything else runs behind was
+    // effectively switched off.
+    ".claude/worktrees/**",
   ]),
 ]);
 

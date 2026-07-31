@@ -341,9 +341,32 @@ clone.
 - `pages.freshness` reported `unanchored` rather than inventing a verdict it
   couldn't support.
 
-**Still unproven:** the "regenerate and diff" acceptance test for `scan:pages`
-can't run there — that clone is host-mode, so the scanner (correctly) declines.
-It needs a clone whose pages map describes its *own* Next app.
+### The `scan:pages` acceptance test ✅ PASSED
+
+The plan's stated criterion was: *regenerate the artifact and diff against the
+agent-written version — facts must match or improve, only prose may differ.*
+Run against the agent-written self-mode map from
+`claude/pages-section-sitemap-a55d55` (26 routes):
+
+| | Result |
+|---|---|
+| Routes | 26 → 26 |
+| Entry files | **25/26 identical** |
+| Composed items | **123 → 123, exactly** |
+| Summaries | **25/26 preserved verbatim** |
+
+The two single-route differences are both the scanner being *right*:
+
+- The agent's map documented **`/synclair/how-it-works`, a route that no longer
+  exists** — the same phantom that produced a stale typecheck error at the start
+  of this work. The scanner dropped it, and its summary went with it, correctly.
+- The agent's map **missed `/r/[name]`**, a real API route. The scanner found it.
+
+So: facts matched or improved on every axis, prose survived wherever it still
+applied, and the drift the agent-written map had accumulated was corrected
+automatically. This is the clearest evidence in the plan that deriving the facts
+beats re-deriving them by hand — the failure mode isn't a wrong map, it's a map
+that quietly describes code that has since moved.
 
 **Acceptance per artifact:** regenerate it for platform-clairity with the new
 scanner and diff against the agent-written version. Facts must match or improve;
