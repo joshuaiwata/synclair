@@ -34,7 +34,6 @@ import path from "node:path"
 
 const ROOT = process.cwd()
 const MAP_PATH = path.join(ROOT, "data", "pages-map.json")
-const APP_DIR = path.join(ROOT, "app")
 
 const args = process.argv.slice(2)
 const check = args.includes("--check")
@@ -64,23 +63,46 @@ function readExisting() {
 const existing = readExisting()
 
 /**
- * Same boundary `resolve-page-items.mjs` draws, and for the same reason: this
- * enumerator understands the Next app router in THIS repo. A host repo uses its
- * own router (react-router, Next pages, Expo…) and is mapped by the page-mapper
- * agent reading host source. Running here would enumerate the hub's own routes
- * and overwrite the host's map, so we stop — loudly, touching nothing.
+ * WHOSE routes are these, and can we read that router?
+ *
+ * The guard used to refuse every host outright. That was too blunt: it refuses
+ * on TOPOLOGY when the real question is the ROUTER. A companion clone whose host
+ * is a Next app-router project — which this scanner understands exactly — was
+ * left with a map only an agent could refresh, so on a real clone 50 of 51
+ * routes sat stale with nothing able to fix them.
+ *
+ * So: scan whatever we can actually read, wherever it lives, and refuse only a
+ * router we don't understand (react-router, Expo, Next pages) — that genuinely
+ * needs the `page-mapper` agent reading host source.
  */
-if (typeof existing?.repo?.root === "string" && existing.repo.root) {
+const hostRoot = typeof existing?.repo?.root === "string" && existing.repo.root ? existing.repo.root : null
+const REPO_DIR = hostRoot ? path.resolve(ROOT, hostRoot) : ROOT
+const routerKind = existing?.routerKind ?? null
+
+// `src/app` or `app` — both are conventional Next app-router layouts.
+const APP_DIR = [path.join(REPO_DIR, "src", "app"), path.join(REPO_DIR, "app")].find((d) =>
+  existsSync(d)
+)
+
+if (hostRoot && routerKind && routerKind !== "next-app") {
   console.log(
-    `Pages scan: host mode (repo.root "${existing.repo.root}") — host routes are enumerated by `
-    + "the page-mapper agent against the host's own router, not this Next app-dir scanner. "
-    + "Skipping (no changes)."
+    `Pages scan: host router is "${routerKind}", which this scanner doesn't read — `
+    + "it understands the Next app router only. Refresh with the `pages-map` skill "
+    + "(the page-mapper reads the host's own router). Skipping (no changes)."
   )
   process.exit(0)
 }
 
-if (!existsSync(APP_DIR)) {
-  console.error("Pages scan: no app/ directory — nothing to enumerate.")
+if (hostRoot && !APP_DIR) {
+  console.log(
+    `Pages scan: no app/ or src/app in the host (${hostRoot}) — nothing this scanner `
+    + "can enumerate. Use the `pages-map` skill. Skipping (no changes)."
+  )
+  process.exit(0)
+}
+
+if (!APP_DIR) {
+  console.error("Pages scan: no app/ or src/app directory — nothing to enumerate.")
   process.exit(1)
 }
 
@@ -109,7 +131,7 @@ function walk(dir, segments = [], out = []) {
       walk(full, isGroup ? segments : [...segments, entry.name], out)
     } else if (PAGE_FILES.has(entry.name) || ROUTE_FILES.has(entry.name)) {
       out.push({
-        file: path.relative(ROOT, full),
+        file: path.relative(REPO_DIR, full),
         segments,
         api: ROUTE_FILES.has(entry.name),
       })
@@ -241,7 +263,7 @@ const next = {
   ...existing,
   repo: {
     name: existing.repo?.name ?? path.basename(ROOT),
-    root: null,
+    root: hostRoot,
     commit: commit(),
     digestedAt: new Date().toISOString(),
     ...(existing.repo?.previewBaseUrl ? { previewBaseUrl: existing.repo.previewBaseUrl } : {}),

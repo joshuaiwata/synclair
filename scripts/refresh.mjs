@@ -136,6 +136,22 @@ console.log(`\n  Not derivable — these need someone who knows the product:\n`)
 const pending = []
 
 if (hostMode) {
+  /**
+   * In host mode the scan can now READ the router (when it's Next app-router),
+   * but applying it is not a hook's call: on a real clone it would take a
+   * curated 51-route sitemap to 69 by adding API handlers. That's a content
+   * change to a reviewed artifact, so detect here and let a person apply it.
+   */
+  const drift = run("scan-pages.mjs", ["--check"])
+  if (!drift.ok) {
+    const added = /\+ (\d+) new/.exec(drift.out)?.[1]
+    const gone = /− (\d+) gone/.exec(drift.out)?.[1]
+    pending.push(
+      `pages map — the host's routes moved (${added ?? "?"} new, ${gone ?? 0} gone). `
+      + `Review and apply with \`npm run map:pages\`, then write summaries for anything new.`
+    )
+  }
+
   const stale = run("check-freshness.mjs", ["--json"])
   const parsed = (() => {
     try {
@@ -144,11 +160,13 @@ if (hostMode) {
       return null
     }
   })()
+  // Only if the route LIST is current — otherwise the drift line above already
+  // says it, and saying it twice (once wrongly) is worse than saying it once.
   const pagesEntry = parsed?.artifacts?.find((a) => a.artifact === "pages")
-  if (pagesEntry?.state === "stale") {
+  if (pagesEntry?.state === "stale" && drift.ok) {
     pending.push(
-      `pages map — ${pagesEntry.detail}. It describes the HOST's router, which no `
-      + `scanner here reads. Regenerate with the \`pages-map\` skill.`
+      `pages map — ${pagesEntry.detail}. The routes are right but their source `
+      + `moved; \`npm run map:pages\` re-anchors them, then re-check the summaries.`
     )
   }
 }
