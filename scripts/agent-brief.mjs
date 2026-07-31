@@ -43,6 +43,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { advanceCursor, changesSince, fingerprint } from "./lib/brief-cursor.mjs"
+import { emitJson } from "./lib/emit.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 
@@ -274,14 +275,12 @@ if (asJson) {
    * person seeing it, and marking news as read on their behalf means the next
    * human session opens with nothing.
    */
-  process.stdout.write(
-    JSON.stringify(
-      { hubRoot: HUB_ROOT, clean: signals.length === 0 && feed.events.length === 0, signals, feed },
-      null,
-      2
-    ) + "\n"
-  )
-  process.exit(0)
+  emitJson({
+    hubRoot: HUB_ROOT,
+    clean: signals.length === 0 && feed.events.length === 0,
+    signals,
+    feed,
+  })
 }
 
 /**

@@ -27,6 +27,7 @@ import {
   matchContracts,
   orphanConfidence,
 } from "./lib/contracts.mjs"
+import { emitJson } from "./lib/emit.mjs"
 import { resolveTarget } from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
@@ -117,8 +118,8 @@ if (write) {
 }
 
 if (asJson) {
-  console.log(JSON.stringify(report, null, 2))
-  process.exit(0)
+  // Flush before exiting: this payload is far larger than a pipe buffer.
+  emitJson(report)
 }
 
 if (roots.length === 0) {

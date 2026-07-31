@@ -24,6 +24,7 @@ import { execFileSync } from "node:child_process"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { emitJson } from "./lib/emit.mjs"
 import { buildGraph, impactOf } from "./lib/edges.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
@@ -79,21 +80,19 @@ const result = impactOf(graph, changed)
 const label = (k) => graph.itemLabels.get(k) ?? k
 
 if (asJson) {
-  console.log(
-    JSON.stringify(
-      {
-        hostRoot: graph.hostRoot,
-        changed,
-        graph: graph.counts,
-        ...result,
-        items: result.items.map((k) => ({ key: k, name: label(k) })),
-        docs: result.docs.map((k) => ({ key: k, name: label(k) })),
-      },
-      null,
-      2
-    )
+  // Flush before exiting: a populated clone's payload exceeds the pipe buffer,
+  // and `process.exit()` would cut it mid-JSON.
+  emitJson(
+    {
+      hostRoot: graph.hostRoot,
+      changed,
+      graph: graph.counts,
+      ...result,
+      items: result.items.map((k) => ({ key: k, name: label(k) })),
+      docs: result.docs.map((k) => ({ key: k, name: label(k) })),
+    },
+    strict && (result.pages.length || result.docs.length) ? 1 : 0
   )
-  process.exit(strict && (result.pages.length || result.docs.length) ? 1 : 0)
 }
 
 if (changed.length === 0) {
