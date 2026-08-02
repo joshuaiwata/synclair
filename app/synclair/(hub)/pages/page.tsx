@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Map as MapIcon, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { ProvenanceChip } from "@/components/library/provenance-chip"
 import { Card } from "@/components/ui/card"
 import {
   Empty,
@@ -128,6 +129,8 @@ export default async function PagesOverview({
       <Badge variant="outline" className="text-2xs text-muted-foreground">
         {repo!.root === null ? "this repo" : "host repo"}
       </Badge>
+      {/* Derived by a scanner, or written by hand and never recorded. */}
+      <ProvenanceChip provenance={map.provenance} />
     </>
   )
   const lead = (

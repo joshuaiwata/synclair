@@ -1,9 +1,7 @@
 # Foundation integrity — plan
 
-**Status: all eight mechanisms BUILT and validated against two real hosts.**
-M1 is its first half (cascade into `check:freshness` still to wire), M2 its data
-half (the hub's pages don't read confidence yet), M6 its derivation (the
-`/synclair` views don't read `contracts.json` yet). The watcher-vs-embedded question is
+**Status: all eight mechanisms BUILT, wired into the UI, and validated against
+two real hosts.** The only thing left is adoption, not code — see *What remains*. The watcher-vs-embedded question is
 settled in [`setup-modes.md`](setup-modes.md): embedded is the recommendation,
 watcher is deprecated but supported.
 Third in the series:
@@ -184,7 +182,7 @@ this plan in miniature.
 
 Three foundations, then five things they unlock.
 
-## M1 — One dependency graph ✅ BUILT (first half) *foundation*
+## M1 — One dependency graph ✅ BUILT *foundation*
 
 **The problem.** Six checks each answer "has *my* artifact drifted." None answers
 "what else did that change invalidate." Yet the edges already exist and are
@@ -243,7 +241,7 @@ consumed by two unmapped frontends must never read as "affects no screens".
 Still to do here: feeding cascade into `check:freshness` so staleness travels the
 graph, and into the PR gate's comment.
 
-## M2 — Confidence, made visible ◐ data half BUILT *foundation*
+## M2 — Confidence, made visible ✅ BUILT *foundation*
 
 **The problem.** `provenance.ts` defines `generator` and `confidence`. Three
 scanners set them. **Nothing in the UI reads them.** Phase 1 built the vocabulary,
@@ -373,7 +371,7 @@ confidence. Dismissals leave a tombstone so a rescan never re-proposes them.
 - A confirmed ruling is never walked back to proposed by a later scan.
 - Edit-time notice fires at most once per session per ruling.
 
-## M6 — The seam ✅ BUILT (derivation; views remain)
+## M6 — The seam ✅ BUILT
 
 *The one genuinely new artifact, and the most self-maintaining thing we'd own.*
 
@@ -500,7 +498,7 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M7** Local sources ✅ | **yes** | nothing; better with M1, M3 |
 | **M6** Seam | **yes** | reuses `scan-system` |
 | **M2** Confidence | **yes** | fields already exist; better with M3 |
-| **M1** Graph ✅ (first half) | yes | nothing |
+| **M1** Graph ✅ | yes | nothing |
 | **M3** Anchors ✅ | yes | — |
 | **M5** Rulings ✅ | no | M1 (governance), M3 (evidence), M4 (delivery) |
 | **M8** Rollup ✅ | no | M1–M3 |
@@ -607,10 +605,17 @@ live endpoint.
 
 ## What remains
 
-- **M2's UI half** — the data is there and `npm run status` reads it; the hub's
-  pages still render derived facts and eight-month-old prose identically.
-- **M6's views** — `data/contracts.json` exists and is honest; `/synclair/system`
-  and `/synclair/pages` don't read it yet.
+Nothing in the foundation. What is left is **adoption in product repos**:
+
+- **Rulings have no input.** The reference monorepo has zero `RULING:` markers
+  and zero ADRs. M5 works and reaches an agent at edit time, but only once a team
+  writes decisions where they apply. Seeding the ones already in project memory
+  is the highest-value follow-up.
+- **Digests carry no anchors yet.** `check:anchors` verifies claims, and every
+  existing digest is `unanchored` until someone cites a passage. `--update`
+  records the hashes once the citations exist.
+- **`scan:contracts` must be run and committed per clone** for the seam views to
+  populate; they render exactly as before without it.
 
 ---
 
@@ -685,3 +690,32 @@ grepping independently, because "scanner returns nothing" has been wrong twice
 already in this plan. M5's value is entirely gated on adoption; the seeding path
 (turning the rulings that already live in project memory into in-repo markers) is
 the follow-up that makes it worth anything.
+
+---
+
+## The UI halves, as built
+
+**M1's cascade.** `check:freshness` now walks stale sources one hop through the
+edge graph. Two things had to be fixed for it to mean anything. The checks
+returned *counts*, not the files that drifted, so the walk traversed nothing —
+the same blind-scanner failure that reported 75 endpoints unused. And the pages
+map already cascades **by construction** (each route hashes its whole source
+closure), so reporting "the pages map drifted, which reaches 50 screens" was a
+tautology. What the graph actually adds is **causation**, and that is what it now
+says: *"50 of the stale routes drifted because 7 cataloged components changed."*
+
+**M2's chip.** `/synclair/system` and `/synclair/pages` show where their facts
+came from — `scan:pages · medium` for a derived map, **`unrecorded`** for one
+written before the field existed. Not "authored": claiming a provenance we cannot
+support is the exact failure the chip exists to fix. Confidence is quiet at
+`high`, because a badge on every healthy page is wallpaper.
+
+**M6's views.** The API table gains a *Called by* column, and each route's page
+gains a *Calls N endpoints* section. The withheld-claim rule survives into the
+UI: when the scan refused to assert unused endpoints, the cell reads a muted
+**"not seen"** rather than "no caller found" — the emphatic version is what gets
+a live endpoint deleted.
+
+That work surfaced something nobody could see before: the authored `api[]` list
+documents **25 of 80** endpoints found in the source. A list of 25 reads as *the*
+API, not a quarter of it, so the page now says which it is.
