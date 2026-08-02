@@ -27,6 +27,9 @@ import { HubPage } from "@/components/hub-page"
 import { StatGrid } from "@/components/stat-grid"
 import { DataModelDiagram } from "@/components/library/data-model-diagram"
 import { formatDay } from "@/lib/system/format-date"
+import { callersByEndpoint, getContracts, mayAssertUnused } from "@/lib/system/contracts"
+import { EndpointCallers } from "@/components/library/endpoint-callers"
+import { ProvenanceChip } from "@/components/library/provenance-chip"
 import { Network, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { AgentAsk } from "@/components/agent-ask"
@@ -52,6 +55,13 @@ export const dynamic = "force-dynamic"
  */
 export default async function SystemMapPage() {
   const map = await getSystemMap()
+  /**
+   * The seam, if it has been derived. Absent is absent — a clone that never ran
+   * `scan:contracts` renders exactly as before rather than showing every
+   * endpoint as uncalled.
+   */
+  const contracts = await getContracts()
+  const callers = callersByEndpoint(contracts)
 
   if (map.unreadable) {
     return (
@@ -214,7 +224,32 @@ export default async function SystemMapPage() {
     </div>
   )
 
+  /**
+   * How much of the real API surface this authored list actually documents.
+   *
+   * `api[]` is a DIGEST — someone chose the endpoints worth writing down. On a
+   * real clone that turned out to be 25 of 80, which nobody could have known
+   * from the page: a list of 25 reads as "the API", not "a quarter of it". The
+   * derived scan knows the true count, so say it rather than let a sample pass
+   * for a census.
+   */
+  const derivedTotal = contracts?.providers?.length ?? 0
+  const apiCoverage =
+    derivedTotal > api.length ? (
+      <p className="mb-3 text-xs text-muted-foreground">
+        This list documents{" "}
+        <span className="text-foreground">{api.length}</span> of{" "}
+        <span className="text-foreground">{derivedTotal}</span> endpoints found in the
+        source — a digest, not the whole surface.{" "}
+        <span className="text-muted-foreground/70">
+          Regenerate the full inventory with <code>npm run scan:system</code>.
+        </span>
+      </p>
+    ) : null
+
   const apiTab = (
+    <>
+    {apiCoverage}
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table>
         <TableHeader>
@@ -222,6 +257,7 @@ export default async function SystemMapPage() {
             <TableHead className="w-28">Method</TableHead>
             <TableHead className="w-72">Path</TableHead>
             <TableHead>Does</TableHead>
+            {contracts && <TableHead className="w-40">Called by</TableHead>}
             <TableHead className="w-64">Source</TableHead>
           </TableRow>
         </TableHeader>
@@ -240,6 +276,14 @@ export default async function SystemMapPage() {
               <TableCell className="text-xs whitespace-normal text-muted-foreground">
                 {e.summary ?? ""}
               </TableCell>
+              {contracts && (
+                <TableCell className="text-xs text-muted-foreground">
+                  <EndpointCallers
+                    links={callers.get(`${e.method.toUpperCase()} ${e.path}`) ?? []}
+                    mayAssertUnused={mayAssertUnused(contracts)}
+                  />
+                </TableCell>
+              )}
               <TableCell className="font-mono text-2xs text-muted-foreground/80">
                 {e.source ?? ""}
               </TableCell>
@@ -248,6 +292,7 @@ export default async function SystemMapPage() {
         </TableBody>
       </Table>
     </div>
+    </>
   )
 
   const dataTab = (
@@ -450,6 +495,8 @@ export default async function SystemMapPage() {
           <Badge variant="outline" className="text-2xs text-muted-foreground">
             {repo!.root === null ? "this repo" : "host repo"}
           </Badge>
+          {/* How this page's facts got here — derived, or nobody recorded. */}
+          <ProvenanceChip provenance={map.provenance} />
         </>
       }
       lead={

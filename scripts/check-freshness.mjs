@@ -31,6 +31,10 @@
 import { createHash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+import { buildGraph, impactOf } from "./lib/edges.mjs"
+import { resolveTarget } from "./lib/topology.mjs"
 
 const ROOT = process.cwd()
 const args = process.argv.slice(2)
@@ -69,6 +73,16 @@ function hashSources(files, baseDir) {
 
 const baseDirFor = (repoRoot) => (repoRoot ? path.join(ROOT, repoRoot) : ROOT)
 
+/**
+ * An artifact records paths against its own base; the edge graph is keyed on the
+ * PRODUCT repo. Normalise once here rather than letting each caller guess — a
+ * wrong base yields an empty cascade that looks exactly like a clean one.
+ */
+const HUB = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HOST = resolveTarget(HUB).hostRoot ?? HUB
+const toProductRel = (rel, repoRoot) =>
+  path.relative(HOST, path.resolve(ROOT, repoRoot ?? ".", rel)).split(path.sep).join("/")
+
 function stateOf(anchor, repoRoot) {
   if (!anchor?.sourceHash || !anchor.sourceFiles?.length) return "unanchored"
   const current = hashSources(anchor.sourceFiles, baseDirFor(repoRoot))
@@ -92,11 +106,21 @@ function checkPages() {
   )
   const stale = states.filter((s) => s === "stale").length
   const fresh = states.filter((s) => s === "fresh").length
+  /**
+   * The files that actually drifted, product-repo-relative — the cascade needs
+   * PATHS, not a count. Returning only "3 stale" made the one-hop walk silently
+   * traverse nothing, which is the same blind-scanner failure that reported 75
+   * endpoints as unused elsewhere in this plan.
+   */
+  const staleSources = nodes
+    .filter((_, i) => states[i] === "stale")
+    .flatMap((n) => (n.sourceFiles ?? []).map((f) => toProductRel(f, map.repo?.root)))
   return {
     artifact: "pages",
     state: stale ? "stale" : fresh ? "fresh" : "unanchored",
     detail: `${nodes.length} route(s) — ${fresh} fresh, ${stale} stale, ${states.length - fresh - stale} unanchored`,
     stale,
+    sourceFiles: staleSources,
     ...(stale ? { fix: "npm run map:pages" } : {}),
   }
 }
@@ -114,6 +138,12 @@ function checkCatalog() {
   let fresh = 0
   let stale = 0
   let unanchored = 0
+  /**
+   * The component files that drifted. This is the cascade that earns its keep:
+   * a changed component reaches the screens that render it and the docs that
+   * describe it — things nobody would otherwise think to re-check.
+   */
+  const staleSources = []
   for (const it of cat.items) {
     const base = hostRoot(it.surface)
     const abs = base && it.hostPath ? path.join(base, it.hostPath) : null
@@ -123,13 +153,17 @@ function checkCatalog() {
     }
     const h = createHash("sha256").update(readFileSync(abs)).digest("hex")
     if (h === it.sourceHash) fresh++
-    else stale++
+    else {
+      stale++
+      staleSources.push(path.relative(HOST, abs).split(path.sep).join("/"))
+    }
   }
   return {
     artifact: "host-catalog",
     state: stale ? "stale" : fresh ? "fresh" : "unanchored",
     detail: `${cat.items.length} entr(ies) — ${fresh} fresh, ${stale} stale, ${unanchored} unanchored`,
     stale,
+    sourceFiles: staleSources,
     ...(stale ? { fix: "re-run the component-cataloger on the drifted entries" } : {}),
   }
 }
@@ -164,10 +198,79 @@ report.push(
   checkProvenanced("data/host-hygiene.json", "hygiene", "no scan on record", "npm run scan:hygiene")
 )
 
+// ----------------------------------------------------------------- cascade
+/**
+ * Staleness that TRAVELS.
+ *
+ * Every check above asks whether its own artifact drifted. None asks what a
+ * drift invalidated elsewhere — yet a stale pages map means the docs and specs
+ * covering those routes are suspect too, and nobody thinks to look.
+ *
+ * So: take the source files the stale artifacts recorded, and walk them one hop
+ * through the edge graph. One hop, deliberately — a transitive walk reaches most
+ * of an app in three, and a report that names everything names nothing.
+ *
+ * ADVISORY. Cascade findings never change the exit code: they are a pointer, and
+ * an artifact that drifted only because a neighbour did has not itself failed.
+ */
+function cascade() {
+  const staleArtifacts = report.filter((r) => r.state === "stale")
+  const staleSources = staleArtifacts.flatMap((r) => r.sourceFiles ?? [])
+  if (staleSources.length === 0) return null
+  try {
+    const graph = buildGraph(HUB)
+    const hit = impactOf(graph, staleSources)
+    /**
+     * Suppress the category the stale artifact IS. "The pages map drifted, which
+     * reaches 50 screens" is a tautology dressed as a finding, and a report whose
+     * first line restates its own input teaches people to skip the rest. What is
+     * worth saying is what the drift reaches BEYOND itself.
+     */
+    const names = new Set(staleArtifacts.map((r) => r.artifact))
+
+    /**
+     * The pages map already cascades BY CONSTRUCTION — each route hashes its
+     * whole source closure, so a changed component makes its routes stale
+     * without any graph. Restating that as a finding would be a tautology.
+     *
+     * What the graph adds is CAUSATION: which routes went stale *because of*
+     * which components. Two independent numbers become one sentence a reviewer
+     * can act on.
+     */
+    const catalog = report.find((r) => r.artifact === "host-catalog" && r.state === "stale")
+    const explained =
+      catalog?.sourceFiles?.length && names.has("pages")
+        ? impactOf(graph, catalog.sourceFiles).pages
+        : []
+
+    const out = {
+      pages: names.has("pages") ? [] : hit.pages,
+      docs: hit.docs,
+      knowledge: hit.knowledge,
+      explainedPages: explained,
+      explainedBy: explained.length ? catalog.sourceFiles.length : 0,
+    }
+    const total =
+      out.pages.length + out.docs.length + out.knowledge.length + out.explainedPages.length
+    return total > 0 ? out : null
+  } catch {
+    // A clone with no edges cascades to nothing. Not an error.
+    return null
+  }
+}
+
+const downstream = cascade()
+
 // ------------------------------------------------------------------- output
 
 if (asJson) {
-  console.log(JSON.stringify({ checkedAt: new Date().toISOString(), artifacts: report }, null, 2))
+  console.log(
+    JSON.stringify(
+      { checkedAt: new Date().toISOString(), artifacts: report, downstream },
+      null,
+      2
+    )
+  )
 } else {
   const MARK = { fresh: "fresh     ", stale: "STALE     ", unanchored: "unanchored", absent: "not built " }
   console.log("\nFreshness — is what the hub shows still true?\n")
@@ -182,6 +285,19 @@ if (asJson) {
         + `\n  — check:host is what reports actual breakage.`
       : "\n  Nothing stale."
   )
+  if (downstream) {
+    console.log(`\n  What that drift reaches (one hop):`)
+    if (downstream.explainedPages.length) {
+      console.log(
+        `    ${downstream.explainedPages.length} of the stale route(s) drifted because`
+        + ` ${downstream.explainedBy} cataloged component(s) changed`
+      )
+    }
+    if (downstream.pages.length) console.log(`    ${downstream.pages.length} screen(s)`)
+    if (downstream.docs.length) console.log(`    ${downstream.docs.length} UX doc(s)`)
+    if (downstream.knowledge.length) console.log(`    ${downstream.knowledge.length} spec(s)`)
+    console.log(`    → npm run impact  lists them`)
+  }
   console.log(
     "\n  'unanchored' and 'not built' are not failures: a fresh clone has generated"
     + "\n  nothing, and a host repo may not be checked out here.\n"

@@ -22,6 +22,8 @@ import { isMultiSurface, surfaceLabel } from "@/lib/system/surfaces"
 import { itemHref, tier as tierMeta } from "@/lib/system/tiers"
 import type { ComponentKind } from "@/lib/system/components"
 import { getPageSourceSync, getPagesMap, type PageItemUse } from "@/lib/system/pages-map"
+import { endpointsForFiles, getContracts } from "@/lib/system/contracts"
+import { toProductRelative } from "@/lib/system/paths"
 import { hostDevServer, liveBaseUrlFor, resolvePreviewSrc } from "@/lib/system/dev-servers"
 
 const TIER_ORDER: ComponentKind[] = ["component", "block", "template"]
@@ -54,6 +56,21 @@ export async function PageDocView({ id }: { id: string }) {
   ])
   const previewSrc = resolvePreviewSrc(node, liveBaseUrl)
   const hostDown = Boolean(hostServer && !liveBaseUrl)
+
+  /**
+   * What this screen TALKS TO. `pages-map` knows what a route composes;
+   * `contracts.json` knows which endpoints its files call. Joining them here is
+   * the only place either question gets a full answer — and it is the reason
+   * "change this endpoint, what breaks?" becomes answerable at all.
+   *
+   * Absent contracts render nothing: a clone that never ran the scan looks
+   * exactly as it did before, rather than claiming this screen calls no API.
+   */
+  const contracts = await getContracts()
+  const endpoints = endpointsForFiles(
+    contracts,
+    (node.sourceFiles ?? []).map((f) => toProductRelative(f, map.repo?.root))
+  )
 
   // Library items the page composes (grouped by tier) vs. local components it
   // uses that aren't in the library yet (a coverage signal, shown apart).
@@ -203,6 +220,40 @@ export async function PageDocView({ id }: { id: string }) {
                 </span>
               )
             })}
+          </div>
+        </section>
+      )}
+
+      {/* The API seam: what this screen calls. Only rendered when derived. */}
+      {contracts && endpoints.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Calls{" "}
+            <span className="text-muted-foreground font-normal tabular-nums">
+              {endpoints.length}
+            </span>
+            <span className="text-muted-foreground/70 ml-1 text-xs font-normal">
+              endpoint{endpoints.length === 1 ? "" : "s"}
+            </span>
+          </h2>
+          <div className="flex flex-col gap-1.5">
+            {endpoints.map((e) => (
+              <div
+                key={`${e.method} ${e.path}`}
+                className="flex items-center gap-2 rounded border bg-card px-3 py-1.5"
+              >
+                <Badge variant="secondary" className="text-3xs font-mono">
+                  {e.method}
+                </Badge>
+                <span className="font-mono text-xs">{e.path}</span>
+                <span className="text-muted-foreground/70 ml-auto text-2xs">
+                  {e.providerApp}
+                  {/* A cross-service call can break on someone else's deploy;
+                      an intra-app one cannot. Worth one glyph. */}
+                  {e.scope === "cross-app" && <span title="Crosses a service boundary"> ↗</span>}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       )}

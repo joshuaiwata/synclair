@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
-import { getSyncState, hashSources, type SyncState } from "./provenance"
+import type { Provenance } from "./provenance"
+
+import { getSyncState, hashSources, toProvenance, type SyncState } from "./provenance"
 import type { MapSurface } from "./system-map"
 
 /**
@@ -120,6 +122,12 @@ export interface PagesMap {
   routerSources?: string[]
   /** Markdown, multi-surface projects: how the frontends divide. */
   surfacesNote?: string
+  /**
+   * How this map got here (`provenance.ts`) — written by `scan:pages`, absent on
+   * maps authored before the field existed. Optional so an older map resolves to
+   * "unrecorded" rather than to a confident claim we can't support.
+   */
+  provenance?: Provenance
   pages: PageNode[]
   /** Set when the data file exists but couldn't be parsed — the page says so instead of a lying empty state. */
   unreadable?: boolean
@@ -244,6 +252,10 @@ export async function getPagesMap(): Promise<PagesMap> {
       routerKind: str(parsed.routerKind),
       routerSources: strList(parsed.routerSources),
       surfacesNote: str(parsed.surfacesNote),
+      // Normalised through the shared resolver so an older map without the field
+      // yields undefined — which the chip renders as "unrecorded", not as a
+      // claim about how these facts got here.
+      provenance: toProvenance(parsed.provenance),
       pages: entries<PageNode>(parsed.pages, normPage),
     }
   } catch (e) {
