@@ -23,7 +23,7 @@ const FRESHNESS_PATH = path.join(process.cwd(), "data", "knowledge", "freshness.
 const REDISTILL_QUEUE_PATH = path.join(process.cwd(), "data", "knowledge", "redistill-queue.json")
 
 /** Which host the source's last-modified was (or would be) probed from. */
-export type FreshnessHost = "github" | "figma" | "drive" | "notion" | "unknown"
+export type FreshnessHost = "local" | "github" | "figma" | "drive" | "notion" | "unknown"
 
 export type FreshnessState =
   /** Linked but never distilled — there's a digest to write, not one to refresh. */
@@ -51,6 +51,32 @@ export interface SourceFreshness {
   sourceModifiedAt: string | null
   /** Human note — why unverifiable/unreachable, or which signal was used. */
   detail: string | null
+  /**
+   * Repo-relative path, for a source that is a FILE in the product repo
+   * (declared via `path`, or inferred from a blob URL naming this repo).
+   * Absent on every source written before local probing existed.
+   */
+  localPath?: string | null
+  /**
+   * WHICH headings moved since the digest was written — the difference between
+   * "re-read the spec" and "apply this addendum". Only local sources can answer
+   * this. Null whenever the comparison couldn't be made honestly.
+   */
+  sections?: SectionDrift | null
+}
+
+/** Section-level drift for a local source, from git history. */
+export interface SectionDrift {
+  /** Headings whose body changed. */
+  changed: string[]
+  /** Headings that did not exist at distill time. */
+  added: string[]
+  /** Headings present at distill time and now gone. */
+  removed: string[]
+  /** How many headings are byte-identical (after whitespace normalisation). */
+  unchanged: number
+  /** Short sha of the commit the comparison ran against. */
+  since?: string
 }
 
 export interface FreshnessReport {
@@ -74,10 +100,27 @@ export interface RedistillRequest {
 export function classifyFreshness(
   distilledAt: string | null | undefined,
   sourceModifiedAt: string | null | undefined,
-  probe: { verifiable: boolean; unreachable?: boolean } = { verifiable: true }
+  probe: {
+    verifiable: boolean
+    unreachable?: boolean
+    /** Section drift, when the source is a local file we could compare. */
+    sections?: SectionDrift | null
+  } = { verifiable: true }
 ): FreshnessState {
   if (!distilledAt) return "never"
   if (probe.unreachable) return "unreachable"
+  /**
+   * A local source is judged on CONTENT, not the clock: a document touched by an
+   * unrelated commit, or reformatted, has moved its timestamp without moving
+   * anything a digest could describe. Only when no comparison was possible do we
+   * fall back to the date rule. Lockstep with `classify()` in
+   * scripts/check-knowledge.mjs.
+   */
+  if (probe.sections) {
+    const moved =
+      probe.sections.changed.length + probe.sections.added.length + probe.sections.removed.length
+    return moved > 0 ? "stale" : "fresh"
+  }
   if (!probe.verifiable || !sourceModifiedAt) return "unverifiable"
   return new Date(sourceModifiedAt).getTime() > new Date(distilledAt).getTime()
     ? "stale"

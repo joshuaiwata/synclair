@@ -77,6 +77,47 @@ would name the same clone two different things depending on which sync you meant
 repo or beside it — so the modes are named for that. The sync tradeoffs are a
 *consequence* of the topology, documented here, not the label.
 
+## Recommendation: embed. Watcher is a fallback, not a default.
+
+**Decided 2026-07-31, on evidence.** Every Synclair clone in existence is
+`embedded` — `platform-product`, `toolbelt-frontend`, `roadmap-app` — after
+months and several intakes (papermark, messaging, toolbelt-intake-test,
+platform). **Not one watcher clone was ever kept.** The mode documented as "the
+default for existing projects" has never been the thing anyone actually ran.
+
+That is not an accident, and the reasons compound:
+
+- **Watcher can't commit its own wiring.** A path that crosses a repo boundary
+  differs per machine, so `.mcp.json` and the session-start hook must be written
+  absolute and gitignored. Every developer re-runs setup by hand; in embedded
+  they arrive on clone. The one thing a foundation should do — show up already
+  working — is the thing watcher structurally cannot do.
+- **It doubles the path bases in every new mechanism.** The edge graph's whole
+  difficulty (M1) is that artifacts record paths against different roots, and
+  the local-source probe (M7) has to resolve a host root before it can read a
+  file. Each is a place where a wrong base yields an *empty* answer that reads
+  like a clean one.
+- **Skills don't travel.** The ambient bridge that gives agents Synclair's
+  know-how while they work in the product only exists in embedded.
+- **The comparison case agrees.** repowise, the closest analogue, writes its
+  index into the repo it indexes and reaches multi-repo through *workspaces* —
+  a parent directory of embedded indexes, not a detached observer.
+
+**What watcher still buys, and it is real:** documenting a repo you cannot or
+should not commit into — an open-source project you're evaluating, another
+team's monorepo, a client repo under restricted access. That case exists, so the
+mode stays.
+
+**So: `embedded` is the recommendation for every new setup, including existing
+projects** (via `co-locate-synclair`). Reach for `watcher` only when writing to
+the host repo is genuinely not an option, and expect per-machine setup.
+
+**Watcher is deprecated, not removed.** Deleting it would break any clone in the
+wild that this machine cannot see, which is exactly the failure the prime
+directive forbids. Deprecating is reversible; deleting is not. New mechanisms
+must keep working in watcher, but they are designed for embedded and may degrade
+to `unanchored` there rather than growing a second code path.
+
 ## The marker
 
 `data/setup.json` — the durable, agent-readable record. Schema and readers live

@@ -38,6 +38,21 @@ export interface KnowledgeSource {
   surfaces?: string[]
   /** Canonical link (Drive/Figma/deck URL). Omit for repo-local digests. */
   url?: string
+  /**
+   * A raw spec that lives IN the product repo — path relative to the product
+   * repo root (`.prds/Billing_PRD.md`, `docs/specs/auth.md`).
+   *
+   * The "link, don't copy" rule is about not pasting a 40-page doc into the
+   * repo as a digest. A team that authors its specs in git has not broken it —
+   * the file IS the canonical source. Declaring it here makes it the one source
+   * we can verify perfectly: no token, no network, no rate limit, correct
+   * offline, and precise enough to say WHICH SECTIONS moved since the digest
+   * was written rather than just that something did.
+   *
+   * Optional and inferred when absent: a `url` pointing at a blob in this repo
+   * resolves to the same thing, so existing entries need no edit.
+   */
+  path?: string
   /** Stable key for connector fetches — Figma file key, Drive doc id, etc. */
   ref?: string
   /** The distilled skill / digest that compresses this source, if one exists. */

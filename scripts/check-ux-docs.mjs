@@ -30,6 +30,7 @@ const args = process.argv.slice(2);
 const update = args.includes("--update");
 const queue = args.includes("--queue");
 const strict = args.includes("--strict");
+const asJson = args.includes("--json");
 const namedTargets = args.filter((a) => !a.startsWith("--"));
 
 const registry = JSON.parse(readFileSync(path.join(root, "registry.json"), "utf8"));
@@ -45,6 +46,17 @@ const anchorKey = (item) =>
   nameCounts.get(item.name) > 1 && item.meta?.surface
     ? `${item.meta.surface}:${item.name}`
     : item.name;
+
+/**
+ * Which LAYER an item belongs to (`meta.layer`, same vocabulary as skills and
+ * agents): "foundation" ships with Synclair and syncs from upstream; anything
+ * else is the project's own. Reported in --json so a consumer can scope by it —
+ * a product team's session should not be interrupted by drift in the hub's own
+ * skin, which they neither own nor can fix. Default "project": an item that
+ * declares no layer is the project's, matching the router's stated default.
+ */
+const layerOf = (item) => item.meta?.layer ?? "project";
+const layers = new Map((registry.items ?? []).map((i) => [anchorKey(i), layerOf(i)]));
 
 function hashSourceFiles(files) {
   const hash = createHash("sha256");
@@ -119,6 +131,30 @@ if (update) {
   );
   const scope = namedTargets.length ? namedTargets.join(", ") : "all items";
   console.log(`UX docs anchored: ${scope} → data/ux-docs/anchors.json`);
+  process.exit(0);
+}
+
+/**
+ * Machine-readable, for callers that need the counts rather than the prose —
+ * `agent-brief` injects them at session start. Additive: the flag is opt-in and
+ * the human output below is untouched. Same three states the text uses, so a
+ * reader can't be told two different stories by the two modes.
+ */
+if (asJson) {
+  console.log(
+    JSON.stringify(
+      {
+        items: [
+          ...stale.map((name) => ({ name, state: "stale", layer: layers.get(name) ?? "project" })),
+          ...unanchored.map((name) => ({ name, state: "unanchored", layer: layers.get(name) ?? "project" })),
+          ...fresh.map((name) => ({ name, state: "fresh", layer: layers.get(name) ?? "project" })),
+        ],
+        counts: { stale: stale.length, unanchored: unanchored.length, fresh: fresh.length },
+      },
+      null,
+      2
+    )
+  );
   process.exit(0);
 }
 

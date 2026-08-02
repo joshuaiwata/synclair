@@ -36,8 +36,27 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import {
+  changedSections,
+  discoverDocs,
+  localPathFor,
+  originSlugs,
+  probeLocal,
+} from "./lib/local-source.mjs";
+import { resolveTarget } from "./lib/topology.mjs";
 
 const root = process.cwd();
+
+/**
+ * A local source lives in the PRODUCT repo, which in embedded topology is this
+ * clone's parent and in watcher topology a sibling. Resolve it the same way
+ * every other host-facing script does rather than assuming `root`.
+ */
+const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const hostRepoRoot = resolveTarget(HUB_ROOT).hostRoot ?? HUB_ROOT;
+const originRepoSlug = originSlugs(hostRepoRoot);
 const SOURCES_TS = path.join(root, "lib", "system", "knowledge", "sources.ts");
 const FRESHNESS_PATH = path.join(root, "data", "knowledge", "freshness.json");
 const REDISTILL_QUEUE_PATH = path.join(root, "data", "knowledge", "redistill-queue.json");
@@ -46,6 +65,7 @@ const args = process.argv.slice(2);
 const asJson = args.includes("--json");
 const doQueue = args.includes("--queue");
 const strict = args.includes("--strict");
+const doDiscover = args.includes("--discover");
 
 if (args.includes("--help") || args.includes("-h")) {
   console.log(
@@ -176,6 +196,23 @@ async function probeGitHub(url) {
 
 /** Probe one source → a probe result. */
 async function probe(source) {
+  /**
+   * A source that resolves to a file in the product repo is probed LOCALLY, and
+   * that takes precedence over its remote host. It is faster, it needs no token,
+   * it is correct offline, and it is the only probe that can say WHICH SECTIONS
+   * moved rather than just "something did".
+   */
+  const rel = localPathFor(source, hostRepoRoot, originRepoSlug);
+  if (rel) {
+    const p = probeLocal(hostRepoRoot, rel);
+    return {
+      host: "local",
+      ...p,
+      localPath: rel,
+      sections: p.unreachable ? null : changedSections(hostRepoRoot, rel, source.distilledAt),
+    };
+  }
+
   const host = inferHost(source);
   switch (host) {
     case "github":
@@ -208,6 +245,18 @@ async function probe(source) {
 function classify(source, p) {
   if (!source.distilledInto || !source.distilledAt) return "never";
   if (p.unreachable) return "unreachable";
+  /**
+   * A local source is judged on CONTENT, not on the clock. When we can compare
+   * the file against its state at distill time, a document that was reformatted,
+   * relicensed, or touched by an unrelated commit is `fresh` — because nothing a
+   * digest could describe actually changed. Only the timestamp path (no git
+   * history to compare against) falls back to the date rule below.
+   */
+  if (p.sections) {
+    const moved =
+      p.sections.changed.length + p.sections.added.length + p.sections.removed.length;
+    return moved > 0 ? "stale" : "fresh";
+  }
   if (!p.verifiable || !p.modifiedAt) return "unverifiable";
   return new Date(p.modifiedAt).getTime() > new Date(source.distilledAt).getTime()
     ? "stale"
@@ -217,9 +266,20 @@ function classify(source, p) {
 // ── run ───────────────────────────────────────────────────────────────────────
 const sources = await loadSources();
 
-// Only sources that link OUT are in scope — an `access: "repo"` digest has no
-// upstream to fall behind, and a source with neither url nor ref can't be probed.
-const scoped = sources.filter((s) => s.access !== "repo" && (s.url || s.ref));
+/**
+ * In scope: anything we can actually ask a question of.
+ *
+ * Sources that link OUT, as before — plus any source that resolves to a FILE in
+ * the product repo. The original filter excluded `access: "repo"` on the
+ * reasoning that an in-repo entry has no upstream. True of a digest; false of a
+ * raw spec committed in the repo, whose upstream is the file, and which is the
+ * one source we can verify with no token, no network and no rate limit.
+ *
+ * A source with neither a local path nor a url/ref still can't be probed.
+ */
+const scoped = sources.filter(
+  (s) => localPathFor(s, hostRepoRoot, originRepoSlug) || (s.access !== "repo" && (s.url || s.ref))
+);
 
 const results = [];
 for (const s of scoped) {
@@ -237,10 +297,34 @@ for (const s of scoped) {
     distilledAt: s.distilledAt ?? null,
     sourceModifiedAt: p.modifiedAt ?? null,
     detail: p.detail ?? null,
+    /**
+     * Local-only fields, OMITTED rather than written as null.
+     *
+     * Writing `localPath: null, sections: null` on every remote source would add
+     * two lines per entry to a committed cache in every clone — 70-odd lines of
+     * diff carrying no information, on clones that have no local sources at all.
+     * Absent means "not applicable", which is the same discipline as
+     * `unanchored`: say nothing rather than say nothing loudly.
+     */
+    ...(p.localPath ? { localPath: p.localPath } : {}),
+    ...(p.sections ? { sections: p.sections } : {}),
   });
 }
 
+/**
+ * Documents in the repo that no manifest entry accounts for. Off by default:
+ * it is a different question from freshness, and a check that silently grew a
+ * second job would surprise anyone who scripted the first one.
+ */
+const undocumented = doDiscover
+  ? discoverDocs(
+      hostRepoRoot,
+      sources.map((s) => localPathFor(s, hostRepoRoot, originRepoSlug)).filter(Boolean)
+    )
+  : [];
+
 const report = { checkedAt: new Date().toISOString(), sources: results };
+if (doDiscover) report.undocumented = undocumented;
 
 mkdirSync(path.dirname(FRESHNESS_PATH), { recursive: true });
 writeFileSync(FRESHNESS_PATH, JSON.stringify(report, null, 2) + "\n");
@@ -262,7 +346,18 @@ if (doQueue && staleOnes.length) {
     queue.requests.push({
       sourceId: r.id,
       title: r.title,
-      reason: `upstream modified ${r.sourceModifiedAt} > distilled ${r.distilledAt}`,
+      /**
+       * A local source enqueues the SECTIONS that moved, so whoever drains the
+       * queue re-reads two headings instead of the whole document. That is the
+       * entire difference between an addendum and an intake.
+       */
+      reason: r.sections
+        ? `sections moved since ${r.distilledAt}: ${[
+            ...r.sections.changed.map((h) => `changed “${h}”`),
+            ...r.sections.added.map((h) => `added “${h}”`),
+            ...r.sections.removed.map((h) => `removed “${h}”`),
+          ].join("; ")} (${r.sections.unchanged} untouched, vs ${r.sections.since ?? "?"})`
+        : `upstream modified ${r.sourceModifiedAt} > distilled ${r.distilledAt}`,
       requestedAt: now,
     });
   }
@@ -296,12 +391,45 @@ if (asJson) {
       );
       if (r.state === "unverifiable" || r.state === "unreachable")
         console.log(`      ${r.detail}`);
+      /**
+       * The point of a local source: say WHICH sections moved. "The billing PRD
+       * changed" is a re-read; "§Pricing and §Refunds changed, 51 sections did
+       * not" is an addendum. Capped so a wholesale rewrite doesn't print a wall.
+       */
+      if (r.state === "stale" && r.sections) {
+        const { changed, added, removed, unchanged } = r.sections;
+        const show = (label, arr) =>
+          arr.length ? `${label} ${arr.slice(0, 6).map((h) => `“${h}”`).join(", ")}${arr.length > 6 ? ` +${arr.length - 6} more` : ""}` : null;
+        const bits = [show("changed", changed), show("added", added), show("removed", removed)].filter(Boolean);
+        console.log(`      ${bits.join(" · ")}  (${unchanged} section(s) untouched)`);
+        if (r.localPath) console.log(`      ${r.localPath}`);
+      }
     }
     const stale = byState("stale").length;
     const parts = ["fresh", "stale", "never", "unverifiable", "unreachable"]
       .map((st) => `${byState(st).length} ${st}`)
       .join(" · ");
     console.log(`\n${parts}`);
+
+    if (doDiscover) {
+      if (undocumented.length === 0) {
+        console.log(`\nDiscovery: every document found in the repo is already in the manifest.`);
+      } else {
+        console.log(
+          `\nDiscovery — ${undocumented.length} document(s) in the repo that the manifest doesn't mention:`
+        );
+        for (const d of undocumented) {
+          console.log(
+            `  + ${d.path}  [${d.kind}, ${d.sections} section(s)${d.modifiedAt ? `, updated ${d.modifiedAt.slice(0, 10)}` : ""}]`
+          );
+          console.log(`      title: ${d.title}`);
+        }
+        console.log(
+          `\n  Add the ones that are sources of record to lib/system/knowledge/sources.ts`
+          + `\n  with \`path\` set as above; leave \`area\` to whoever knows the product.`
+        );
+      }
+    }
     if (stale) {
       console.log(
         doQueue

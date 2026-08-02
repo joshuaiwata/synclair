@@ -1,6 +1,8 @@
 # Synclair's agent interface — plan and status
 
-**Status: phases 0–2 BUILT (inert), 3–5 planned.** Companion to
+**Status: phases 0–5 BUILT (inert); Phase 5's second half and the edit-time hook
+outstanding.** Successor plan:
+[`foundation-integrity.md`](foundation-integrity.md). Companion to
 [`extensibility.md`](extensibility.md). Where that RFC draws the Core/Extension
 line, this one covers how Synclair's knowledge reaches **agents** — and how we
 prove each change helps instead of assuming it.
