@@ -1,7 +1,9 @@
 # Foundation integrity — plan
 
-**Status: M1 (first half), M2 (data half), M3, M4, M6, M7, M8 ✅ BUILT and
-validated against two real hosts; M5 remains.** The watcher-vs-embedded question is
+**Status: all eight mechanisms BUILT and validated against two real hosts.**
+M1 is its first half (cascade into `check:freshness` still to wire), M2 its data
+half (the hub's pages don't read confidence yet), M6 its derivation (the
+`/synclair` views don't read `contracts.json` yet). The watcher-vs-embedded question is
 settled in [`setup-modes.md`](setup-modes.md): embedded is the recommendation,
 watcher is deprecated but supported.
 Third in the series:
@@ -343,7 +345,7 @@ Topology resolution moved to `scripts/lib/topology.mjs`, shared with
 `mcp-install` — extracted at the second copy, as `host-walk.mjs` was, and
 verified byte-identical against a captured baseline.
 
-## M5 — The rulings layer ⬜
+## M5 — The rulings layer ✅ BUILT
 
 **The problem.** The decisions that most need to survive — *this surface stays
 isolated pending design review*, *work off `staging`*, *controls never share the
@@ -500,7 +502,7 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M2** Confidence | **yes** | fields already exist; better with M3 |
 | **M1** Graph ✅ (first half) | yes | nothing |
 | **M3** Anchors ✅ | yes | — |
-| **M5** Rulings | no | M1 (governance), M3 (evidence), M4 (delivery) |
+| **M5** Rulings ✅ | no | M1 (governance), M3 (evidence), M4 (delivery) |
 | **M8** Rollup ✅ | no | M1–M3 |
 
 **Recommended order: M4 → M7 → M1 → M2 → M3 → M6 → M5 → M8.** The first two are
@@ -605,7 +607,6 @@ live endpoint.
 
 ## What remains
 
-- **M5 (rulings)** — not started. Depends on M3 for evidence and M4 for delivery.
 - **M2's UI half** — the data is there and `npm run status` reads it; the hub's
   pages still render derived facts and eight-month-old prose identically.
 - **M6's views** — `data/contracts.json` exists and is honest; `/synclair/system`
@@ -654,3 +655,33 @@ stays `fuzzy`.
 ungrounded field outright — right for a machine-read index, wrong for a hub a
 human reads, where a claim that quietly vanishes is less recoverable than one
 labelled "we can no longer confirm this".
+
+---
+
+## M5 as built
+
+`scripts/lib/rulings.mjs` + `npm run check:rulings`, 23 hermetic checks, and the
+delivery path wired into `agent-brief`.
+
+Capture is deliberately two sources — an explicit `RULING:` / `DECISION:` / `WHY:`
+comment, or an ADR-style document — both things a human wrote down on purpose.
+No git archaeology, no PR mining, and no transcript mining. What we took from the
+audit is everything *after* capture: governance links, state, and delivery.
+
+**The delivery moment is the whole point.** Proven end-to-end: a ruling written
+in `primitives.tsx` — *"this surface stays isolated pending design review"* —
+reaches the next session that edits that file, quoted in full rather than as a
+pointer to a register nobody opens mid-task.
+
+**One deliberate divergence.** The audited staleness score grows with commit
+count and file age, which answers "has this area been busy" as a proxy for "is
+this rule wrong". A rule nobody has broken must not fade out for living in a
+popular file, so a ruling stays `current` until its subject is deleted or a human
+retires it.
+
+**Honest finding: the mechanism has no input yet.** Scanning the reference
+monorepo found **zero** markers and zero ADRs — verified as a true zero by
+grepping independently, because "scanner returns nothing" has been wrong twice
+already in this plan. M5's value is entirely gated on adoption; the seeding path
+(turning the rulings that already live in project memory into in-repo markers) is
+the follow-up that makes it worth anything.

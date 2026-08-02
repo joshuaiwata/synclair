@@ -44,6 +44,7 @@ import { fileURLToPath } from "node:url"
 
 import { advanceCursor, changesSince, fingerprint } from "./lib/brief-cursor.mjs"
 import { emitJson } from "./lib/emit.mjs"
+import { rulingsFor } from "./lib/rulings.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 
@@ -241,7 +242,35 @@ function workInProgress() {
   }
 }
 
-for (const fn of [workInProgress, artifactStaleness, knowledgeStaleness, uxDebt]) {
+/**
+ * Rulings governing whatever is being edited right now.
+ *
+ * This is the moment that matters. A standing decision recalled during review is
+ * an explanation; the same decision surfaced before the code is written is a
+ * different outcome. Reads the persisted register only — the scan itself walks
+ * the repo and is far too slow for a session start.
+ */
+function governingRulings() {
+  const register = readJson("data/rulings.json")
+  const list = Array.isArray(register?.rulings) ? register.rulings : []
+  if (list.length === 0) return null
+  const impact = runJson("impact.mjs")
+  const changed = Array.isArray(impact?.changed) ? impact.changed : []
+  if (changed.length === 0) return null
+  const hits = rulingsFor(list, changed).filter((r) => r.state !== "gone")
+  if (hits.length === 0) return null
+  // One line, quoting the ruling itself — a pointer to "see the register" is a
+  // step nobody takes mid-task.
+  const first = hits[0].statement
+  const more = hits.length > 1 ? ` (+${hits.length - 1} more)` : ""
+  return {
+    key: "rulings",
+    line: `A ruling governs what you're editing: “${first}”${more}`,
+    count: hits.length,
+  }
+}
+
+for (const fn of [governingRulings, workInProgress, artifactStaleness, knowledgeStaleness, uxDebt]) {
   try {
     const s = fn()
     if (s) signals.push(s)
