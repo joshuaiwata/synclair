@@ -1,7 +1,7 @@
 # Foundation integrity — plan
 
-**Status: M1 (first half), M2 (data half), M4, M6, M7, M8 ✅ BUILT and validated
-against two real hosts; M3 and M5 remain.** The watcher-vs-embedded question is
+**Status: M1 (first half), M2 (data half), M3, M4, M6, M7, M8 ✅ BUILT and
+validated against two real hosts; M5 remains.** The watcher-vs-embedded question is
 settled in [`setup-modes.md`](setup-modes.md): embedded is the recommendation,
 watcher is deprecated but supported.
 Third in the series:
@@ -265,7 +265,7 @@ ungrounded fields — reporting fits a hub a human reads.
 - Confidence is recomputed from disk, never read from a stored flag someone forgot to update.
 - One visual treatment across every section; reviewed against `doc-quality`.
 
-## M3 — Anchors and grounding ⬜ *foundation*
+## M3 — Anchors and grounding ✅ BUILT *foundation*
 
 **The problem.** Freshness answers *"did the file move?"* Nothing answers *"is
 this sentence still supported?"* Any authored artifact — digests, UX docs, System
@@ -499,7 +499,7 @@ than replacing it — the numbers become derived, the interpretation stays autho
 | **M6** Seam | **yes** | reuses `scan-system` |
 | **M2** Confidence | **yes** | fields already exist; better with M3 |
 | **M1** Graph ✅ (first half) | yes | nothing |
-| **M3** Anchors | yes | — |
+| **M3** Anchors ✅ | yes | — |
 | **M5** Rulings | no | M1 (governance), M3 (evidence), M4 (delivery) |
 | **M8** Rollup ✅ | no | M1–M3 |
 
@@ -605,11 +605,52 @@ live endpoint.
 
 ## What remains
 
-- **M3 (anchors and grounding)** — not started. The largest remaining correctness
-  win: nothing yet verifies that a digest's *claims* still hold, only that its
-  file hasn't moved.
 - **M5 (rulings)** — not started. Depends on M3 for evidence and M4 for delivery.
 - **M2's UI half** — the data is there and `npm run status` reads it; the hub's
   pages still render derived facts and eight-month-old prose identically.
 - **M6's views** — `data/contracts.json` exists and is honest; `/synclair/system`
   and `/synclair/pages` don't read it yet.
+
+---
+
+## M3 as built
+
+`scripts/lib/anchors.mjs` + `npm run check:anchors`, with 30 hermetic checks in
+`check:anchors-selftest` (part of `verify-ui`).
+
+A digest may cite the passages it was written from, in its frontmatter:
+
+```yaml
+anchors:
+  - source: .prds/Billing_PRD.md
+    section: Pricing
+    quote: 'Seats are billed monthly in arrears'
+```
+
+`--update` records the hash; verification re-reads the source and returns
+`exact` / `fuzzy` / `unverified`. No model, no network, no git.
+
+**The quote is what makes this a grounding gate.** A hash only says the passage
+changed; it cannot say whether what the claim *rested on* survived. Proven
+end-to-end: a real PRD section was reversed to "this area was removed from the
+product entirely" and the claim flipped to `unverified`, while a pure reword
+stays `fuzzy`.
+
+**Two defects, both caught by testing:**
+
+1. **Jaccard was the wrong measure.** A one-line quote inside a ten-line section
+   scored 0.40 even with every word present, purely because the section says
+   more — so a plain rewording read as a reversal. It is now *containment*: what
+   fraction of the quote's words are still there. The limit is stated in the code
+   — this measures **presence, not meaning**, so `fuzzy` means "a human should
+   glance", never "this is fine".
+2. **`reanchor` ate a newline**, fusing the inserted hash onto the next line
+   (`hash: <sha>quote: '...'`). That parsed as a hash with no quote and silently
+   *downgraded a verified claim to unverified*. The self-test had missed it by
+   counting `hash:` occurrences instead of re-parsing; it now re-parses and
+   re-verifies.
+
+`unverified` is reported, never deleted. The audited implementation clears an
+ungrounded field outright — right for a machine-read index, wrong for a hub a
+human reads, where a claim that quietly vanishes is less recoverable than one
+labelled "we can no longer confirm this".
