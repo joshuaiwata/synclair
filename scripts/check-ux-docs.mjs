@@ -163,10 +163,34 @@ if (stale.length === 0 && unanchored.length === 0) {
   process.exit(0);
 }
 
-if (stale.length > 0) {
+/**
+ * Split by LAYER before reporting.
+ *
+ * Foundation-layer items are the hub's own skin: they ship with Synclair and
+ * sync from upstream, so a product team can neither own nor fix their docs. A
+ * fresh clone was opening with five anonymous ✗ lines that a new user could not
+ * act on and had no way to understand — the worst possible first impression from
+ * a tool whose whole pitch is honesty about what it knows.
+ *
+ * Nothing is hidden. The foundation's own drift is still listed, and still
+ * counted; it is just labelled as belonging to upstream so a reader knows
+ * instantly whether it is theirs.
+ */
+const isFoundation = (n) => (layers.get(n) ?? "project") === "foundation";
+const staleProject = stale.filter((n) => !isFoundation(n));
+const staleFoundation = stale.filter(isFoundation);
+
+if (staleProject.length > 0) {
   console.log(`UX docs stale — source changed since the docs were anchored:`);
-  for (const n of stale)
+  for (const n of staleProject)
     console.log(`  ✗ ${n} — review its .docs.tsx (ux-doc skill), then: npm run check:ux-docs -- --update ${n}`);
+}
+if (staleFoundation.length > 0) {
+  console.log(
+    `${staleProject.length ? "\n" : ""}Foundation items with stale docs (${staleFoundation.length}) — these ship with Synclair;`
+  );
+  console.log(`upstream re-affirms them, a product clone does not need to:`);
+  for (const n of staleFoundation) console.log(`  · ${n}`);
 }
 if (unanchored.length > 0) {
   console.log(`UX docs unanchored — never anchored to their source:`);

@@ -37,6 +37,16 @@ const doc: ComponentDoc = {
   ],
   states: [
     {
+      name: "Preview failed",
+      description:
+        "A live host preview that throws is contained to its own card by PreviewBoundary — the card shows the failure, the rest of the gallery keeps rendering. A broken scene must never take the page down with it.",
+      preview: live(
+        <div className="bg-card text-muted-foreground rounded-md border border-dashed p-4 text-xs">
+          Preview unavailable — this component threw while rendering.
+        </div>
+      ),
+    },
+    {
       name: "Empty tier",
       description: "No items registered in this tier — an educating empty state, not an error.",
       preview: live(
