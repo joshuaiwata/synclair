@@ -3,7 +3,7 @@ import type { ContractsReport } from "@/lib/system/contracts"
 import { mayAssertUnused } from "@/lib/system/contracts"
 
 /**
- * THE SEAM — the derived join between screens and the API.
+ * CONTRACTS — the derived join between callers and the endpoints they call.
  *
  * This needs its own tab rather than being folded into the API list, and the
  * reason is a real number: the authored `api[]` on a live clone documents 25
@@ -16,7 +16,7 @@ import { mayAssertUnused } from "@/lib/system/contracts"
  * reproduces it exactly. That is also why it can be blunt about what it does not
  * know — the diagnostics are part of the answer, not an appendix.
  */
-export function SeamView({ contracts }: { contracts: ContractsReport }) {
+export function ContractsView({ contracts }: { contracts: ContractsReport }) {
   const { providers = [], links = [], diagnostics } = contracts
 
   // Grouped by service pair: "which app depends on which" is the question a
@@ -55,7 +55,7 @@ export function SeamView({ contracts }: { contracts: ContractsReport }) {
       <div className="flex flex-wrap gap-2">
         <Stat label="Endpoints found" value={providers.length} />
         <Stat label="Calls linked" value={links.length} />
-        <Stat label="Service seams" value={pairs.size} />
+        <Stat label="Service pairs" value={pairs.size} />
       </div>
 
       {pairs.size > 0 && (

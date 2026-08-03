@@ -30,7 +30,7 @@ import { formatDay } from "@/lib/system/format-date"
 import { callersByEndpoint, getContracts, mayAssertUnused } from "@/lib/system/contracts"
 import { EndpointCallers } from "@/components/library/endpoint-callers"
 import { ProvenanceChip } from "@/components/library/provenance-chip"
-import { SeamView } from "@/components/library/seam-view"
+import { ContractsView } from "@/components/library/contracts-view"
 import { Network, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { AgentAsk } from "@/components/agent-ask"
@@ -453,16 +453,18 @@ export default async function SystemMapPage() {
       node: apiTab,
     },
     /**
-     * The derived seam gets its OWN tab, not a column on the authored list.
+     * The derived contract map gets its OWN tab, not a column on the authored
+     * list. "Contracts" is what the artifact, the command and the domain all
+     * call it — "seam" was internal planning vocabulary that leaked into the UI.
      * On a real clone the authored digest holds 25 endpoints and the scan finds
      * 80 — folding one into the other left 24 rows reading "not seen" and hid
      * every link we had actually found.
      */
     contracts && {
-      value: "seam",
-      label: "Seam",
+      value: "contracts",
+      label: "Contracts",
       count: contracts.providers?.length ?? 0,
-      node: <SeamView contracts={contracts} />,
+      node: <ContractsView contracts={contracts} />,
     },
     data.length > 0 && {
       value: "data",
