@@ -90,9 +90,21 @@ function keyOf(name: string): string {
   return name.split(/[\s/,]+/)[0] ?? name
 }
 
-/** Strip an ORM type's optional/list decoration: `Message?` / `Tag[]` -> `Message`. */
-function bareType(type: string | undefined): string {
-  return String(type ?? "").replace(/[?[\]]/g, "").trim()
+/**
+ * The entity a field REFERENCES, or "" when it does not reference one.
+ *
+ * A LIST type is deliberately excluded. In an ORM `associations: Thing[]` is the
+ * BACK-relation of `Thing.thingId` — the foreign key lives on the other record,
+ * not this one. Counting it as a reference gives every relation an edge in both
+ * directions, which turns each pair into a cycle, defeats the layering (the cycle
+ * guard flattens them to the top row), and points half the crow's feet at the
+ * wrong end. The visible symptom is child tables floating unconnected above their
+ * parent — which is how this was found.
+ */
+function referencedEntity(type: string | undefined): string {
+  const raw = String(type ?? "").trim()
+  if (raw.endsWith("[]")) return ""
+  return raw.replace(/[?[\]]/g, "").trim()
 }
 
 function isKeyField(f: { name: string; note?: string }): boolean {
@@ -233,8 +245,9 @@ function buildDiagram(entities: DataEntity[]): DiagramSvg | null {
           if (!refFields[i].has(target)) refFields[i].set(target, f.name)
         }
       }
-      // (b) the field's TYPE is another entity — an ORM relation field
-      const t = bareType(f.type)
+      // (b) the field's TYPE is another entity — an ORM relation field. Lists
+      //     are back-relations and excluded; see referencedEntity().
+      const t = referencedEntity(f.type)
       if (t && keySet.has(t) && t !== self) {
         outgoing[i].add(t)
         if (!refFields[i].has(t)) refFields[i].set(t, f.name)
