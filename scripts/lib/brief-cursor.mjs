@@ -118,7 +118,22 @@ export function changesSince(hubRoot, current) {
 
   const newRoutes = added(before.routes, current.routes)
   const goneRoutes = removed(before.routes, current.routes)
-  say("pages", newRoutes.length, `${newRoutes.length} new route(s): ${newRoutes.slice(0, 4).join(", ")}${newRoutes.length > 4 ? "…" : ""}`)
+  /**
+   * Page routes first, API routes as a count.
+   *
+   * In a real build the feed announced "21 new routes" — twenty backlog
+   * /api/messaging/* handlers entering the map at once, with the one screen a
+   * human actually built buried in the ellipsis. A screen is something a
+   * developer can open and react to; an API handler batch is bookkeeping. Lead
+   * with the routes a person would click, and let the handler count ride along.
+   */
+  const newPages = newRoutes.filter((r) => !r.startsWith("/api/"))
+  const newApi = newRoutes.length - newPages.length
+  const routeLine =
+    newPages.length > 0
+      ? `${newPages.length} new route(s): ${newPages.slice(0, 4).join(", ")}${newPages.length > 4 ? "…" : ""}${newApi ? ` (+${newApi} API handler(s))` : ""}`
+      : `${newApi} new API handler(s)`
+  say("pages", newRoutes.length, routeLine)
   say("pages", goneRoutes.length, `${goneRoutes.length} route(s) gone: ${goneRoutes.slice(0, 4).join(", ")}${goneRoutes.length > 4 ? "…" : ""}`)
 
   /**
