@@ -184,8 +184,28 @@ for (const host of hosts) {
           .map((h) => path.resolve(root, h.root))
       : [hostRootAbs]
   ).filter((abs) => existsSync(abs));
+  /**
+   * WHOSE web-ness matters.
+   *
+   * A shared package has no platform of its own — `@tb/ui` is not a surface, so
+   * `surfacePlatforms.get("shared")` is undefined and the naive check said "not
+   * web", skipped the corpus, and then read the resulting null as zero. Every
+   * shared component came back "not yet adopted by any surface", including a
+   * Button used in 19 files across two apps. That is the precise fiction this
+   * check exists to prevent, pointed at itself.
+   *
+   * Adoption of a shared library is measured across its CONSUMERS, so it is
+   * their platform that decides whether a JSX scan makes sense.
+   */
+  const corpusIsWeb = isShared
+    ? hosts.some((h) => {
+        const sfc = h.surface ?? fallbackSurface;
+        return sfc !== "shared" && !standaloneSurfaces.has(sfc) && isWebSurface(sfc);
+      })
+    : isWebSurface(host.surface ?? fallbackSurface);
+
   const webCorpus = [];
-  if (isWebSurface(host.surface ?? fallbackSurface)) {
+  if (corpusIsWeb) {
     for (const rootAbs of usageRoots) {
       for (const rel of walkAll(rootAbs)) {
         const abs = path.join(rootAbs, rel);
