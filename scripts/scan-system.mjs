@@ -261,7 +261,15 @@ if (asJson) {
   process.exit(0)
 }
 
-console.log(`\nSystem inventory — ${target ?? "this repo"}`)
+/**
+ * Name the repo, not the path that reaches it. `repo.root` is a relative hop
+ * (`..` for an embedded clone), and printing it raw produced the heading
+ * "System inventory — ..", which tells a reader nothing about what was scanned.
+ */
+const scannedLabel = target
+  ? (existing?.repo?.name ?? path.basename(REPO) ?? target)
+  : "this repo"
+console.log(`\nSystem inventory — ${scannedLabel}`)
 console.log(
   `  ${derived.areas.length} areas · ${derived.api.length} endpoints · `
   + `${derived.data.length} models · ${derived.integrations.length} integrations`
