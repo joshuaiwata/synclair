@@ -30,6 +30,7 @@
     "check:anchors": "node scripts/check-anchors.mjs",
     "check:rulings": "node scripts/check-rulings.mjs",
     "check:rulings-selftest": "node scripts/check-rulings-selftest.mjs",
+    "check:augment": "node scripts/check-augment.mjs",
     "check:anchors-selftest": "node scripts/check-anchors-selftest.mjs",
     "check:edges": "node scripts/check-edges.mjs",
     "check:brief-feed": "node scripts/check-brief-feed.mjs",
@@ -56,7 +57,7 @@
     "mcp:install": "node scripts/mcp-install.mjs",
     "bridge:agents": "node scripts/bridge-agents.mjs",
     "check:agent-bridge": "node scripts/bridge-agents.mjs --check",
-    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:rulings-selftest && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host",
+    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:rulings-selftest && npm run check:augment && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host",
     "postinstall": "patch-package"
   },
   "dependencies": {
