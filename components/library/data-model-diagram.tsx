@@ -46,7 +46,7 @@ import {
   type NodeProps,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import type { DataEntity } from "@/lib/system/system-map"
 
@@ -133,6 +133,12 @@ function TableNode({ data }: NodeProps<Node<TableNodeData>>) {
 const nodeTypes = { table: TableNode }
 
 export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
+  /**
+   * EVERY source gets an entry, including those that produce no graph. A
+   * database whose tables hold no foreign keys to each other is a real and
+   * interesting thing to find; dropping it silently reads as missing data, and
+   * the reader has no way to tell "nothing to draw" from "we failed to draw it".
+   */
   const groups = useMemo(() => {
     const g = new Map<string, DataEntity[]>()
     for (const e of entities) {
@@ -142,33 +148,92 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
     }
     return [...g.entries()]
       .map(([source, group]) => ({ source, group, graph: buildGraph(group) }))
-      .filter((d) => d.graph !== null)
       .sort((a, b) => b.group.length - a.group.length || a.source.localeCompare(b.source))
   }, [entities])
 
+  const [selected, setSelected] = useState(0)
+
   if (groups.length === 0) return null
-  const [first, ...rest] = groups
+  const active = groups[Math.min(selected, groups.length - 1)]
 
   return (
     <div className="flex flex-col gap-3">
-      <Canvas source={first.source} count={first.group.length} graph={first.graph!} />
-      {rest.map((d) => (
-        <details key={d.source} className="bg-card rounded-lg border">
-          <summary className="text-2xs text-muted-foreground hover:text-foreground cursor-pointer px-4 py-3">
-            <span className="font-mono">{shortSource(d.source)}</span>
-            <span className="text-muted-foreground/70"> · {d.group.length} entities</span>
-          </summary>
-          <div className="px-4 pb-4">
-            <Canvas source={d.source} count={d.group.length} graph={d.graph!} bare />
-          </div>
-        </details>
-      ))}
+      {/*
+        A PICKER, not stacked disclosures. These databases are peers — one being
+        larger is not a reason to present it as the subject and the others as
+        footnotes, which is exactly what "biggest open, rest collapsed" said.
+        One at a time, equal weight, and the counts make the shape of the whole
+        visible without opening anything.
+      */}
+      {groups.length > 1 && (
+        <div role="tablist" aria-label="Database" className="flex flex-wrap gap-1">
+          {groups.map((d, i) => {
+            const on = i === (selected < groups.length ? selected : 0)
+            return (
+              <button
+                key={d.source}
+                role="tab"
+                aria-selected={on}
+                type="button"
+                onClick={() => setSelected(i)}
+                className={[
+                  "text-2xs rounded-md border px-2.5 py-1.5 font-mono transition-colors",
+                  on
+                    ? "border-border bg-muted text-foreground"
+                    : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                ].join(" ")}
+              >
+                {shortSource(d.source)}
+                <span className="text-muted-foreground/60 ml-1.5">{d.group.length}</span>
+                {d.graph === null && (
+                  <span className="text-muted-foreground/50 ml-1.5" title="No foreign keys between these tables">
+                    ·
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {active.graph ? (
+        <Canvas source={active.source} count={active.group.length} graph={active.graph} />
+      ) : (
+        <Standalone source={active.source} count={active.group.length} />
+      )}
+
       {groups.length > 1 && (
         <p className="text-2xs text-muted-foreground/70">
-          One diagram per database: these schemas hold no foreign keys between
-          them, so they are separate graphs rather than one.
+          One diagram per database. These schemas hold no foreign keys between
+          them — cross-database ids are resolved in application code — so they
+          are separate graphs rather than one.
         </p>
       )}
+    </div>
+  )
+}
+
+/**
+ * A database whose tables reference nothing internally. Said out loud rather
+ * than rendered as an empty frame: the absence of a graph is the finding.
+ */
+function Standalone({ source, count }: { source: string; count: number }) {
+  return (
+    <div className="bg-card rounded-lg border p-4">
+      <div
+        className="border-border text-muted-foreground flex items-center justify-center rounded-md border border-dashed px-6 text-center"
+        style={{ height: CANVAS_H / 2 }}
+      >
+        <p className="text-2xs max-w-sm">
+          <span className="text-foreground font-mono">{shortSource(source)}</span>{" "}
+          holds {count} table{count === 1 ? "" : "s"} with{" "}
+          <span className="text-foreground font-medium">
+            no foreign keys between them
+          </span>
+          . There is no graph to draw — not a gap in the map. Each table stands
+          alone; their field detail is below.
+        </p>
+      </div>
     </div>
   )
 }
