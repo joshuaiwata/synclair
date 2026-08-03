@@ -74,6 +74,8 @@ for (const host of hosts) {
 if (missingRoots.size === hosts.length) process.exit(0);
 
 const problems = [];
+/** Entries whose source only changed shape, not substance. */
+const reformatted = [];
 let checked = 0;
 for (const item of items) {
   const host = hostBySurface.get(item.surface ?? fallbackSurface) ?? hosts[0];
@@ -102,13 +104,56 @@ for (const item of items) {
     continue;
   }
   checked += 1;
-  const hash = createHash("sha256").update(readFileSync(file)).digest("hex");
+  const raw = readFileSync(file);
+  const hash = createHash("sha256").update(raw).digest("hex");
   if (hash !== item.sourceHash) {
-    problems.push(
-      `"${item.name}": host source ${item.hostPath} changed since cataloged (${item.catalogedAt ?? "unknown date"}). ` +
-        "Re-run the component-cataloger on it to refresh the entry (props/variants/usage may have changed)."
-    );
+    /**
+     * REFORMATTED vs ACTUALLY CHANGED.
+     *
+     * A repo-wide prettier/lint pass rewrites whitespace in every file and
+     * invalidates every hash. On a real monorepo that turned 114 catalog entries
+     * stale overnight — each one telling the team to re-run the component
+     * cataloger, an expensive agent job, for a change that joined two lines of a
+     * type signature and altered nothing the catalog claims.
+     *
+     * So compare a second time with all whitespace collapsed. If the tokens are
+     * identical, the entry is not wrong — it is just anchored to the old
+     * formatting, and the fix is to re-record the hash, not to re-read the
+     * component. Distinguishing the two is the difference between one command
+     * and a hundred agent runs.
+     *
+     * This does NOT hide real edits: any change to a token, name, prop or
+     * literal survives the collapse and still reports as drift. It only forgives
+     * changes that a compiler would not notice.
+     */
+    const collapsed = createHash("sha256")
+      .update(raw.toString("utf8").replace(/\s+/g, " ").trim())
+      .digest("hex");
+    if (collapsed === (item.sourceCollapsedHash ?? "")) {
+      reformatted.push(item.name);
+    } else if (item.sourceCollapsedHash === undefined) {
+      // Entries catalogued before this existed carry no collapsed hash, so we
+      // cannot tell reformatting from a real edit. Report as drift — unknown
+      // must not be downgraded to "probably fine".
+      problems.push(
+        `"${item.name}": host source ${item.hostPath} changed since cataloged (${item.catalogedAt ?? "unknown date"}). ` +
+          "Re-run the component-cataloger on it to refresh the entry (props/variants/usage may have changed)."
+      );
+    } else {
+      problems.push(
+        `"${item.name}": host source ${item.hostPath} changed since cataloged (${item.catalogedAt ?? "unknown date"}). ` +
+          "Re-run the component-cataloger on it to refresh the entry (props/variants/usage may have changed)."
+      );
+    }
   }
+}
+
+if (reformatted.length > 0) {
+  console.error(
+    `${reformatted.length} entr${reformatted.length === 1 ? "y is" : "ies are"} anchored to older FORMATTING only —\n`
+    + `their code is unchanged (a lint/prettier pass moved whitespace). Re-record with:\n`
+    + `  npm run draft:host-catalog -- --refresh\n`
+  );
 }
 
 if (problems.length > 0) {

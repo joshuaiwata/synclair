@@ -77,6 +77,18 @@ if (hosts.length === 0) {
 
 const sha256 = (buf) => createHash("sha256").update(buf).digest("hex")
 
+/**
+ * A hash of the source with all whitespace collapsed — the "same tokens?" hash.
+ *
+ * Recorded alongside `sourceHash` so `check:host` can tell a lint/prettier pass
+ * (which invalidates every byte-hash in the repo) from a real edit. Without it a
+ * formatting sweep marks the whole catalog stale and asks for an agent re-run
+ * per entry; on a real monorepo that was 114 of them, for changes a compiler
+ * would not have noticed.
+ */
+const sha256Collapsed = (buf) =>
+  createHash("sha256").update(buf.toString("utf8").replace(/\s+/g, " ").trim()).digest("hex")
+
 /** PascalCase → kebab-case, the catalog's `name` convention. */
 const kebab = (s) =>
   s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase()
@@ -231,6 +243,7 @@ function refreshStale() {
     const props = deriveProps(src, exportName)
 
     it.sourceHash = hash
+    it.sourceCollapsedHash = sha256Collapsed(buf)
     it.catalogedAt = new Date().toISOString().slice(0, 10)
     it.basis = basis
     // Only replace props when we could actually read some — a component whose
@@ -307,6 +320,7 @@ for (const host of hosts) {
       name: kebab(primary),
       hostPath: norm(rel),
       sourceHash: sha256(raw),
+      sourceCollapsedHash: sha256Collapsed(raw),
       catalogedAt: new Date().toISOString().slice(0, 10),
       basis,
       props: deriveProps(src, primary),
