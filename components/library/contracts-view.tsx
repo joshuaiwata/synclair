@@ -1,4 +1,13 @@
 import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { StatGrid } from "@/components/stat-grid"
 import type { ContractsReport } from "@/lib/system/contracts"
 import { mayAssertUnused } from "@/lib/system/contracts"
 
@@ -52,35 +61,50 @@ export function ContractsView({ contracts }: { contracts: ContractsReport }) {
         it only notices what the source already says.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        <Stat label="Endpoints found" value={providers.length} />
-        <Stat label="Calls linked" value={links.length} />
-        <Stat label="Service pairs" value={pairs.size} />
-      </div>
+      {/* The shared spec-sheet panel, not a hand-rolled card row — same
+          treatment the Summary tab uses, so the page reads as one system. */}
+      <StatGrid
+        items={[
+          { label: "Endpoints found", value: providers.length },
+          { label: "Calls linked", value: links.length },
+          { label: "Service pairs", value: pairs.size },
+        ]}
+      />
 
       {pairs.size > 0 && (
         <section className="flex flex-col gap-2">
           <h3 className="text-sm font-semibold">Who calls whom</h3>
-          <div className="flex flex-col gap-1.5">
-            {[...pairs.entries()]
-              .sort((a, b) => b[1].n - a[1].n)
-              .map(([pair, { n, scope }]) => (
-                <div
-                  key={pair}
-                  className="bg-card flex items-center gap-2 rounded border px-3 py-1.5 text-xs"
-                >
-                  <span className="font-mono">{pair}</span>
-                  {scope === "cross-app" && (
-                    <span
-                      className="text-muted-foreground/60 text-2xs"
-                      title="Crosses a service boundary — can break on someone else's deploy"
-                    >
-                      ↗
-                    </span>
-                  )}
-                  <span className="text-muted-foreground ml-auto tabular-nums">{n} call(s)</span>
-                </div>
-              ))}
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Caller → provider</TableHead>
+                  <TableHead className="w-32 text-right">Calls</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...pairs.entries()]
+                  .sort((a, b) => b[1].n - a[1].n)
+                  .map(([pair, { n, scope }]) => (
+                    <TableRow key={pair}>
+                      <TableCell className="font-mono text-xs">
+                        {pair}
+                        {scope === "cross-app" && (
+                          <span
+                            className="text-muted-foreground/60 ml-1.5 text-2xs"
+                            title="Crosses a service boundary — can break on someone else's deploy"
+                          >
+                            ↗
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right text-xs tabular-nums">
+                        {n}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
           </div>
         </section>
       )}
@@ -92,21 +116,28 @@ export function ContractsView({ contracts }: { contracts: ContractsReport }) {
             ({providers.length}, vs the {"{"}authored{"}"} digest on the API tab)
           </span>
         </h3>
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border bg-card">
           <div className="max-h-[28rem] overflow-y-auto">
-            <table className="w-full text-xs">
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-28">Method</TableHead>
+                  <TableHead>Path</TableHead>
+                  <TableHead className="w-56 text-right">Called by</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {providers.map((p, i) => {
                   const callers = callersByPath.get(`${p.method} ${p.path}`)
                   return (
-                    <tr key={`${p.method}${p.path}${i}`} className="border-b last:border-0">
-                      <td className="w-20 px-3 py-1.5">
+                    <TableRow key={`${p.method}${p.path}${i}`}>
+                      <TableCell>
                         <Badge variant="secondary" className="text-3xs font-mono">
                           {p.method}
                         </Badge>
-                      </td>
-                      <td className="px-2 py-1.5 font-mono">{p.path}</td>
-                      <td className="text-muted-foreground px-2 py-1.5 text-right">
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{p.path}</TableCell>
+                      <TableCell className="text-muted-foreground text-right text-xs">
                         {callers ? (
                           [...callers].join(", ")
                         ) : mayAssertUnused(contracts) ? (
@@ -114,12 +145,12 @@ export function ContractsView({ contracts }: { contracts: ContractsReport }) {
                         ) : (
                           <span className="text-muted-foreground/50">not seen</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </section>
@@ -152,15 +183,6 @@ export function ContractsView({ contracts }: { contracts: ContractsReport }) {
           )}
         </ul>
       </section>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-card rounded-lg border px-4 py-2">
-      <div className="text-muted-foreground text-2xs tracking-wide uppercase">{label}</div>
-      <div className="text-lg tabular-nums">{value}</div>
     </div>
   )
 }
