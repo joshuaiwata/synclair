@@ -48,7 +48,17 @@ import {
 import "@xyflow/react/dist/style.css"
 import { useMemo, useState } from "react"
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { DataEntity } from "@/lib/system/system-map"
+
+/** Sentinel for the "no namespace filter" option — Select has no empty value. */
+const ALL = "__all__"
 
 /** Safety valve per diagram — a budget for pathological schemas, not a target. */
 const MAX_NODES = 60
@@ -190,65 +200,74 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
   return (
     <div className="flex flex-col gap-3">
       {/*
-        A PICKER, not stacked disclosures. These databases are peers — one being
-        larger is not a reason to present it as the subject and the others as
-        footnotes, which is exactly what "biggest open, rest collapsed" said.
-        One at a time, equal weight, and the counts make the shape of the whole
-        visible without opening anything.
+        Two selects, composing left to right — the same idiom the library
+        explorer uses for surface-then-tier. Selects rather than a row of chips
+        because these lists grow with the system: six databases and nine
+        namespaces already wrap, and a chip row that wraps to three lines has
+        stopped being a control and become a paragraph.
       */}
-      {groups.length > 1 && (
-        <div role="tablist" aria-label="Database" className="flex flex-wrap gap-1">
-          {groups.map((d, i) => {
-            const on = i === (selected < groups.length ? selected : 0)
-            return (
-              <button
-                key={d.source}
-                role="tab"
-                aria-selected={on}
-                type="button"
-                onClick={() => {
-                  setSelected(i)
+      {(groups.length > 1 || namespaces.length > 1) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {groups.length > 1 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-3xs text-muted-foreground/60 font-mono uppercase">
+                database
+              </span>
+              <Select
+                value={String(activeIndex)}
+                onValueChange={(v) => {
+                  setSelected(Number(v))
+                  // The namespaces of one database mean nothing in another.
                   setNs("")
                 }}
-                className={[
-                  "text-2xs rounded-md border px-2.5 py-1.5 font-mono transition-colors",
-                  on
-                    ? "border-border bg-muted text-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                ].join(" ")}
               >
-                {shortSource(d.source)}
-                <span className="text-muted-foreground/60 ml-1.5">{d.group.length}</span>
-                {d.graph === null && (
-                  <span className="text-muted-foreground/50 ml-1.5" title="No foreign keys between these tables">
-                    ·
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+                <SelectTrigger size="sm" className="bg-card w-52 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((d, i) => (
+                    <SelectItem key={d.source} value={String(i)} className="text-xs">
+                      <span className="font-mono">{shortSource(d.source)}</span>
+                      <span className="text-muted-foreground/60 ml-1.5">
+                        {d.group.length}
+                        {d.graph === null ? " · standalone" : ""}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          )}
 
-      {/*
-        Second level: the schema namespaces INSIDE the selected database. One
-        database is routinely carved into namespaces that are the real
-        subsystems, so the largest schema is not one 40-table graph but a handful
-        of readable ones. Only shown when the store actually declares them.
-      */}
-      {namespaces.length > 1 && (
-        <div role="tablist" aria-label="Schema namespace" className="flex flex-wrap items-center gap-1">
-          <span className="text-3xs text-muted-foreground/60 mr-1 font-mono uppercase">schema</span>
-          <NsButton label="all" count={base.group.length} on={ns === ""} onClick={() => setNs("")} />
-          {namespaces.map(([name, n]) => (
-            <NsButton
-              key={name}
-              label={name}
-              count={n}
-              on={ns === name}
-              onClick={() => setNs(name)}
-            />
-          ))}
+          {/*
+            Second level: schema namespaces INSIDE the selected database. Only
+            rendered when the store declares them, so a single-schema project
+            never sees a control with one option in it.
+          */}
+          {namespaces.length > 1 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-3xs text-muted-foreground/60 font-mono uppercase">
+                schema
+              </span>
+              <Select value={ns || ALL} onValueChange={(v) => setNs(v === ALL ? "" : v)}>
+                <SelectTrigger size="sm" className="bg-card w-48 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL} className="text-xs">
+                    <span className="font-mono">all schemas</span>
+                    <span className="text-muted-foreground/60 ml-1.5">{base.group.length}</span>
+                  </SelectItem>
+                  {namespaces.map(([name, n]) => (
+                    <SelectItem key={name} value={name} className="text-xs">
+                      <span className="font-mono">{name}</span>
+                      <span className="text-muted-foreground/60 ml-1.5">{n}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          )}
         </div>
       )}
 
@@ -271,36 +290,6 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
         </p>
       )}
     </div>
-  )
-}
-
-function NsButton({
-  label,
-  count,
-  on,
-  onClick,
-}: {
-  label: string
-  count: number
-  on: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      role="tab"
-      aria-selected={on}
-      type="button"
-      onClick={onClick}
-      className={[
-        "text-3xs rounded px-2 py-1 font-mono transition-colors",
-        on
-          ? "bg-muted text-foreground"
-          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-      ].join(" ")}
-    >
-      {label}
-      <span className="text-muted-foreground/60 ml-1">{count}</span>
-    </button>
   )
 }
 
@@ -374,10 +363,23 @@ function Canvas({
     <>
       <div className="border-border overflow-hidden rounded-md border" style={{ height: CANVAS_H }}>
         <ReactFlow
+          /*
+           * Remount on every selection change so `fitView` runs again.
+           *
+           * fitView is a MOUNT-time prop — it frames what is on screen once and
+           * then leaves the viewport alone. Swap the nodes underneath it and the
+           * camera stays where the last graph left it, so a smaller schema opens
+           * scrolled off into a corner at the previous zoom. Keying the canvas to
+           * the selection is the cheap fix; the alternative is an effect calling
+           * fitView through a ReactFlowProvider, which is more machinery for the
+           * same result and one more thing to keep in sync.
+           */
+          key={`${source}::${namespace ?? ALL}`}
           nodes={graph.nodes}
           edges={graph.edges}
           nodeTypes={nodeTypes}
           fitView
+          fitViewOptions={{ padding: 0.12 }}
           minZoom={0.1}
           maxZoom={2}
           proOptions={{ hideAttribution: false }}
