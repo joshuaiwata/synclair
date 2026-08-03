@@ -47,6 +47,7 @@ import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const BRIEF_REL = path.join("scripts", "agent-brief.mjs")
+const AUGMENT_REL = path.join("scripts", "agent-augment.mjs")
 
 /** Identifies OUR hook so removal is exact. A shell comment: inert when run. */
 const SENTINEL = "# synclair:agent-brief"
@@ -87,6 +88,20 @@ const command = `if [ -f "${briefPath}" ]; then node "${briefPath}" || true; fi 
 
 const entry = { matcher: MATCHER, hooks: [{ type: "command", command }] }
 
+/**
+ * The edit-time hook — the PUSH half, and the piece the whole audit was about.
+ * repowise's model is that context arrives whether or not the agent thinks to
+ * ask; our MCP tools are pull, so an agent that never calls one gets nothing.
+ * This fires on write-shaped tools only and is silent unless the file is
+ * actually governed, actually wide-reaching, or actually a registered spec.
+ */
+const augmentPath = scriptPathFor(HUB_ROOT, hostRoot, mode, AUGMENT_REL)
+const augmentCommand = `if [ -f "${augmentPath}" ]; then node "${augmentPath}" || true; fi ${SENTINEL}`
+const augmentEntry = {
+  matcher: "Edit|MultiEdit|Write|NotebookEdit",
+  hooks: [{ type: "command", command: augmentCommand }],
+}
+
 // ── read ──────────────────────────────────────────────────────────────────────
 
 const existedBefore = existsSync(settingsPath)
@@ -125,18 +140,22 @@ const isOurs = (group) =>
   Array.isArray(group?.hooks)
   && group.hooks.some((h) => typeof h?.command === "string" && h.command.includes(SENTINEL))
 
-/** Strip our entry wherever it appears, and tidy containers we emptied. */
+/** Strip our entries wherever they appear, and tidy containers we emptied. */
 function stripOurs(obj) {
   const hooks = obj.hooks
   if (!hooks || typeof hooks !== "object") return { changed: false }
-  const groups = Array.isArray(hooks.SessionStart) ? hooks.SessionStart : null
-  if (!groups) return { changed: false }
-  const kept = groups.filter((g) => !isOurs(g))
-  if (kept.length === groups.length) return { changed: false }
-  if (kept.length > 0) hooks.SessionStart = kept
-  else delete hooks.SessionStart
+  let changed = false
+  for (const key of ["SessionStart", "PostToolUse"]) {
+    const groups = Array.isArray(hooks[key]) ? hooks[key] : null
+    if (!groups) continue
+    const kept = groups.filter((g) => !isOurs(g))
+    if (kept.length === groups.length) continue
+    changed = true
+    if (kept.length > 0) hooks[key] = kept
+    else delete hooks[key]
+  }
   if (Object.keys(hooks).length === 0) delete obj.hooks
-  return { changed: true }
+  return { changed }
 }
 
 const serialise = (obj) => JSON.stringify(obj, null, indent) + (trailingNewline ? "\n" : "")
@@ -171,6 +190,8 @@ stripOurs(settings) // idempotent: replace in place rather than append a duplica
 settings.hooks ??= {}
 if (!Array.isArray(settings.hooks.SessionStart)) settings.hooks.SessionStart = []
 settings.hooks.SessionStart.push(entry)
+if (!Array.isArray(settings.hooks.PostToolUse)) settings.hooks.PostToolUse = []
+settings.hooks.PostToolUse.push(augmentEntry)
 
 const output = serialise(settings)
 
