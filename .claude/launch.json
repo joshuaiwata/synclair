@@ -9,7 +9,7 @@
       "autoPort": true
     },
     {
-      "name": "toolbelt-hub",
+      "name": "host-hub",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "--prefix",

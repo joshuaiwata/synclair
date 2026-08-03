@@ -31,7 +31,7 @@
  *
  * The rewrite prefix under the alias is the host's OWN `@/*` target expressed
  * relative to the alias target: a shadcn host mapping `@/*` → `./src/*` gets
- * `@/x` → `@host/src/x`; a root-level host (`@/*` → `./*`, e.g. Papermark's
+ * `@/x` → `@host/src/x`; a root-level host (`@/*` → `./*`, e.g. one whose
  * top-level components/) gets `@/x` → `@host/x`. Read from the host's
  * tsconfig/jsconfig (walking up from the alias target, stopping at its repo
  * root); if none is readable, fall back to "has a src/ dir → src, else root".

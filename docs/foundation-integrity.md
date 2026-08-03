@@ -217,7 +217,7 @@ hermetic checks in `npm run check:edges`, part of `verify-ui`. On the reference
 clone the graph assembles **410 files, 173 items, 50 pages** from artifacts that
 already existed — no new derivation, no model, no network.
 
-Working answer: changing `apps/prototype/src/components/toolbelt-ui/primitives.tsx`
+Working answer: changing `apps/prototype/src/components/<product>-ui/primitives.tsx`
 reports **7 catalog items and 50 screens**, because that file is a barrel holding
 seven components. Nothing in the hub could answer that before.
 
@@ -508,7 +508,7 @@ done; M1 is next.
 
 ### How these were validated, and how to repeat it
 
-Against a throwaway cut of **`toolbeltwork/platform:design`** — embedded hub, 34
+Against a throwaway cut of **a reference monorepo** — embedded hub, 34
 knowledge sources, 13 apps, 7 in-repo PRDs. The source repo was never modified:
 the cut fetches `refs/remotes/origin/design` by full ref name into a fresh
 `git init`, which needs no worktree on the source and no network. Every fix was
@@ -531,7 +531,7 @@ with any of it; it touches nothing the others touch.
 Extends the list in [`agent-interface.md`](agent-interface.md):
 
 1. **Mother repo, blank seed.** Every mechanism emits nothing and exits 0. A finding in a fresh clone is a bug, not a feature.
-2. **Reference clone, in a throwaway copy.** `toolbeltwork/platform-product` copied to scratch; the original never modified — the guardrail `extensibility.md` specifies and Phase 3 already followed.
+2. **Reference clone, in a throwaway copy.** a reference clone copied to scratch; the original never modified — the guardrail `extensibility.md` specifies and Phase 3 already followed.
 3. **Both topologies** for anything path-resolving.
 4. **Prose-survival test per generator.** Seed authored prose, re-run, diff. Any loss fails the mechanism.
 5. **Byte-identical no-op.** A clone that doesn't opt in has identical data files before and after.
@@ -562,10 +562,10 @@ patched ones — a clone that has already run a harness is no longer pristine, a
 that bit once when discovery reported 6 PRDs instead of 7 because an earlier test
 had deleted one.
 
-**Host A — `toolbeltwork/platform:design`.** Embedded hub, 6 NestJS APIs, 3 web
+**Host A — a reference monorepo.** Embedded hub, 6 NestJS APIs, 3 web
 apps, 34 knowledge sources, 7 in-repo PRDs, 144 catalog items, 51 pages.
 
-**Host B — `roadmap-app`.** Embedded hub, single Next app, 62 API routes, 36
+**Host B — `a second reference clone`.** Embedded hub, single Next app, 62 API routes, 36
 catalog items. A completely different shape, and the one that broke two
 assumptions Host A had validated happily.
 

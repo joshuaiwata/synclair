@@ -27,9 +27,7 @@ were methods.
 ## Prime directive (inherited)
 
 Same as the extensibility RFC: **additive, all-on, reversible**. Every phase must
-be a no-op for an existing clone until a human opts in. The toolbelt-frontend and
-platform-clairity hubs are the reference clones; nothing ships until it's proven
-inert against them.
+be a no-op for an existing clone until a human opts in. Nothing ships until it's proven inert against a real, populated clone.
 
 ---
 
@@ -274,7 +272,7 @@ missed**:
 
 **`scan:system`** derives areas (workspace dirs), endpoints (NestJS decorators +
 Next `route.ts` exports), models (Prisma), integrations (known packages) — then
-diffs against the map. On the real ToolBelt monorepo: **111 undocumented items**,
+diffs against the map. On the real the product monorepo: **111 undocumented items**,
 including 13 areas the map never mentions (it documents 13; the repo has 26).
 Summaries stay empty for the `system-mapper`; existing prose carries across
 untouched.
@@ -293,9 +291,9 @@ It found real debt here: **9 components with no `intent`, 6 blocks with no
 
 ## Validation against a real clone ✅ DONE
 
-Run against **`toolbeltwork/platform-product`** (embedded topology, 4 hosts, 144
+Run against **a reference clone** (embedded topology, 4 hosts, 144
 cataloged items, 51 pages, 30 registry items). Note the repo is
-`platform-product`, not `platform-clairity` — earlier notes were stale.
+`a reference clone`, not `a reference clone` — earlier notes were stale.
 
 Nothing in that repo was modified: the work ran in a throwaway hub copied to
 scratch, which is the guardrail [`extensibility.md`](extensibility.md) specifies.
@@ -425,7 +423,7 @@ automatically. This is the clearest evidence in the plan that deriving the facts
 beats re-deriving them by hand — the failure mode isn't a wrong map, it's a map
 that quietly describes code that has since moved.
 
-**Acceptance per artifact:** regenerate it for platform-clairity with the new
+**Acceptance per artifact:** regenerate it for a reference clone with the new
 scanner and diff against the agent-written version. Facts must match or improve;
 only prose may differ.
 
@@ -451,7 +449,7 @@ capability gate can be quantitative. Current worst: `ui-designer` at 1,274 chars
 
 **4b — `rank:hygiene`.** Ranks findings by how many pages consume the file, using
 the component→page edges already in `pages-map.json` — no dependency graph
-needed. On real ToolBelt data this changes the answer: `Assembly.tsx` (8 findings,
+needed. On real the product data this changes the answer: `Assembly.tsx` (8 findings,
 2 pages) outranks `MarketMap.tsx` (19 findings, 1 page), and `PostDetail.tsx` (12
 findings) falls to the bottom because nothing renders it.
 
@@ -496,7 +494,7 @@ tools are one capability set, and the Extension contract in
 
 Missing classifiers are **reported, never invented** — a guessed category is worse
 than a visible gap, because `/synclair/ai-setup` renders it as fact. This repo (36
-capabilities) and the real ToolBelt clone (37) both come back fully classified.
+capabilities) and the real the product clone (37) both come back fully classified.
 
 Consequences:
 

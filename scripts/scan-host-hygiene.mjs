@@ -182,7 +182,7 @@ for (const host of hosts) {
     }
     scannedFiles += 1;
     // A design-system primitive dir by convention: components/ui, a co-located
-    // *-ui set (e.g. toolbelt-ui), or a top-level primitives/ layer. Raw values
+    // *-ui set (e.g. <product>-ui), or a top-level primitives/ layer. Raw values
     // here are the IMPLEMENTATION of the system, not a bypass of it.
     const relPosix = rel.split(path.sep).join("/");
     const inUiDir =

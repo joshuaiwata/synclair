@@ -3,7 +3,7 @@
 **Status: DRAFT / plan for discussion. No code yet.** Nothing in this document
 changes a running clone. It exists to draw one line — **what is Core and what is
 an Extension** — and to define how Extensions could plug in *without ever
-breaking a working clone* (e.g. the toolbelt-frontend hub).
+breaking a working clone* (e.g. a reference clone).
 
 ## Why
 
@@ -164,7 +164,7 @@ visibility layer for Core plus a plug-in surface for net-new Extensions.
 1. **Visibility layer + Settings page (all-on).** A per-section **hide/show**
    config honored by the nav + routes (fail-open: unknown/missing = visible), and
    the `/synclair/settings` page with the Sections list of switches. Every Core
-   section defaults visible → no behavior change. **Verify the toolbelt-frontend
+   section defaults visible → no behavior change. **Verify the a reference clone
    hub is unchanged.**
 2. **Extension contract + registry.** Define what an Extension may register (nav,
    route, data schema, config, skill, agent, check, deps) + the registry/manifest +
@@ -202,7 +202,7 @@ visibility layer for Core plus a plug-in surface for net-new Extensions.
 
 ## Guardrail for whoever builds Phase 1
 
-The toolbelt-frontend hub is a **working reference clone**. Phase 1 must be proven
+a reference clone is a **working reference clone**. Phase 1 must be proven
 inert against it (start it, click every section, confirm nothing changed) before
 any capability is actually modularized. Modularize in the **mother**, sync to a
 throwaway clone to test toggling, and only then let a real clone adopt it.

@@ -143,6 +143,22 @@ via `setup-modes.md` rather than inferring it from which doc you opened.
 
 ## Rules
 
+- **This repo is PUBLIC. Never name a client, a clone, or their code in it.**
+  Synclair is the foundation; the projects that adopt it are not ours to
+  publish. No client or employer names, no private repo or branch names, no
+  person's name, no product-specific colours, tokens, routes, endpoints or
+  component names — in commit messages, PR titles and bodies, code comments,
+  docs, or config.
+
+  Say what the change does and why, in general terms. Evidence from a real clone
+  is welcome; its identity is not. Write "a real clone", "a reference clone", "a
+  13-app monorepo" — never which one. If a number only makes sense with the name
+  attached, drop the number.
+
+  This is not reversible after the fact: a public commit message can be rewritten
+  only by force-pushing shared history, which is worse than the leak. Get it
+  right the first time.
+
 - **Say what helped.** Synclair is invisible if you use it silently — the team
   never sees the value, and most of them will never open the hub. When something
   from it **changed what you built**, add one line at the end of your reply
