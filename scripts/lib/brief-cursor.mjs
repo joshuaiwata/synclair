@@ -52,6 +52,7 @@ export function fingerprint(hubRoot, artifacts = []) {
   const registry = readJson(path.join(hubRoot, "registry.json"))
   const pages = readJson(path.join(hubRoot, "data", "pages-map.json"))
   const fresh = readJson(path.join(hubRoot, "data", "knowledge", "freshness.json"))
+  const contracts = readJson(path.join(hubRoot, "data", "contracts.json"))
 
   const items = {}
   for (const i of catalog?.items ?? []) if (i?.name) items[`${i.surface ?? "shared"}:${i.name}`] = 1
@@ -60,13 +61,27 @@ export function fingerprint(hubRoot, artifacts = []) {
   const routes = {}
   for (const p of pages?.pages ?? []) if (p?.route) routes[p.route] = 1
 
+  /**
+   * Endpoints, from the derived contract map.
+   *
+   * A first attempt reported the UNMAPPED endpoint backlog as a standing signal
+   * and it printed "77 endpoints not in the System Map" every session — true,
+   * permanent, and therefore wallpaper. What a developer actually wants to hear
+   * is the DELTA: the two endpoints that appeared since they last looked. So it
+   * belongs here, in the feed, where news fires once and then clears.
+   */
+  const endpoints = {}
+  for (const p of contracts?.providers ?? []) {
+    if (p?.method && p?.path) endpoints[`${p.method} ${p.path}`] = 1
+  }
+
   const knowledge = {}
   for (const s of fresh?.sources ?? []) if (s?.id) knowledge[s.id] = s.state ?? "?"
 
   const artifactStates = {}
   for (const a of artifacts ?? []) if (a?.artifact) artifactStates[a.artifact] = a.state ?? "?"
 
-  return { items, routes, knowledge, artifacts: artifactStates }
+  return { items, routes, endpoints, knowledge, artifacts: artifactStates }
 }
 
 const keys = (o) => Object.keys(o ?? {})
@@ -93,6 +108,13 @@ export function changesSince(hubRoot, current) {
     `${newItems.length} component(s) newly cataloged: ${newItems.slice(0, 4).map((k) => k.split(":").pop()).join(", ")}${newItems.length > 4 ? "…" : ""}`)
   say("catalog", goneItems.length,
     `${goneItems.length} component(s) no longer in the catalog: ${goneItems.slice(0, 4).map((k) => k.split(":").pop()).join(", ")}${goneItems.length > 4 ? "…" : ""}`)
+
+  const newEndpoints = added(before.endpoints, current.endpoints)
+  const goneEndpoints = removed(before.endpoints, current.endpoints)
+  say("contracts", newEndpoints.length,
+    `${newEndpoints.length} new endpoint(s): ${newEndpoints.slice(0, 4).join(", ")}${newEndpoints.length > 4 ? "…" : ""}`)
+  say("contracts", goneEndpoints.length,
+    `${goneEndpoints.length} endpoint(s) removed: ${goneEndpoints.slice(0, 3).join(", ")}${goneEndpoints.length > 3 ? "…" : ""}`)
 
   const newRoutes = added(before.routes, current.routes)
   const goneRoutes = removed(before.routes, current.routes)

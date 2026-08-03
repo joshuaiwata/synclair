@@ -46,6 +46,7 @@ try {
   write("registry.json", { items: [{ name: "hub-card" }] })
   write("data/pages-map.json", { pages: [{ route: "/home" }] })
   write("data/knowledge/freshness.json", { sources: [{ id: "billing", state: "fresh" }] })
+  write("data/contracts.json", { providers: [{ method: "GET", path: "/health" }], links: [] })
   const artifacts = [{ artifact: "pages", state: "fresh" }]
 
   // ── first run ───────────────────────────────────────────────────────────────
@@ -76,6 +77,21 @@ try {
   feed = changesSince(hub, fingerprint(hub, artifacts))
   ok("a new route is news", /new route/.test(texts(feed.events)) && /\/reports/.test(texts(feed.events)), texts(feed.events))
   advanceCursor(hub, fingerprint(hub, artifacts))
+
+  // ── endpoints: a backend build is news too ──────────────────────────────────
+  write("data/contracts.json", {
+    providers: [
+      { method: "GET", path: "/health" },
+      { method: "GET", path: "/invoices/outstanding" },
+    ],
+    links: [],
+  })
+  feed = changesSince(hub, fingerprint(hub, artifacts))
+  ok("a new endpoint is news",
+    /new endpoint/.test(texts(feed.events)) && /\/invoices\/outstanding/.test(texts(feed.events)),
+    texts(feed.events))
+  advanceCursor(hub, fingerprint(hub, artifacts))
+  ok("and it clears once seen", changesSince(hub, fingerprint(hub, artifacts)).events.length === 0)
 
   // ── knowledge transitions, not states ───────────────────────────────────────
   write("data/knowledge/freshness.json", { sources: [{ id: "billing", state: "stale" }] })
