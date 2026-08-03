@@ -65,51 +65,12 @@ try {
       { statement: "a retired rule", governs: ["apps/web/src/gone.ts"], state: "gone" },
     ],
   })
-  /**
-   * A BARREL repo, which is the shape that broke this in the field.
-   *
-   * The closure walker stops at a re-export, so every page below records only
-   * `src/components/ui/index.ts` in `sourceFiles` — never the component file
-   * itself. Path matching alone therefore scores zero on exactly the files the
-   * reach signal exists for. The earlier fixture only ever listed a component
-   * directly, so all fifteen checks passed while the signal was dead.
-   */
-  write("apps/web/src/components/ui/table.tsx", "export const Table = 1\n")
-  write("apps/web/src/components/ui/primitives.tsx", "export const Button = 1\nexport const Card = 2\n")
-  write("packages/ui/src/button.tsx", "export const Button = 3\n")
-
-  const barrel = ["src/components/ui/index.ts"]
-  const uses = (...names) => names.map((name) => ({ name, surface: "web" }))
   write("synclair/data/pages-map.json", {
     repo: { root: "../apps/web" },
-    pages: [
-      ...Array.from({ length: 6 }, (_, i) => ({ route: `/p${i}`, sourceFiles: ["src/theme.ts"] })),
-      // 13 screens compose Table — none of them name its file.
-      ...Array.from({ length: 13 }, (_, i) => ({ route: `/t${i}`, sourceFiles: barrel, items: uses("Table") })),
-      /**
-       * One file exporting two catalogued items, across overlapping pages:
-       * Button on 7, Card on 6, but only 10 DISTINCT screens. A signal that
-       * summed per-item counts would claim 13 — the file's reach is the union.
-       */
-      ...Array.from({ length: 10 }, (_, i) => ({
-        route: `/u${i}`,
-        sourceFiles: barrel,
-        items: uses(...(i < 7 ? ["Button"] : []), ...(i >= 4 ? ["Card"] : [])),
-      })),
-    ],
-  })
-  write("synclair/data/external-catalog.json", {
-    hosts: [
-      { surface: "web", root: "../apps/web" },
-      { surface: "shared", root: "../packages/ui" },
-    ],
-    items: [
-      { name: "Table", surface: "web", hostPath: "src/components/ui/table.tsx" },
-      { name: "Button", surface: "web", hostPath: "src/components/ui/primitives.tsx" },
-      { name: "Card", surface: "web", hostPath: "src/components/ui/primitives.tsx" },
-      // The same NAME in a second surface — the trap a bare name join falls into.
-      { name: "Button", surface: "shared", hostPath: "src/button.tsx" },
-    ],
+    pages: Array.from({ length: 6 }, (_, i) => ({
+      route: `/p${i}`,
+      sourceFiles: ["src/theme.ts"],
+    })),
   })
   write("synclair/data/knowledge/freshness.json", {
     sources: [{ id: "billing", localPath: ".prds/Billing_PRD.md", state: "stale", sections: { changed: ["Pricing", "Refunds"] } }],
@@ -128,22 +89,12 @@ try {
   ok("editing a registered spec warns about the digest", /registered spec/.test(out), out)
   ok("and counts the drifted sections", /2 section/.test(out), out)
 
-  // ── reach survives a barrel ────────────────────────────────────────────────
-  out = run(edit("apps/web/src/components/ui/table.tsx"))
-  ok("reach is found through a re-export, not just a direct path", /13 screens/.test(out), out)
-
-  out = run(edit("apps/web/src/components/ui/primitives.tsx"))
-  ok("a multi-export file counts every item it exports", /screens/.test(out), out)
-  ok("and counts screens ONCE, not once per item", /10 screens/.test(out), out)
-
   // ── silent when it must be ─────────────────────────────────────────────────
   ok("an ungoverned file is silent", run(edit("apps/web/src/other.ts")) === "")
   ok("a Read is silent — not a decision point",
     run({ tool_name: "Read", tool_input: { file_path: path.join(root, "apps/web/src/theme.ts") } }) === "")
   ok("a Grep is silent", run({ tool_name: "Grep", tool_input: { pattern: "x" } }) === "")
   ok("a gone ruling never fires", !/retired rule/.test(run(edit("apps/web/src/gone.ts"))))
-  ok("a same-named component in another surface never inherits its reach",
-    run(edit("packages/ui/src/button.tsx")) === "")
   ok("a file outside the product repo is silent",
     run({ tool_name: "Edit", tool_input: { file_path: "/etc/hosts" } }) === "")
 

@@ -155,55 +155,6 @@ try {
     )
     if (files.includes(rel)) screens++
   }
-
-  /**
-   * Path matching alone is dead in any repo that imports through a BARREL.
-   *
-   * `sourceFiles` records what the closure walker reached, and the walker stops
-   * at a re-export — so a page that renders `Table` records
-   * `src/components/toolbelt-ui/index.ts`, never `toolbelt-ui/table.tsx`.
-   * Editing the component thirteen screens depend on matched zero of them:
-   * exactly the case this signal exists for, silent in the repo that needs it.
-   *
-   * The catalog already knows this file IS `Table`, and the pages map already
-   * records which pages compose `Table` — the same join `get_component` makes.
-   * Names survive re-exports; paths don't. So fall back to the name join, and
-   * take whichever count is higher.
-   *
-   * Two things a naive name join gets wrong, both present in a real clone:
-   *
-   *   ONE FILE, SEVERAL ITEMS — a primitives file can export seven catalogued
-   *   components. Matching only the first under-counts the file's real reach, so
-   *   take every catalogued item the file exports and count DISTINCT pages.
-   *
-   *   THE SAME NAME IN TWO SURFACES — `Button` can exist in both a shared
-   *   package and an app. Counting one surface's pages while editing the other's
-   *   file is a fabricated number, which is worse than silence. Both sides
-   *   record the item's origin surface, so require they agree — but only when
-   *   both declare one, since a single-surface clone may leave it unset.
-   */
-  if (screens < 5) {
-    const catalog = readJson("data/external-catalog.json")
-    const exported = (catalog?.items ?? []).filter((i) => {
-      if (typeof i?.hostPath !== "string") return false
-      const host = (catalog.hosts ?? []).find((h) => h.surface === i.surface) ?? (catalog.hosts ?? [])[0]
-      if (!host?.root) return false
-      const abs = path.resolve(HUB_ROOT, host.root, i.hostPath)
-      return path.relative(hostRoot, abs).split(path.sep).join("/") === rel
-    })
-    if (exported.length) {
-      const same = (used, item) =>
-        String(used?.name).toLowerCase() === String(item.name).toLowerCase()
-        && (!used?.surface || !item.surface || used.surface === item.surface)
-      const reached = new Set()
-      for (const p of pages?.pages ?? []) {
-        if ((p.items ?? []).some((u) => exported.some((i) => same(u, i)))) {
-          reached.add(p.id ?? p.route ?? p.file)
-        }
-      }
-      if (reached.size > screens) screens = reached.size
-    }
-  }
   if (screens >= 5) {
     lines.push(
       `[synclair] This file is in the source closure of ${screens} screens — `
