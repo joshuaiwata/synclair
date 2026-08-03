@@ -80,9 +80,8 @@ repo or beside it — so the modes are named for that. The sync tradeoffs are a
 ## Recommendation: embed. Watcher is a fallback, not a default.
 
 **Decided 2026-07-31, on evidence.** Every Synclair clone in existence is
-`embedded` — `platform-product`, `toolbelt-frontend`, `roadmap-app` — after
-months and several intakes (papermark, messaging, toolbelt-intake-test,
-platform). **Not one watcher clone was ever kept.** The mode documented as "the
+`embedded` — three separate clones — after
+months and several intakes (four of them). **Not one watcher clone was ever kept.** The mode documented as "the
 default for existing projects" has never been the thing anyone actually ran.
 
 That is not an accident, and the reasons compound:

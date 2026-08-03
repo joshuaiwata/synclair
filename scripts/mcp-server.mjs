@@ -129,7 +129,7 @@ function scanTokenFile(rel) {
  * lives in BRAND_RAMPS)". Returning them to an agent asking which token to use
  * for the PRODUCT is a confidently wrong answer with a usage string attached —
  * on a real clone it answered `primary = #1c1917` (a stone neutral) when the
- * product's primary is ToolBelt Yellow `#fccd0a`.
+ * product's primary is a product brand colour.
  *
  * So in companion mode the product's ramps lead and the hub's chrome is
  * labelled as such. When the clone IS the product there's no distinction to
