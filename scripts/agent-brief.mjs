@@ -321,7 +321,16 @@ if (feed.first && currentFingerprint) advanceCursor(HUB_ROOT, currentFingerprint
 
 if (signals.length === 0 && feed.events.length === 0 && !force) process.exit(0)
 
-const header = "[synclair] Hub state — derived, not a request. Fix what your task touches; ignore the rest."
+/**
+ * The header used to end with "ignore the rest", which is exactly backwards for
+ * the one problem this whole layer has: Synclair helps silently, so the team
+ * never sees it working and most of them never open the hub. If a line below
+ * changes what gets built, the developer should hear about it in one sentence —
+ * otherwise the value is real and invisible, which reads the same as absent.
+ */
+const header =
+  "[synclair] Hub state — derived, not a request. Act on what your task touches, "
+  + "ignore the rest, and if any of it changes what you build, say so in one line."
 const feedLines = feed.events.map((e) => `  → ${e.text}`)
 const body = [
   header,

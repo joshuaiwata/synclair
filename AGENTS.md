@@ -143,6 +143,17 @@ via `setup-modes.md` rather than inferring it from which doc you opened.
 
 ## Rules
 
+- **Say what helped.** Synclair is invisible if you use it silently — the team
+  never sees the value, and most of them will never open the hub. When something
+  from it **changed what you built**, add one line at the end of your reply
+  saying so: a component you reused instead of writing, a ruling you honoured, a
+  spec section you skipped because only two of forty-five had moved, an endpoint
+  you found already existed. One line, at the end, in plain words.
+
+  Only when it changed the outcome. Not a log of every lookup, never a claim you
+  didn't act on, and never an apology for using it. If the hub told you nothing
+  useful, say nothing.
+
 - **Link, don't copy.** Raw PRDs/decks/Figma stay canonical in Drive/Figma/GitHub
   and are *linked* from the knowledge manifest. The repo holds distilled digests,
   not raw dumps.
