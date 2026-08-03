@@ -24,6 +24,7 @@
  *   node scripts/scan-system.mjs --write        merge into data/system-map.json
  */
 
+import { createHash } from "node:crypto"
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
@@ -88,6 +89,38 @@ function walk(dir, out = [], depth = 0) {
 
 const rel = (abs) => path.relative(REPO, abs).split(path.sep).join("/")
 const files = walk(REPO)
+
+/**
+ * The schema files the data model is derived from, as repo-relative paths —
+ * the same base `repo.root` uses, so check:freshness resolves them the way it
+ * resolves every other map's anchor.
+ */
+const schemaFiles = () => files.filter((f) => f.endsWith("schema.prisma")).map(rel).sort()
+
+/**
+ * A source anchor for the provenance block: the files, plus one hash over their
+ * contents. Mirrors `hashSources` in lib/system/provenance.ts — the name and
+ * bytes of each file in order — because that is what reads it back.
+ *
+ * Returns nothing when there is nothing to hash, so a project without schema
+ * files records no anchor rather than a hash of emptiness that would read as
+ * fresh forever.
+ */
+function anchorOf(sourceFiles) {
+  if (!sourceFiles.length) return {}
+  const hash = createHash("sha256")
+  let any = false
+  for (const r of sourceFiles) {
+    const abs = path.join(REPO, r)
+    if (!existsSync(abs)) continue
+    hash.update(r)
+    hash.update("\n")
+    hash.update(readFileSync(abs))
+    hash.update("\0")
+    any = true
+  }
+  return any ? { sourceFiles, sourceHash: hash.digest("hex") } : {}
+}
 
 // -------------------------------------------------------------------- areas
 
@@ -280,15 +313,49 @@ function drift() {
   }
 }
 
+/**
+ * The OTHER direction: what the map still describes that the code no longer has.
+ *
+ * Drift was only ever reported one way — code-not-in-map — so a table, endpoint
+ * or integration deleted from the codebase stayed in the map indefinitely and
+ * every check stayed green. That is worse than a missing entry: a gap is visibly
+ * a gap, while a confident description of something that does not exist reads as
+ * fact. Found in a real clone, where the map documented two tables that had been
+ * removed months earlier.
+ *
+ * Names carrying a disambiguating suffix — "Thing (service)" where two services
+ * declare the same model — match on the bare name, or every one of them would be
+ * reported as removed.
+ *
+ * DATA MODELS ONLY, and deliberately so. Endpoints and integrations are written
+ * in the map the way a person names them — a path without its service prefix, an
+ * integration called "S3 / MinIO" where the scanner sees the package `@aws-sdk`.
+ * Comparing those to derived strings reported twenty-five departures of which
+ * two were real, and a check that is wrong twenty-three times out of twenty-five
+ * is one people learn to scroll past — the same reason scan:contracts refuses to
+ * name unused endpoints. A model name is canonical in both places, so that is
+ * where this can be trusted. Widening it means teaching the scanner to normalise
+ * those names first, not loosening the comparison.
+ */
+function departed() {
+  const bare = (n) => String(n).replace(/\s*\([^)]*\)\s*$/, "").trim()
+  const live = new Set(derived.data.map((d) => d.name))
+  return {
+    data: (existing.data ?? []).filter((d) => !live.has(bare(d.name))),
+  }
+}
+
 const missing = drift()
 const missingTotal = Object.values(missing).reduce((n, v) => n + v.length, 0)
+const gone = departed()
+const goneTotal = Object.values(gone).reduce((n, v) => n + v.length, 0)
 
 if (asJson) {
   // Flush synchronously: this payload is ~64KB on a real monorepo, and
   // `console.log` + `process.exit()` drops whatever is still buffered — the
   // reader gets JSON cut mid-object. Same bug the MCP server and scan:contracts
   // already paid for.
-  emitJson({ repo: rel(REPO) || ".", derived, missing })
+  emitJson({ repo: rel(REPO) || ".", derived, missing, gone })
 }
 
 /**
@@ -329,6 +396,28 @@ if (!existing.repo) {
   console.log(`\n  Re-run the \`codebase-map\` skill to document them.`)
 }
 
+/**
+ * Reported separately from `missing`, and worded harder, because the two are not
+ * the same kind of problem. A gap reads as a gap; a description of something
+ * that no longer exists reads as fact, and nothing else in the toolchain looks
+ * for it.
+ */
+if (existing.repo && goneTotal > 0) {
+  console.log(`\n  ${goneTotal} item(s) in the map that the code no longer has:`)
+  for (const [k, v] of Object.entries(gone)) {
+    if (!v.length) continue
+    const labels = [...new Set(v.map((x) => x.name ?? `${x.method} ${x.path}`))]
+    console.log(
+      `    ${k}: ${v.length} — ${labels.slice(0, 6).join(", ")}${labels.length > 6 ? " …" : ""}`
+    )
+  }
+  console.log(
+    `\n  These describe code that is gone. Delete them, or confirm the scan simply`
+    + `\n  cannot see them (a store this scanner does not parse, or a host that is`
+    + `\n  not checked out here) — but do not leave them unexamined.`
+  )
+}
+
 console.log(
   `\n  Inventory only. Names, paths, methods and field types are derived;`
   + `\n  what any of it MEANS is written by the system-mapper and never guessed here.\n`
@@ -350,6 +439,24 @@ if (write) {
       generatedAt: new Date().toISOString(),
       generator: "scan:system",
       confidence: derived.areas.every((a) => byName.get(a.name)?.summary) ? "high" : "medium",
+      // Mirror the repo commit so the freshness report can name it rather
+      // than printing "anchored at ?".
+      ...(existing.repo?.commit ? { commit: existing.repo.commit } : {}),
+      /**
+       * ANCHOR the map to the schemas it was built from.
+       *
+       * Without this the System Map is not merely unchecked but UNCHECKABLE:
+       * check:freshness reports it "unanchored", which is a state no amount of
+       * regenerating clears, so the largest digest in the hub could describe a
+       * schema from six months ago and every gate would stay green. It is how a
+       * map ends up documenting tables that were deleted.
+       *
+       * Schema files only. They are what the data model — the half most likely
+       * to be read as current — is derived from, and hashing every file the scan
+       * touched would mark the map stale on any unrelated edit anywhere in the
+       * repo, which is the fastest way to teach people to ignore a warning.
+       */
+      ...anchorOf(schemaFiles()),
     },
   }
   writeFileSync(MAP_PATH, `${JSON.stringify(merged, null, 2)}\n`)
