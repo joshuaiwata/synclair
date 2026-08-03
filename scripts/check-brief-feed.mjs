@@ -78,6 +78,20 @@ try {
   ok("a new route is news", /new route/.test(texts(feed.events)) && /\/reports/.test(texts(feed.events)), texts(feed.events))
   advanceCursor(hub, fingerprint(hub, artifacts))
 
+  // ── page routes outrank API-handler noise ───────────────────────────────────
+  write("data/pages-map.json", { pages: [
+    { route: "/home" }, { route: "/reports" }, { route: "/billing/pending" },
+    ...Array.from({ length: 20 }, (_, i) => ({ route: `/api/messaging/v${i}` })),
+  ]})
+  feed = changesSince(hub, fingerprint(hub, artifacts))
+  const routeEv = feed.events.find((e) => e.kind === "pages")
+  ok("a built screen leads the route line, API handlers ride as a count",
+    /\/billing\/pending/.test(routeEv?.text ?? "") && /\+20 API handler/.test(routeEv?.text ?? ""),
+    routeEv?.text)
+  ok("the screen is not buried in an ellipsis of handlers",
+    !/api\/messaging/.test(routeEv?.text ?? ""), routeEv?.text)
+  advanceCursor(hub, fingerprint(hub, artifacts))
+
   // ── endpoints: a backend build is news too ──────────────────────────────────
   write("data/contracts.json", {
     providers: [

@@ -151,7 +151,30 @@ function noiseSignal(name, src) {
 
 /** Props an agent would otherwise read the file to find. */
 function deriveProps(src, exportName) {
-  const iface = new RegExp(`(?:interface|type)\\s+${exportName}Props[^{]*\\{([\\s\\S]*?)\\n\\}`, "m").exec(src)
+  let iface = new RegExp(`(?:interface|type)\\s+${exportName}Props[^{]*\\{([\\s\\S]*?)\\n\\}`, "m").exec(src)
+  /**
+   * Fallback: the inline annotation on a destructured parameter —
+   *
+   *   export function Table({ minWidth, dense }: { minWidth: string; ... })
+   *
+   * This is arguably the MOST common React idiom, and it was invisible: only a
+   * named `<Name>Props` interface matched, so every component written this way
+   * catalogued with zero props. The cost surfaced in a real build — an agent
+   * consulted the catalog for `Table`, found nothing, guessed the API, and shipped
+   * four type errors including a missing REQUIRED prop the source documents with
+   * a doc comment. A catalog that lists a component but not its contract invites
+   * exactly the guessing it exists to prevent.
+   *
+   * The match is anchored to the component's own declaration line, so one file
+   * exporting six components (Table, THead, Th…) reads each signature, not the
+   * first one it finds.
+   */
+  if (!iface) {
+    iface = new RegExp(
+      `export\\s+(?:function|const)\\s+${exportName}\\s*(?:=\\s*)?\\(\\s*\\{[\\s\\S]*?\\}\\s*:\\s*\\{([\\s\\S]*?)\\n\\}`,
+      "m"
+    ).exec(src)
+  }
   if (!iface) return []
   const props = []
   // One field per line: `name?: type` optionally preceded by a /** doc */.
