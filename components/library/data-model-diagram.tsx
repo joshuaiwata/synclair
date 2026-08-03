@@ -152,9 +152,40 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
   }, [entities])
 
   const [selected, setSelected] = useState(0)
+  /** Namespace filter, reset whenever the database changes. "" = all. */
+  const [ns, setNs] = useState("")
 
-  if (groups.length === 0) return null
-  const active = groups[Math.min(selected, groups.length - 1)]
+  const activeIndex = Math.min(selected, Math.max(0, groups.length - 1))
+  const base = groups[activeIndex]
+
+  /**
+   * Namespaces within the selected database. A store that does not use them
+   * yields none and the second picker never appears — a single-schema project
+   * sees exactly what it saw before.
+   */
+  const namespaces = useMemo(() => {
+    if (!base) return []
+    const counts = new Map<string, number>()
+    for (const e of base.group) {
+      if (!e.namespace) continue
+      counts.set(e.namespace, (counts.get(e.namespace) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  }, [base])
+
+  /**
+   * Filtering runs BEFORE the graph is built, not after. Building the whole
+   * database and hiding nodes would leave edges pointing at things that are not
+   * there, and would keep the layering of a graph the reader cannot see — the
+   * filtered view has to be its own graph to be honest about what connects.
+   */
+  const active = useMemo(() => {
+    if (!base || !ns) return base
+    const group = base.group.filter((e) => e.namespace === ns)
+    return { source: base.source, group, graph: buildGraph(group) }
+  }, [base, ns])
+
+  if (groups.length === 0 || !active || !base) return null
 
   return (
     <div className="flex flex-col gap-3">
@@ -175,7 +206,10 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
                 role="tab"
                 aria-selected={on}
                 type="button"
-                onClick={() => setSelected(i)}
+                onClick={() => {
+                  setSelected(i)
+                  setNs("")
+                }}
                 className={[
                   "text-2xs rounded-md border px-2.5 py-1.5 font-mono transition-colors",
                   on
@@ -196,10 +230,37 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
         </div>
       )}
 
+      {/*
+        Second level: the schema namespaces INSIDE the selected database. One
+        database is routinely carved into namespaces that are the real
+        subsystems, so the largest schema is not one 40-table graph but a handful
+        of readable ones. Only shown when the store actually declares them.
+      */}
+      {namespaces.length > 1 && (
+        <div role="tablist" aria-label="Schema namespace" className="flex flex-wrap items-center gap-1">
+          <span className="text-3xs text-muted-foreground/60 mr-1 font-mono uppercase">schema</span>
+          <NsButton label="all" count={base.group.length} on={ns === ""} onClick={() => setNs("")} />
+          {namespaces.map(([name, n]) => (
+            <NsButton
+              key={name}
+              label={name}
+              count={n}
+              on={ns === name}
+              onClick={() => setNs(name)}
+            />
+          ))}
+        </div>
+      )}
+
       {active.graph ? (
-        <Canvas source={active.source} count={active.group.length} graph={active.graph} />
+        <Canvas
+          source={active.source}
+          count={active.group.length}
+          graph={active.graph}
+          namespace={ns || undefined}
+        />
       ) : (
-        <Standalone source={active.source} count={active.group.length} />
+        <Standalone source={active.source} count={active.group.length} namespace={ns || undefined} />
       )}
 
       {groups.length > 1 && (
@@ -213,11 +274,50 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
   )
 }
 
+function NsButton({
+  label,
+  count,
+  on,
+  onClick,
+}: {
+  label: string
+  count: number
+  on: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={on}
+      type="button"
+      onClick={onClick}
+      className={[
+        "text-3xs rounded px-2 py-1 font-mono transition-colors",
+        on
+          ? "bg-muted text-foreground"
+          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+      ].join(" ")}
+    >
+      {label}
+      <span className="text-muted-foreground/60 ml-1">{count}</span>
+    </button>
+  )
+}
+
 /**
- * A database whose tables reference nothing internally. Said out loud rather
- * than rendered as an empty frame: the absence of a graph is the finding.
+ * A selection whose tables reference nothing internally. Said out loud rather
+ * than rendered as an empty frame: the absence of a graph is the finding, and a
+ * reader cannot otherwise tell it from a failure to draw one.
  */
-function Standalone({ source, count }: { source: string; count: number }) {
+function Standalone({
+  source,
+  count,
+  namespace,
+}: {
+  source: string
+  count: number
+  namespace?: string
+}) {
   return (
     <div className="bg-card rounded-lg border p-4">
       <div
@@ -225,13 +325,18 @@ function Standalone({ source, count }: { source: string; count: number }) {
         style={{ height: CANVAS_H / 2 }}
       >
         <p className="text-2xs max-w-sm">
-          <span className="text-foreground font-mono">{shortSource(source)}</span>{" "}
+          <span className="text-foreground font-mono">
+            {shortSource(source)}
+            {namespace ? ` · ${namespace}` : ""}
+          </span>{" "}
           holds {count} table{count === 1 ? "" : "s"} with{" "}
           <span className="text-foreground font-medium">
             no foreign keys between them
           </span>
-          . There is no graph to draw — not a gap in the map. Each table stands
-          alone; their field detail is below.
+          . There is no graph to draw — not a gap in the map.
+          {namespace
+            ? " Their relationships may cross into another schema; clear the filter to see them."
+            : " Each table stands alone; their field detail is below."}
         </p>
       </div>
     </div>
@@ -256,11 +361,13 @@ function Canvas({
   source,
   count,
   graph,
+  namespace,
   bare = false,
 }: {
   source: string
   count: number
   graph: Graph
+  namespace?: string
   bare?: boolean
 }) {
   const body = (
@@ -287,11 +394,15 @@ function Canvas({
         </ReactFlow>
       </div>
       <p className="mt-3 text-2xs text-muted-foreground/70">
-        <span className="font-mono">{shortSource(source)}</span> — each edge is a
-        foreign key, drawn from the record holding it to the record it
-        references. <span className="font-medium">◆</span> primary key,{" "}
-        <span className="font-medium">↗</span> foreign key. Scroll to zoom, drag
-        to pan.
+        <span className="font-mono">
+          {shortSource(source)}
+          {namespace ? ` · ${namespace}` : ""}
+        </span>{" "}
+        — each edge is a foreign key, drawn from the record holding it to the
+        record it references. <span className="font-medium">◆</span> primary
+        key, <span className="font-medium">↗</span> foreign key. Scroll to zoom,
+        drag to pan.
+        {namespace && " Edges to tables in another schema are not drawn here."}
         {graph.shownCount < count && (
           <>
             {" "}

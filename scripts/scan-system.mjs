@@ -171,7 +171,18 @@ function deriveApi() {
 
 // --------------------------------------------------------------------- data
 
-/** Prisma models: name + field names/types. Meaning is the agent's job. */
+/**
+ * Prisma models: name + field names/types + the schema NAMESPACE it declares.
+ * Meaning is the agent's job; all of this is mechanical.
+ *
+ * The namespace matters more than it looks. One database is routinely carved
+ * into namespaces that are the real subsystems — a `messaging` or a `billing`
+ * holding twenty tables that only relate to each other. Recording only the file
+ * a model came from flattens all of them into "this service", so the biggest
+ * database reads as one undifferentiated mass instead of the handful of
+ * subsystems it actually is. It is one declaration per model, already sitting in
+ * the schema, and nothing downstream could recover it afterwards.
+ */
 function deriveData() {
   const out = []
   for (const abs of files.filter((f) => f.endsWith("schema.prisma"))) {
@@ -185,11 +196,25 @@ function deriveData() {
     let m
     while ((m = re.exec(src)) !== null) {
       const fields = []
+      let namespace
       for (const line of m[2].split("\n")) {
+        const ns = /^\s*@@schema\(\s*["'](\w+)["']\s*\)/.exec(line)
+        if (ns) {
+          namespace = ns[1]
+          continue
+        }
         const f = /^\s*(\w+)\s+(\S+)/.exec(line)
         if (f && !line.trim().startsWith("@@")) fields.push({ name: f[1], type: f[2] })
       }
-      out.push({ name: m[1], kind: "table", fields, source: rel(abs) })
+      out.push({
+        name: m[1],
+        kind: "table",
+        fields,
+        source: rel(abs),
+        // Absent on a single-schema database, which is the common case — the
+        // field stays optional rather than inventing a "public" for everyone.
+        ...(namespace ? { namespace } : {}),
+      })
     }
   }
   return out.sort((a, b) => a.name.localeCompare(b.name))

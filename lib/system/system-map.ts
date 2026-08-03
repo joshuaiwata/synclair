@@ -82,6 +82,18 @@ export interface DataEntity {
   fields?: DataEntityField[]
   /** Repo-relative schema/migration/model file. */
   source?: string
+  /**
+   * The schema NAMESPACE this entity is declared in, where the store has them
+   * (Postgres schemas, and so `@@schema` in Prisma). Absent on a single-schema
+   * database, which is the common case.
+   *
+   * Worth carrying separately from `source`: one database is routinely carved
+   * into namespaces that are the real subsystems — a `messaging` or a `billing`
+   * that only relates to itself. Grouping by source alone flattens them, so the
+   * largest database reads as one undifferentiated mass rather than the handful
+   * of subsystems it is.
+   */
+  namespace?: string
 }
 
 export interface SystemJob {
@@ -246,6 +258,7 @@ export async function getSystemMap(): Promise<SystemMap> {
             return fname ? { name: fname, type: str(f.type), note: str(f.note) } : null
           }),
           source: str(e.source),
+          namespace: str(e.namespace),
         }
       }),
       jobs: entries<SystemJob>(parsed.jobs, (e) => {
