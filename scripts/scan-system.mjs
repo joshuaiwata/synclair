@@ -27,6 +27,8 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
+import { emitJson } from "./lib/emit.mjs"
+
 const ROOT = process.cwd()
 const MAP_PATH = path.join(ROOT, "data", "system-map.json")
 
@@ -257,8 +259,11 @@ const missing = drift()
 const missingTotal = Object.values(missing).reduce((n, v) => n + v.length, 0)
 
 if (asJson) {
-  console.log(JSON.stringify({ repo: rel(REPO) || ".", derived, missing }, null, 2))
-  process.exit(0)
+  // Flush synchronously: this payload is ~64KB on a real monorepo, and
+  // `console.log` + `process.exit()` drops whatever is still buffered — the
+  // reader gets JSON cut mid-object. Same bug the MCP server and scan:contracts
+  // already paid for.
+  emitJson({ repo: rel(REPO) || ".", derived, missing })
 }
 
 /**
