@@ -98,6 +98,12 @@ export interface ExternalItem {
   hostPath: string
   /** sha256 of the host source at cataloging time — drives check:host. */
   sourceHash: string
+  /**
+   * The same source with all whitespace collapsed. Lets `check:host` tell a
+   * formatting pass from a real edit — absent on entries catalogued before this
+   * existed, which are reported as drift rather than guessed at.
+   */
+  sourceCollapsedHash?: string
   /** ISO date this entry was written/refreshed. */
   catalogedAt: string
   status?: ComponentStatus
