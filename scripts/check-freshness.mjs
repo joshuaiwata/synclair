@@ -226,6 +226,18 @@ function checkFigmaManifest() {
     state: old ? "stale" : "fresh",
     detail: `snapshot taken ${taken} (${days} day${days === 1 ? "" : "s"} ago) — age only; Figma cannot be hashed locally`,
     stale: old ? 1 : 0,
+    /**
+     * ADVISORY under `--strict`: this is the one artifact whose staleness is a
+     * CALENDAR reading, not evidence that anything changed. Nothing local can
+     * hash Figma, so a 30-day-old snapshot of an untouched file is reported
+     * identically to one of a file redrawn yesterday — and re-taking it needs
+     * Figma access the person hitting the gate may not have.
+     *
+     * A gate that fails for a reason you cannot fix is one people learn to
+     * bypass, and they bypass it for the other artifacts too. So this still
+     * reports, loudly, and never fails the build on its own.
+     */
+    advisory: true,
     ...(old ? { fix: "re-take the snapshot via the `figma-distiller` skill" } : {}),
   }
 }
@@ -355,4 +367,15 @@ if (asJson) {
 }
 
 const anyStale = report.some((r) => r.state === "stale")
-process.exit(strict && anyStale ? 1 : 0)
+/**
+ * `--strict` fails only on staleness someone can actually act on — an artifact
+ * whose recorded sources demonstrably moved. Advisory artifacts (see
+ * `advisory` above) still print as STALE; they just don't decide the exit code.
+ */
+const blocking = report.filter((r) => r.state === "stale" && !r.advisory)
+if (strict && anyStale && !blocking.length) {
+  console.log(
+    "  Stale, but advisory only — not failing the build. Regenerate when you can.\n"
+  )
+}
+process.exit(strict && blocking.length ? 1 : 0)
