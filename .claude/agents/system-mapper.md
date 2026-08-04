@@ -2,6 +2,7 @@
 name: system-mapper
 category: intake
 layer: foundation
+ambient: true
 description: Whole-codebase digest worker — the backend/architecture counterpart of the component-cataloger. Use PROACTIVELY via the codebase-map skill, during existing-project intake (after the survey), and on demand for "map the codebase", "what's in this repo", "what's the backend/architecture", "what does the database look like", or "give the team visibility into the system". Reads a repo (this one or the HOST) in ITS OWN context and returns a ready-to-write data/system-map.json — areas, API surface, data model, jobs, integrations — so /synclair/system orients humans and agents without them reading source.
 tools: Bash, Read, Grep, Glob
 ---

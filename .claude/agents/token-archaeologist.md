@@ -2,6 +2,7 @@
 name: token-archaeologist
 category: intake
 layer: foundation
+ambient: true
 description: Design-token extraction worker for existing-project mode — the code-side counterpart of figma-export-tokens. Use PROACTIVELY during existing-project intake (phase 3), and on demand for "extract the host app's tokens", "what's their color palette", "pull the theme from the existing codebase", or "make /synclair/foundations match the host brand". Digs the HOST repo's styling source of truth (Tailwind config, CSS custom properties, theme objects — or de-facto tokens mined from repeated raw values) in ITS OWN context and returns a proposed seed: brand ramps + theme values + semantic mapping, ready to write into lib/system/seed/.
 tools: Bash, Read, Grep, Glob
 ---

@@ -25,12 +25,28 @@
 // full capability surface exists in the hub even when the full text isn't bridged.
 // Falls back to a default set if no skill is flagged.
 
-import { readFileSync, writeFileSync, existsSync, rmSync, cpSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_BRIDGE_SKILLS = ["product-spec", "project-identity"];
 const DOORWAYS = [".claude/skills", ".agents/skills", ".cursor/skills"];
+
+// Subagents reach the host root the same way skills do, opting in with the same
+// `ambient: true` frontmatter flag — so the decision stays on each capability
+// rather than in a list here that drifts as agents are added.
+//
+// Why this exists: agent tools discover subagents from `.claude/agents` at the
+// SESSION root. Synclair's live in the co-located subdir, so from the host root
+// they were invisible — `component-cataloger` and the rest could not be invoked
+// at all, even though the AGENTS.md block said "invoke them by name". Flag the
+// HOST-FACING ones (the diggers that read the host repo); hub-facing reviewers
+// that assume Synclair's own structure stay unflagged and unbridged.
+//
+// One doorway, not three: `.claude/agents` is the only subagent directory
+// convention that is real today. Inventing `.agents/agents` / `.cursor/agents`
+// would scatter copies nothing reads.
+const AGENT_DOORWAYS = [".claude/agents"];
 
 // Deeper capabilities that stay in the hub (too app-structure-specific to copy),
 // but are advertised in the AGENTS.md doorway so every agent knows they exist and
@@ -52,6 +68,7 @@ const BLOCK_RE = /<!-- synclair:bridge:start[\s\S]*?<!-- synclair:bridge:end -->
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const synclairRoot = dirname(scriptDir);
 const skillsDir = join(synclairRoot, ".claude", "skills");
+const agentsDir = join(synclairRoot, ".claude", "agents");
 const check = process.argv.includes("--check");
 
 // --- topology: only bridge when co-located inside a host repo ----------------
@@ -72,6 +89,15 @@ function selectSkills() {
   return flagged.length ? flagged.sort() : DEFAULT_BRIDGE_SKILLS;
 }
 
+/** Agents flagged `ambient: true`. Empty is legitimate — bridge nothing. */
+function selectAgents() {
+  if (!existsSync(agentsDir)) return [];
+  return readdirSync(agentsDir)
+    .filter((f) => f.endsWith(".md"))
+    .filter((f) => /(^|\n)ambient:\s*true\s*(\n|$)/.test(frontmatter(readFileSync(join(agentsDir, f), "utf8"))))
+    .sort();
+}
+
 function walk(dir, base = dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -82,7 +108,7 @@ function walk(dir, base = dir, out = []) {
 }
 
 // --- AGENTS.md router block (what Codex/Cursor read; Claude gets it via import) ---
-function agentsBlock(skills) {
+function agentsBlock(skills, agents = []) {
   // Only advertise pointer skills that actually exist in the hub, so a renamed
   // or removed skill never leaves a dead pointer in the doorway.
   const pointers = POINTER_SKILLS.filter(([s]) => existsSync(join(skillsDir, s, "SKILL.md")));
@@ -112,9 +138,24 @@ function agentsBlock(skills) {
           "",
         ]
       : []),
-    "Specialist agents (diggers, cataloger, tier-arbiter, reviewers, visual",
-    "validator) live in `synclair/.claude/agents/` — invoke them by name.",
-    "",
+    ...(agents.length
+      ? [
+          "Specialist SUBAGENTS bridged to this root — invoke them by name:",
+          "",
+          ...agents.map((f) => `- **${f.replace(/\.md$/, "")}**`),
+          "",
+          "The rest (reviewers, tier-arbiter, visual validator) assume Synclair's own",
+          "structure and stay in `synclair/.claude/agents/` — run them from there.",
+          "",
+        ]
+      : [
+          "Specialist agents (diggers, cataloger, tier-arbiter, reviewers, visual",
+          "validator) live in `synclair/.claude/agents/`. NOTE: agent tools only",
+          "discover subagents at the session root, so from here they are not",
+          "invokable by name — `cd synclair` first, or flag one `ambient: true`",
+          "and re-run the bridge.",
+          "",
+        ]),
     "The full hub (component catalog, system map, design tokens) is the co-located",
     "app: `cd synclair && npm run dev` → http://localhost:4100/synclair.",
     "",
@@ -184,13 +225,54 @@ for (const name of skills) {
   }
 }
 
-if (!upsertAgentsBlock(hostRoot, agentsBlock(skills))) ok = false;
+const agents = selectAgents();
+for (const file of agents) {
+  const src = join(agentsDir, file);
+  const body = readFileSync(src, "utf8");
+  for (const doorway of AGENT_DOORWAYS) {
+    const dest = join(hostRoot, doorway, file);
+    if (check) {
+      if (!existsSync(dest) || readFileSync(dest, "utf8") !== body) {
+        console.error(`✗ drift: ${doorway}/${file} differs from canonical.`);
+        ok = false;
+      }
+    } else {
+      mkdirSync(dirname(dest), { recursive: true });
+      writeFileSync(dest, body);
+    }
+  }
+}
+
+// Remove doorway agents that are no longer flagged, so un-flagging an agent
+// actually withdraws it instead of leaving an orphan the host still resolves.
+for (const doorway of AGENT_DOORWAYS) {
+  const dir = join(hostRoot, doorway);
+  if (!existsSync(dir)) continue;
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+    if (agents.includes(file)) continue;
+    if (!existsSync(join(agentsDir, file))) continue; // not ours — leave it alone
+    if (check) { console.error(`✗ stale: ${doorway}/${file} is no longer flagged ambient.`); ok = false; }
+    else rmSync(join(dir, file), { force: true });
+  }
+}
+
+if (!upsertAgentsBlock(hostRoot, agentsBlock(skills, agents))) ok = false;
 
 if (check) {
   if (!ok) { console.error("\nRun `node synclair/scripts/bridge-agents.mjs` to refresh the doorways."); process.exit(1); }
   console.log(`✓ agent bridge in sync (${skills.join(", ")} → .claude/.agents/.cursor).`);
+  console.log(
+    agents.length
+      ? `✓ ${agents.length} subagent(s) in sync → ${AGENT_DOORWAYS.join(", ")}.`
+      : `· no subagents flagged \`ambient: true\` — none bridged.`
+  );
 } else {
   console.log(`✓ bridged ${skills.join(", ")} → ${DOORWAYS.join(", ")} at the host root`);
+  if (agents.length)
+    console.log(
+      `  + ${agents.length} subagent(s) → ${AGENT_DOORWAYS.join(", ")}: ` +
+        agents.map((f) => f.replace(/\.md$/, "")).join(", ")
+    );
   console.log("  + refreshed the Product knowledge block in AGENTS.md");
   console.log("  Commit the new .claude/.agents/.cursor folders + AGENTS.md so the team gets them on pull.");
 }

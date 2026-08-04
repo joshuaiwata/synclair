@@ -2,6 +2,7 @@
 name: page-mapper
 category: intake
 layer: foundation
+ambient: true
 description: App-sitemap digest worker — the route/view counterpart of the system-mapper. Use PROACTIVELY via the pages-map skill, during existing-project intake, and on demand for "map the pages/views/routes", "build a sitemap", "what pages does this app have", or "what components does each screen use". Reads a repo's router (this one or the HOST) in ITS OWN context and returns a ready-to-write data/pages-map.json — every route, the components/blocks/templates it composes, its navigation edges, and a live-preview URL — so /synclair/pages shows the whole app at a glance without anyone reading the routing tree.
 tools: Bash, Read, Grep, Glob
 ---

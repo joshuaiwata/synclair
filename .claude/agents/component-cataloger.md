@@ -2,6 +2,7 @@
 name: component-cataloger
 category: intake
 layer: foundation
+ambient: true
 description: Host-component cataloging worker for existing-project mode. Use PROACTIVELY during existing-project intake (phase 4, after the survey), and on demand for "catalog the host components", "add <component> to the library from the host app", or to refresh entries that `npm run check:host` flagged as stale. Reads host component sources in ITS OWN context and returns ready-to-write `data/external-catalog.json` entries — name, API from the types, real usage snippets, import-graph usage counts, sha256 source hashes — so the hub's galleries document the host's design system without importing its code.
 tools: Bash, Read, Grep, Glob
 ---

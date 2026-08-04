@@ -59,6 +59,28 @@ Write `data/reports/<id>.json` conforming to `ReportDoc` (`lib/system/reports.ts
 (`{ id, track, area, title, detail, status, delta }`). Ranked, plain-English,
 backend-free — each rec a change the user *chooses* to run.
 
+- **`headline` names the report; it does not editorialise.** The field is called a
+  headline, but this is a status document, not a newspaper. Write what the report
+  *covers* — subject, run type, scope — and leave the findings to the findings.
+  Keep it under ~60 characters, no verb-driven claims, no drama.
+
+  | | |
+  |---|---|
+  | ✅ | `<subject> — intake build report` |
+  | ✅ | `<subject> — library + system map coverage` |
+  | ✅ | `<subject> — fix re-run (<date>)` |
+  | ❌ | `Every gap the last report ranked is closed, and one was wrong` |
+  | ❌ | `The catalog is inverted` |
+  | ❌ | `Everything renders now; the catalog still isn't the product` |
+
+  The failed ones read as a verdict the reader has to take on faith before seeing
+  any evidence. A reader scanning an archive of ten reports needs to tell them
+  apart by scope and date, not by which had the most quotable conclusion.
+
+- **`dek` is one flat sentence of scope**, not a thesis: what was examined and
+  what changed since the prior run. Save conclusions for `areas[]` and
+  `recommendations[]`, which are structured so the reader can check them.
+
 - **Re-run after fixes:** copy the prior report to a new dated `id`, flip cleared
   recommendations to `status: "done"` (or `"in-progress"`), update the affected
   area's `found`/`gap`/`next`, and re-verify counts. Keep the old file.
