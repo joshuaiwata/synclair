@@ -150,10 +150,21 @@ const slugify = (route) =>
     .replace(/^-|-$/g, "")
     .toLowerCase() || "home"
 
-/** A concrete path to frame — a preview of "/orders/[id]" can't load literally. */
-function previewFor(route, dynamic, api) {
+/**
+ * A concrete path to frame — a preview of "/orders/[id]" can't load literally.
+ *
+ * `previewable` means SAME-ORIGIN: the hub can frame the route directly because
+ * the hub serves it. That is only ever true when the map is of this app. For a
+ * HOST repo the route belongs to another server, so it must stay false and
+ * resolve through `liveBaseUrl` (`resolvePreviewSrc` in lib/system/dev-servers)
+ * — otherwise the bare path is framed against the hub's own origin and every
+ * preview 404s while the host dev server sits there running.
+ */
+function previewFor(route, dynamic, api, sameOrigin) {
   if (api) return { previewable: false }
-  if (!dynamic) return { previewUrl: route, previewable: true }
+  // A host route still records its path: that is what gets appended to the live
+  // base URL, and what "open route" links to when the host is not running.
+  if (!dynamic) return { previewUrl: route, previewable: sameOrigin }
   // Dynamic routes need a real example; the agent supplies one it knows exists.
   return { previewable: false }
 }
@@ -168,7 +179,7 @@ const found = walk(APP_DIR)
       file,
       kind: api ? "api" : dynamic ? "dynamic" : "page",
       ...(dynamic ? { dynamic: true } : {}),
-      ...previewFor(route, dynamic, api),
+      ...previewFor(route, dynamic, api, !hostRoot),
     }
   })
   .sort((a, b) => a.route.localeCompare(b.route))
