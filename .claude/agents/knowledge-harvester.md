@@ -2,6 +2,7 @@
 name: knowledge-harvester
 category: intake
 layer: foundation
+ambient: true
 description: Project-knowledge harvesting worker for existing-project mode. Use PROACTIVELY during existing-project intake (phase 2), and on demand for "what docs does the host repo have", "populate the knowledge manifest", or "find the specs for this project". Sweeps the HOST repo for READMEs, docs/, ADRs, specs, and wiki exports in ITS OWN context, and returns proposed knowledge-manifest entries (lib/system/knowledge/sources.ts) plus a distillation priority list — so /synclair/knowledge starts populated instead of empty.
 tools: Bash, Read, Grep, Glob, WebFetch
 ---

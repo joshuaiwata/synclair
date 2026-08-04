@@ -2,6 +2,7 @@
 name: prd-retriever
 category: knowledge
 layer: foundation
+ambient: true
 description: Requirements/PRD retrieval worker. Use PROACTIVELY at the start of building any specific view or feature to fetch just the requirements that matter for it — reads the source of record (spec/PRD/deck/Figma) in its own context and returns a tight brief, so the main thread never has to load a 40-page doc. Also on demand for "what does the PRD say about X", "pull the requirements for the change-order view", or "what's specced for this area".
 tools: Read, Grep, Glob, WebFetch, WebSearch
 ---

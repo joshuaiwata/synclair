@@ -2,6 +2,7 @@
 name: codebase-surveyor
 category: intake
 layer: foundation
+ambient: true
 description: Host-codebase survey worker for existing-project mode. Use PROACTIVELY as the FIRST digger when Synclair runs beside an existing app (the existing-project-intake skill's phase 1), and on demand for "survey the host repo", "what stack is the host app", or "orient me in the existing codebase". Reads the host repo in ITS OWN context and returns a tight orientation digest — framework, structure, conventions, where components/styles/views live — so the main thread and every later digger start oriented instead of blank. Transient orientation only: for the durable /synclair/system artifact ("map the codebase"), use the system-mapper via the codebase-map skill instead.
 tools: Bash, Read, Grep, Glob
 ---
