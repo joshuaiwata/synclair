@@ -29,7 +29,7 @@
  */
 
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -189,6 +189,47 @@ function checkProvenanced(rel, artifact, emptyHint, fix) {
   }
 }
 
+/**
+ * The Figma manifest, reported by AGE rather than by hash.
+ *
+ * Every other artifact here is anchored to files on disk, so "has the source
+ * moved" is answerable locally. Figma's has not: the source lives behind an
+ * authenticated API this deterministic check will not call, which is exactly why
+ * the generic knowledge probe reports those sources `unverifiable` rather than
+ * guessing. So the honest signal is not freshness but AGE — how long since anyone
+ * looked. A snapshot nobody has refreshed in months is the thing worth surfacing,
+ * and silence about it was reading as "fine".
+ */
+function checkFigmaManifest() {
+  const dir = path.join(ROOT, "data", "figma-manifest")
+  let snapshots = []
+  try {
+    snapshots = readdirSync(dir).filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort()
+  } catch {
+    /* never generated */
+  }
+  const latest = snapshots.at(-1)
+  if (!latest) {
+    return {
+      artifact: "figma-manifest",
+      state: "absent",
+      detail: "no snapshot on record — the `figma-distiller` skill takes one",
+    }
+  }
+  const taken = latest.replace(/\.json$/, "")
+  const days = Math.floor((Date.now() - Date.parse(taken)) / 86_400_000)
+  // 30 days is a judgement, not a measurement: long enough that a working file
+  // has certainly moved, short enough to still be actionable.
+  const old = days >= 30
+  return {
+    artifact: "figma-manifest",
+    state: old ? "stale" : "fresh",
+    detail: `snapshot taken ${taken} (${days} day${days === 1 ? "" : "s"} ago) — age only; Figma cannot be hashed locally`,
+    stale: old ? 1 : 0,
+    ...(old ? { fix: "re-take the snapshot via the `figma-distiller` skill" } : {}),
+  }
+}
+
 report.push(checkPages())
 report.push(checkCatalog())
 report.push(
@@ -197,6 +238,15 @@ report.push(
 report.push(
   checkProvenanced("data/host-hygiene.json", "hygiene", "no scan on record", "npm run scan:hygiene")
 )
+report.push(
+  checkProvenanced(
+    "data/contracts.json",
+    "contracts",
+    "not derived — npm run scan:contracts",
+    "npm run scan:contracts -- --write"
+  )
+)
+report.push(checkFigmaManifest())
 
 // ----------------------------------------------------------------- cascade
 /**

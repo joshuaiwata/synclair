@@ -14,6 +14,7 @@
  *   node scripts/scan-host-hygiene.mjs --host ../acme-app --name acme-app
  */
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -138,6 +139,8 @@ function walk(dir, rootAbs, files) {
 }
 
 const allFindings = [];
+/** Host-prefixed paths of every file a finding was recorded in — the anchor. */
+const flaggedFiles = new Set();
 const perRule = new Map(); // id -> { count, files:Set, kept }
 const perFile = new Map(); // hostPath -> { count, byRule }
 let scannedFiles = 0;
@@ -203,6 +206,11 @@ for (const host of hosts) {
         fileStat.count += 1;
         fileStat.byRule[rule.id] = (fileStat.byRule[rule.id] ?? 0) + 1;
         perFile.set(rel, fileStat);
+        // Anchor source, collected HERE because this is the only place the host
+        // is still known: a finding records `hostPath` relative to its own host
+        // and no host id, so the same path in two hosts is indistinguishable
+        // afterwards. Prefixing now keeps the anchor unambiguous.
+        flaggedFiles.add(`${String(host.root).replace(/\/+$/, "")}/${relPosix}`);
         if (stat.kept < FINDINGS_CAP_PER_RULE) {
           stat.kept += 1;
           allFindings.push({
@@ -246,13 +254,60 @@ const topFiles = [...perFile.entries()]
     byRule: s.byRule,
   }));
 
+/**
+ * ANCHOR the report to the files it found something in.
+ *
+ * Not every file scanned. This walk covers hundreds across several hosts, and an
+ * anchor over all of them marks the report stale on any edit anywhere in the
+ * repo — a warning that fires constantly is one people learn to scroll past, and
+ * it would be wrong besides: a clean file changing does not make findings about
+ * OTHER files untrue.
+ *
+ * The files WITH findings are the ones the report actually describes, so they
+ * are exactly what should invalidate it. Change one and the report may no longer
+ * be right about it; change something else and the report still stands.
+ *
+ * Paths are recorded relative to THIS repo (`repo.root: "."`) rather than to a
+ * host, because the findings span several hosts and an anchor has one base. A
+ * per-host base would silently skip every file from the other hosts and leave a
+ * hash that looks complete but covers a fraction.
+ */
+function sourceAnchor() {
+  const sourceFiles = [...flaggedFiles].sort();
+  if (!sourceFiles.length) return {};
+  const hash = createHash("sha256");
+  let any = false;
+  for (const r of sourceFiles) {
+    const abs = path.join(root, r);
+    if (!existsSync(abs)) continue;
+    hash.update(r);
+    hash.update("\n");
+    hash.update(readFileSync(abs));
+    hash.update("\0");
+    any = true;
+  }
+  return any ? { sourceFiles, sourceHash: hash.digest("hex") } : {};
+}
+
 const report = {
   scannedAt: new Date().toISOString(),
+  // `repo.root: "."` tells check:freshness to resolve sourceFiles against this
+  // repo, which is the only base that reaches every host in a multi-host scan.
+  repo: { root: "." },
   hosts: hostMeta,
   totals,
   rules,
   topFiles,
   findings: allFindings,
+  provenance: {
+    generatedAt: new Date().toISOString(),
+    generator: "scan:hygiene",
+    confidence: "high",
+    // Names the scan in the freshness report; hosts may sit at different
+    // commits, so this is the first host's, not a claim about all of them.
+    ...(hostMeta[0]?.commit ? { commit: hostMeta[0].commit } : {}),
+    ...sourceAnchor(),
+  },
 };
 writeFileSync(OUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
 

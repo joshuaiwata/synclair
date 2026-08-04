@@ -1,53 +1,452 @@
+"use client"
+
 /**
- * An entity-relationship diagram for the System Map's Data model tab, drawn to
- * ER convention per the `doc-quality` standard: a digested data model is a graph,
- * and its shape (what references what, which entities are central) reads far
- * better as a diagram than a table.
+ * Entity-relationship diagrams for the System Map's Data model tab.
  *
- * Pure server component — deterministic SVG, themed by tokens. Relationships are
- * parsed from each entity's field `note`s (the system-mapper writes FK hints like
- * "FK -> Team"). Every FK edge is many-to-one, so we show it to convention:
- * a **crow's-foot** at the record holding the key (the "many") and an
- * **arrowhead** at the record it references (the "one"), so direction and
- * cardinality are both legible. Entities are laid out in reference layers
- * (parents above the children that point to them), ordered to reduce crossings.
+ * ── WHY THIS IS A CANVAS ─────────────────────────────────────────────────────
+ * This was server-rendered SVG, which is cheaper in every way except the one
+ * that mattered: a static image has no viewport, so it cannot zoom. A real
+ * schema is either drawn small enough to fit — labels below legibility — or
+ * drawn legibly and scrolled past a slot at a time. Neither lets you see the
+ * shape AND read a column, which is the whole job. So: a pannable, zoomable
+ * canvas, at the cost of the diagram no longer being in the initial HTML.
  *
- * This is the ORIENTATION view: to stay readable it draws only the core
- * (~10 most-connected) entities. Full field detail for every entity — including
- * the long tail not drawn here — lives in the accordion below.
+ * ── WHAT IS *NOT* DELEGATED ──────────────────────────────────────────────────
+ * The LAYOUT. React Flow renders nodes at positions you give it; it does not
+ * place them, and the usual reach for a force-directed pass is a mistake here —
+ * a physics sim settles differently on every visit, so the same schema is a
+ * different picture each time you open it and nothing is memorable. Positions
+ * stay deterministic: reference layers (parents above the children pointing at
+ * them), each row ordered by the barycentre of its already-placed targets to cut
+ * crossings. Same input, same picture, every time.
+ *
+ * ── ONE DIAGRAM PER SOURCE ───────────────────────────────────────────────────
+ * A service-per-database system has no foreign keys BETWEEN its databases, so a
+ * single canvas over every entity is not one graph — it is N disconnected
+ * islands ranked against each other for space, and the largest schema silently
+ * takes every slot.
+ *
+ * ── EDGES ────────────────────────────────────────────────────────────────────
+ * From a field NOTE that spells the reference out ("FK -> Team"), or a field
+ * TYPE that names another entity ("owner: Team"). A LIST type is excluded: it is
+ * the BACK-relation, whose foreign key lives on the other record. Counting lists
+ * gives every relation an edge in both directions, which cycles each pair and
+ * collapses the layering — the visible symptom being child tables floating
+ * unconnected above their parent.
  */
+import {
+  Background,
+  Controls,
+  Handle,
+  MiniMap,
+  Position,
+  ReactFlow,
+  type Edge,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
+import { useMemo, useState } from "react"
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { DataEntity } from "@/lib/system/system-map"
 
-/** How many entities the orientation graph draws before it turns into a tangle. */
-const MAX_NODES = 10
+/** Sentinel for the "no namespace filter" option — Select has no empty value. */
+const ALL = "__all__"
 
-/** First token of an entity name — "DocumentVersion / DocumentPage" -> "DocumentVersion". */
+/** Safety valve per diagram — a budget for pathological schemas, not a target. */
+const MAX_NODES = 60
+/** Columns drawn before a node summarises the rest. Zoom makes this generous. */
+const MAX_ROWS = 20
+
+const NODE_W = 232
+const HEAD_H = 30
+const ROW_H = 17
+const H_GAP = 56
+const V_GAP = 96
+
+/** Canvas height. Tall enough to orient in, short enough to scroll past. */
+const CANVAS_H = 560
+
 function keyOf(name: string): string {
   return name.split(/[\s/,]+/)[0] ?? name
 }
 
+/**
+ * The entity a field REFERENCES, or "" when it does not reference one. Lists are
+ * back-relations — see the header note.
+ */
+function referencedEntity(type: string | undefined): string {
+  const raw = String(type ?? "").trim()
+  if (raw.endsWith("[]")) return ""
+  return raw.replace(/[?[\]]/g, "").trim()
+}
+
+function isKeyField(f: { name: string; note?: string }): boolean {
+  const n = f.note ?? ""
+  return /\bPK\b|\bprimary key\b|\bunique\b/i.test(n) || /^id$/i.test(f.name)
+}
+
+interface Col {
+  name: string
+  type: string
+  kind: "pk" | "fk" | "plain"
+}
+
+type TableNodeData = { label: string; cols: Col[]; extra: number }
+
+/**
+ * One table. Handles are on the top and bottom edges only, matching the layered
+ * layout: a child's TOP connects up to its parent's BOTTOM, so every edge runs
+ * the same direction and the arrow always means "references".
+ */
+function TableNode({ data }: NodeProps<Node<TableNodeData>>) {
+  return (
+    <div className="bg-card border-border overflow-hidden rounded-md border shadow-sm">
+      <Handle type="source" position={Position.Top} className="!bg-muted-foreground/40 !h-1 !w-1 !border-0" />
+      <div className="border-border text-2xs bg-muted/40 truncate border-b px-2 py-1.5 text-center font-mono font-medium">
+        {data.label}
+      </div>
+      <div className="py-1">
+        {data.cols.map((c) => (
+          <div key={c.name} className="text-3xs flex items-baseline gap-1.5 px-2 py-px font-mono">
+            <span className="text-muted-foreground/60 w-2 shrink-0">
+              {c.kind === "pk" ? "◆" : c.kind === "fk" ? "↗" : ""}
+            </span>
+            <span
+              className={
+                c.kind === "plain" ? "text-muted-foreground truncate" : "text-foreground truncate"
+              }
+            >
+              {c.name}
+            </span>
+            <span className="text-muted-foreground/50 ml-auto shrink-0 truncate">{c.type}</span>
+          </div>
+        ))}
+        {data.extra > 0 && (
+          <div className="text-3xs text-muted-foreground/60 px-2 py-px font-mono">
+            +{data.extra} more
+          </div>
+        )}
+      </div>
+      <Handle type="target" position={Position.Bottom} className="!bg-muted-foreground/40 !h-1 !w-1 !border-0" />
+    </div>
+  )
+}
+
+const nodeTypes = { table: TableNode }
+
 export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
+  /**
+   * EVERY source gets an entry, including those that produce no graph. A
+   * database whose tables hold no foreign keys to each other is a real and
+   * interesting thing to find; dropping it silently reads as missing data, and
+   * the reader has no way to tell "nothing to draw" from "we failed to draw it".
+   */
+  const groups = useMemo(() => {
+    const g = new Map<string, DataEntity[]>()
+    for (const e of entities) {
+      const src = e.source ?? ""
+      if (!g.has(src)) g.set(src, [])
+      g.get(src)!.push(e)
+    }
+    return [...g.entries()]
+      .map(([source, group]) => ({ source, group, graph: buildGraph(group) }))
+      .sort((a, b) => b.group.length - a.group.length || a.source.localeCompare(b.source))
+  }, [entities])
+
+  const [selected, setSelected] = useState(0)
+  /** Namespace filter, reset whenever the database changes. "" = all. */
+  const [ns, setNs] = useState("")
+
+  const activeIndex = Math.min(selected, Math.max(0, groups.length - 1))
+  const base = groups[activeIndex]
+
+  /**
+   * Namespaces within the selected database. A store that does not use them
+   * yields none and the second picker never appears — a single-schema project
+   * sees exactly what it saw before.
+   */
+  const namespaces = useMemo(() => {
+    if (!base) return []
+    const counts = new Map<string, number>()
+    for (const e of base.group) {
+      if (!e.namespace) continue
+      counts.set(e.namespace, (counts.get(e.namespace) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  }, [base])
+
+  /**
+   * Filtering runs BEFORE the graph is built, not after. Building the whole
+   * database and hiding nodes would leave edges pointing at things that are not
+   * there, and would keep the layering of a graph the reader cannot see — the
+   * filtered view has to be its own graph to be honest about what connects.
+   */
+  const active = useMemo(() => {
+    if (!base || !ns) return base
+    const group = base.group.filter((e) => e.namespace === ns)
+    return { source: base.source, group, graph: buildGraph(group) }
+  }, [base, ns])
+
+  if (groups.length === 0 || !active || !base) return null
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/*
+        Two selects, composing left to right — the same idiom the library
+        explorer uses for surface-then-tier. Selects rather than a row of chips
+        because these lists grow with the system: six databases and nine
+        namespaces already wrap, and a chip row that wraps to three lines has
+        stopped being a control and become a paragraph.
+      */}
+      {(groups.length > 1 || namespaces.length > 1) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {groups.length > 1 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-3xs text-muted-foreground/60 font-mono uppercase">
+                database
+              </span>
+              <Select
+                value={String(activeIndex)}
+                onValueChange={(v) => {
+                  setSelected(Number(v))
+                  // The namespaces of one database mean nothing in another.
+                  setNs("")
+                }}
+              >
+                <SelectTrigger size="sm" className="bg-card w-52 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((d, i) => (
+                    <SelectItem key={d.source} value={String(i)} className="text-xs">
+                      <span className="font-mono">{shortSource(d.source)}</span>
+                      <span className="text-muted-foreground/60 ml-1.5">
+                        {d.group.length}
+                        {d.graph === null ? " · standalone" : ""}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          )}
+
+          {/*
+            Second level: schema namespaces INSIDE the selected database. Only
+            rendered when the store declares them, so a single-schema project
+            never sees a control with one option in it.
+          */}
+          {namespaces.length > 1 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-3xs text-muted-foreground/60 font-mono uppercase">
+                schema
+              </span>
+              <Select value={ns || ALL} onValueChange={(v) => setNs(v === ALL ? "" : v)}>
+                <SelectTrigger size="sm" className="bg-card w-48 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL} className="text-xs">
+                    <span className="font-mono">all schemas</span>
+                    <span className="text-muted-foreground/60 ml-1.5">{base.group.length}</span>
+                  </SelectItem>
+                  {namespaces.map(([name, n]) => (
+                    <SelectItem key={name} value={name} className="text-xs">
+                      <span className="font-mono">{name}</span>
+                      <span className="text-muted-foreground/60 ml-1.5">{n}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          )}
+        </div>
+      )}
+
+      {active.graph ? (
+        <Canvas
+          source={active.source}
+          count={active.group.length}
+          graph={active.graph}
+          namespace={ns || undefined}
+        />
+      ) : (
+        <Standalone source={active.source} count={active.group.length} namespace={ns || undefined} />
+      )}
+
+      {groups.length > 1 && (
+        <p className="text-2xs text-muted-foreground/70">
+          One diagram per database. These schemas hold no foreign keys between
+          them — cross-database ids are resolved in application code — so they
+          are separate graphs rather than one.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A selection whose tables reference nothing internally. Said out loud rather
+ * than rendered as an empty frame: the absence of a graph is the finding, and a
+ * reader cannot otherwise tell it from a failure to draw one.
+ */
+function Standalone({
+  source,
+  count,
+  namespace,
+}: {
+  source: string
+  count: number
+  namespace?: string
+}) {
+  return (
+    <div className="bg-card rounded-lg border p-4">
+      <div
+        className="border-border text-muted-foreground flex items-center justify-center rounded-md border border-dashed px-6 text-center"
+        style={{ height: CANVAS_H / 2 }}
+      >
+        <p className="text-2xs max-w-sm">
+          <span className="text-foreground font-mono">
+            {shortSource(source)}
+            {namespace ? ` · ${namespace}` : ""}
+          </span>{" "}
+          holds {count} table{count === 1 ? "" : "s"} with{" "}
+          <span className="text-foreground font-medium">
+            no foreign keys between them
+          </span>
+          . There is no graph to draw — not a gap in the map.
+          {namespace
+            ? " Their relationships may cross into another schema; clear the filter to see them."
+            : " Each table stands alone; their field detail is below."}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** `apps/<name>/prisma/schema.prisma` -> `<name>`, else the raw path. */
+function shortSource(source: string): string {
+  const parts = source.split("/")
+  const i = parts.indexOf("apps")
+  if (i >= 0 && parts[i + 1]) return parts[i + 1]
+  return source || "data model"
+}
+
+interface Graph {
+  nodes: Node<TableNodeData>[]
+  edges: Edge[]
+  shownCount: number
+}
+
+function Canvas({
+  source,
+  count,
+  graph,
+  namespace,
+  bare = false,
+}: {
+  source: string
+  count: number
+  graph: Graph
+  namespace?: string
+  bare?: boolean
+}) {
+  const body = (
+    <>
+      <div className="border-border overflow-hidden rounded-md border" style={{ height: CANVAS_H }}>
+        <ReactFlow
+          /*
+           * Remount on every selection change so `fitView` runs again.
+           *
+           * fitView is a MOUNT-time prop — it frames what is on screen once and
+           * then leaves the viewport alone. Swap the nodes underneath it and the
+           * camera stays where the last graph left it, so a smaller schema opens
+           * scrolled off into a corner at the previous zoom. Keying the canvas to
+           * the selection is the cheap fix; the alternative is an effect calling
+           * fitView through a ReactFlowProvider, which is more machinery for the
+           * same result and one more thing to keep in sync.
+           */
+          key={`${source}::${namespace ?? ALL}`}
+          nodes={graph.nodes}
+          edges={graph.edges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.12 }}
+          minZoom={0.1}
+          maxZoom={2}
+          proOptions={{ hideAttribution: false }}
+          nodesConnectable={false}
+          edgesFocusable={false}
+          /* Dragging a node is allowed — rearranging to follow a relationship is
+             the point of a canvas — but it never persists, so a reload is always
+             the deterministic layout again. */
+          nodesDraggable
+        >
+          <Background gap={16} size={1} className="!bg-transparent" />
+          <Controls showInteractive={false} />
+          {graph.nodes.length > 12 && <MiniMap pannable zoomable className="!bg-card" />}
+        </ReactFlow>
+      </div>
+      <p className="mt-3 text-2xs text-muted-foreground/70">
+        <span className="font-mono">
+          {shortSource(source)}
+          {namespace ? ` · ${namespace}` : ""}
+        </span>{" "}
+        — each edge is a foreign key, drawn from the record holding it to the
+        record it references. <span className="font-medium">◆</span> primary
+        key, <span className="font-medium">↗</span> foreign key. Scroll to zoom,
+        drag to pan.
+        {namespace && " Edges to tables in another schema are not drawn here."}
+        {graph.shownCount < count && (
+          <>
+            {" "}
+            Drawing the {graph.shownCount} related of {count} entities here —
+            unrelated tables and full field detail are below.
+          </>
+        )}
+      </p>
+    </>
+  )
+  if (bare) return body
+  return <div className="bg-card rounded-lg border p-4">{body}</div>
+}
+
+/** Build one group's graph, or null when nothing in it references anything. */
+function buildGraph(entities: DataEntity[]): Graph | null {
   const keys = entities.map((e) => keyOf(e.name))
   const keySet = new Set(keys)
   const indexByKey = new Map(keys.map((k, i) => [k, i]))
 
-  // Edges: entity -> referenced entity, parsed from field notes ("-> Team").
   const outgoing: Set<string>[] = entities.map(() => new Set<string>())
+  const refFields: Map<string, string>[] = entities.map(() => new Map())
   entities.forEach((e, i) => {
     const self = keys[i]
     for (const f of e.fields ?? []) {
-      const note = f.note ?? ""
-      for (const m of note.matchAll(
+      for (const m of (f.note ?? "").matchAll(
         /(?:->|→|references?|FK\s+to)\s+([A-Z][A-Za-z0-9]+)/g
       )) {
-        const target = m[1]
-        if (keySet.has(target) && target !== self) outgoing[i].add(target)
+        const t = m[1]
+        if (keySet.has(t) && t !== self) {
+          outgoing[i].add(t)
+          if (!refFields[i].has(t)) refFields[i].set(t, f.name)
+        }
+      }
+      const t = referencedEntity(f.type)
+      if (t && keySet.has(t) && t !== self) {
+        outgoing[i].add(t)
+        if (!refFields[i].has(t)) refFields[i].set(t, f.name)
       }
     }
   })
 
-  // Rank by connectivity (in + out degree) and keep the core — an orientation
-  // graph shows the load-bearing entities, not all of them (doc-quality §3).
   const indeg = new Array(entities.length).fill(0)
   outgoing.forEach((set) =>
     set.forEach((t) => {
@@ -56,44 +455,55 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
     })
   )
   const degree = entities.map((_, i) => outgoing[i].size + indeg[i])
-  const ranked = entities
-    .map((_, i) => i)
-    .filter((i) => degree[i] > 0)
-    .sort((a, b) => degree[b] - degree[a] || a - b)
-  const included = new Set(ranked.slice(0, MAX_NODES))
+  const included = new Set(
+    entities
+      .map((_, i) => i)
+      .filter((i) => degree[i] > 0)
+      .sort((a, b) => degree[b] - degree[a] || a - b)
+      .slice(0, MAX_NODES)
+  )
 
-  // Keep only edges between included nodes, then the nodes those edges touch.
-  const edges: [number, number][] = []
+  const pairs: [number, number][] = []
   included.forEach((i) =>
     outgoing[i].forEach((t) => {
       const ti = indexByKey.get(t)
-      if (ti !== undefined && included.has(ti)) edges.push([i, ti])
+      if (ti !== undefined && included.has(ti)) pairs.push([i, ti])
     })
   )
   const shown = new Set<number>()
-  edges.forEach(([s, t]) => {
+  pairs.forEach(([s, t]) => {
     shown.add(s)
     shown.add(t)
   })
-  // No relationships parsed → the diagram would add nothing; the table stands alone.
   if (shown.size === 0) return null
 
-  const shownCount = shown.size
-  const totalCount = entities.length
+  // Columns: every field, marked. The FK marker uses the columns that actually
+  // carry an edge, so a reader can trace an arrow back to its field.
+  const fkNames = (i: number) => new Set(refFields[i].values())
+  const colsFor = (i: number): { cols: Col[]; extra: number } => {
+    const fks = fkNames(i)
+    const all: Col[] = (entities[i].fields ?? [])
+      // Relation-only fields (no column of their own) would read as duplicates
+      // of the scalar that holds the key, so they are left out.
+      .filter((f) => !keySet.has(referencedEntity(f.type)) || !refFields[i].size)
+      .map((f) => ({
+        name: f.name,
+        type: String(f.type ?? ""),
+        kind: isKeyField(f) ? "pk" : fks.has(f.name) ? "fk" : "plain",
+      }))
+    return { cols: all.slice(0, MAX_ROWS), extra: Math.max(0, all.length - MAX_ROWS) }
+  }
 
-  // Adjacency over the drawn subgraph.
   const outAdj = new Map<number, number[]>()
   shown.forEach((i) => outAdj.set(i, []))
-  edges.forEach(([s, t]) => outAdj.get(s)!.push(t))
+  pairs.forEach(([s, t]) => outAdj.get(s)!.push(t))
 
-  // Layer = 0 for entities that reference nothing drawn (roots/tenants, at top),
-  // else 1 + max(layer of referenced). Memoized DFS with a cycle guard.
   const layer = new Map<number, number>()
   const inProgress = new Set<number>()
   const computeLayer = (i: number): number => {
     const memo = layer.get(i)
     if (memo !== undefined) return memo
-    if (inProgress.has(i)) return 0 // cycle — break it
+    if (inProgress.has(i)) return 0
     inProgress.add(i)
     let lvl = 0
     for (const t of outAdj.get(i) ?? []) lvl = Math.max(lvl, computeLayer(t) + 1)
@@ -107,36 +517,25 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
   const rows: number[][] = Array.from({ length: maxLayer + 1 }, () => [])
   shown.forEach((i) => rows[layer.get(i)!].push(i))
 
-  // Geometry.
-  const NODE_W = 150
-  const NODE_H = 40
-  const H_GAP = 28
-  const V_GAP = 66
-  const PAD = 18
-  const rowWidth = (row: number[]) =>
-    row.length * NODE_W + (row.length - 1) * H_GAP
-  const contentW = Math.max(...rows.map(rowWidth), NODE_W)
-  const width = contentW + PAD * 2
-  const height = (maxLayer + 1) * NODE_H + maxLayer * V_GAP + PAD * 2
+  const cols = new Map<number, { cols: Col[]; extra: number }>()
+  shown.forEach((i) => cols.set(i, colsFor(i)))
+  const nodeH = (i: number) => {
+    const c = cols.get(i)!
+    return HEAD_H + (c.cols.length + (c.extra ? 1 : 0)) * ROW_H + 8
+  }
 
-  // Position each node. Order the top row stably, then each lower row by the
-  // barycenter of its already-placed targets — a single Sugiyama-style down-sweep
-  // that pulls children under their parents and cuts edge crossings.
+  const layerH = rows.map((row) => Math.max(...row.map(nodeH), HEAD_H))
+  const layerY: number[] = []
+  let y = 0
+  layerH.forEach((h, l) => {
+    layerY[l] = y
+    y += h + (l < maxLayer ? V_GAP : 0)
+  })
+
   const pos = new Map<number, { x: number; y: number }>()
   const centerX = new Map<number, number>()
-  rows.forEach((row, l) => {
-    const ordered =
-      l === 0
-        ? [...row].sort((a, b) => a - b)
-        : [...row].sort((a, b) => bary(a) - bary(b) || a - b)
-    const startX = PAD + (contentW - rowWidth(ordered)) / 2
-    ordered.forEach((i, j) => {
-      const x = startX + j * (NODE_W + H_GAP)
-      const y = PAD + l * (NODE_H + V_GAP)
-      pos.set(i, { x, y })
-      centerX.set(i, x + NODE_W / 2)
-    })
-  })
+  const rowWidth = (row: number[]) => row.length * NODE_W + (row.length - 1) * H_GAP
+  const contentW = Math.max(...rows.map(rowWidth), NODE_W)
 
   function bary(i: number): number {
     const targets = outAdj.get(i) ?? []
@@ -145,90 +544,39 @@ export function DataModelDiagram({ entities }: { entities: DataEntity[] }) {
     return placed.reduce((s, x) => s + x, 0) / placed.length
   }
 
-  return (
-    <div className="bg-card overflow-x-auto rounded-lg border p-4">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        width={width}
-        height={height}
-        className="max-w-full"
-        role="img"
-        aria-label="Entity-relationship diagram of the core data model"
-      >
-        {/* Edges + ER endpoint markers, under the nodes. The path is vertical at
-            both endpoints (control points share the endpoint x), so the crow's
-            foot and arrowhead are drawn with fixed vertical geometry. */}
-        {edges.map(([s, t], k) => {
-          const from = pos.get(s)
-          const to = pos.get(t)
-          if (!from || !to) return null
-          const x1 = centerX.get(s)!
-          const y1 = from.y // top of source (the "many")
-          const x2 = centerX.get(t)!
-          const y2 = to.y + NODE_H // bottom of target (the "one")
-          const my = (y1 + y2) / 2
-          return (
-            <g key={k} className="stroke-muted-foreground/45">
-              <path
-                d={`M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`}
-                className="fill-none"
-                strokeWidth={1}
-              />
-              {/* Crow's foot at the source: three prongs = "many". */}
-              <path
-                d={`M ${x1} ${y1 - 9} L ${x1 - 5} ${y1} M ${x1} ${y1 - 9} L ${x1} ${y1} M ${x1} ${y1 - 9} L ${x1 + 5} ${y1}`}
-                className="fill-none"
-                strokeWidth={1}
-              />
-              {/* Arrowhead at the target: points to the referenced "one". */}
-              <path
-                d={`M ${x2 - 4} ${y2 + 6} L ${x2} ${y2} L ${x2 + 4} ${y2 + 6} Z`}
-                className="fill-muted-foreground/60 stroke-none"
-              />
-            </g>
-          )
-        })}
-        {/* Nodes. */}
-        {[...shown].map((i) => {
-          const p = pos.get(i)
-          if (!p) return null
-          return (
-            <g key={i}>
-              <rect
-                x={p.x}
-                y={p.y}
-                width={NODE_W}
-                height={NODE_H}
-                rx={6}
-                className="fill-card stroke-border"
-                strokeWidth={1}
-              />
-              <text
-                x={p.x + NODE_W / 2}
-                y={p.y + NODE_H / 2}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="fill-foreground font-mono text-2xs"
-              >
-                {keyOf(entities[i].name)}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-      <p className="mt-3 text-2xs text-muted-foreground/70">
-        Each edge is a foreign key: the{" "}
-        <span className="font-medium">crow&rsquo;s foot</span> marks the record
-        holding it (many), the <span className="font-medium">arrow</span> points
-        to the record it references (one).
-        {shownCount < totalCount && (
-          <>
-            {" "}
-            Showing the {shownCount} most-connected of {totalCount} entities —
-            full field detail for all is below.
-          </>
-        )}
-      </p>
-    </div>
-  )
+  rows.forEach((row, l) => {
+    const sorted =
+      l === 0 ? [...row].sort((a, b) => a - b) : [...row].sort((a, b) => bary(a) - bary(b) || a - b)
+    const startX = (contentW - rowWidth(sorted)) / 2
+    sorted.forEach((i, j) => {
+      const x = startX + j * (NODE_W + H_GAP)
+      pos.set(i, { x, y: layerY[l] })
+      centerX.set(i, x + NODE_W / 2)
+    })
+  })
+
+  const nodes: Node<TableNodeData>[] = [...shown].map((i) => {
+    const c = cols.get(i)!
+    return {
+      id: String(i),
+      type: "table",
+      position: pos.get(i)!,
+      width: NODE_W,
+      data: { label: keyOf(entities[i].name), cols: c.cols, extra: c.extra },
+      draggable: true,
+    }
+  })
+
+  const edges: Edge[] = pairs.map(([s, t], k) => ({
+    id: `e${k}-${s}-${t}`,
+    source: String(s),
+    target: String(t),
+    // Orthogonal routing: right angles share corridors, so a bundle of edges
+    // reads as routes rather than a knot. Curves stop being followable at scale.
+    type: "smoothstep",
+    markerEnd: { type: "arrowclosed" as never, width: 14, height: 14 },
+    style: { strokeWidth: 1 },
+  }))
+
+  return { nodes, edges, shownCount: shown.size }
 }

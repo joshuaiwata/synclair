@@ -16,7 +16,9 @@
  *   npm run scan:contracts -- --json
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { createHash } from "node:crypto"
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -86,10 +88,61 @@ const confidence = orphanConfidence({
   orphans: orphans.length,
 })
 
+/**
+ * ANCHOR the seam to the files that DECLARE the endpoints in it.
+ *
+ * Without one this map was not merely unchecked but uncheckable — nothing in the
+ * toolchain could ever report it stale, so a contract map could describe a
+ * long-since-refactored API and stay green forever.
+ *
+ * Provider sources, not every file scanned. The walk covers the whole repo, and
+ * an anchor over all of it goes stale on any edit anywhere — a warning that
+ * fires constantly teaches people to ignore it. The controllers and route
+ * handlers are what the seam actually describes, so they are what should
+ * invalidate it. Consumer call sites are deliberately excluded: a new caller
+ * does not make the recorded providers wrong, only less complete, and that is
+ * what the counts already say.
+ */
+/** The host repo's HEAD, when it is a git checkout. Label only. */
+function hostCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: hostRoot })
+      .toString()
+      .trim()
+  } catch {
+    return null
+  }
+}
+
+function sourceAnchor() {
+  const sourceFiles = [...new Set(providers.map((p) => p.source).filter(Boolean))].sort()
+  if (!sourceFiles.length) return {}
+  const hash = createHash("sha256")
+  let any = false
+  for (const r of sourceFiles) {
+    const abs = path.join(hostRoot, r)
+    if (!existsSync(abs)) continue
+    hash.update(r)
+    hash.update("\n")
+    hash.update(readFileSync(abs))
+    hash.update("\0")
+    any = true
+  }
+  return any ? { sourceFiles, sourceHash: hash.digest("hex") } : {}
+}
+
 const report = {
   generatedAt: new Date().toISOString(),
   generator: "scan:contracts",
   repo: { root: hostRoot === HUB_ROOT ? null : path.relative(HUB_ROOT, hostRoot) },
+  provenance: {
+    generatedAt: new Date().toISOString(),
+    generator: "scan:contracts",
+    confidence: "medium",
+    // Names the scan in the freshness report rather than "anchored at ?".
+    ...(hostCommit() ? { commit: hostCommit() } : {}),
+    ...sourceAnchor(),
+  },
   scanned: roots,
   providers,
   links,
