@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises"
 import path from "node:path"
 
 import { layerOf, type CapabilityLayer } from "./capability-categories"
+import { extensionById } from "./extensions-manifest"
 import { readFrontmatter, summarize } from "./frontmatter"
 
 const AGENTS_DIR = path.join(process.cwd(), ".claude", "agents")
@@ -17,6 +18,8 @@ export interface AgentEntry {
   category?: string
   /** "foundation" (ships with Synclair) | "project" (this repo's own). */
   layer: CapabilityLayer
+  /** Owning extension id (frontmatter `extension:`) — badge on AI Setup. */
+  extension?: string
   /** repo-relative path to the .md file */
   file: string
 }
@@ -49,7 +52,12 @@ async function getAgentsUncached(): Promise<AgentEntry[]> {
         summary: summarize(fm.description),
         source: SOURCE_OVERRIDES[name] ?? "custom",
         category: fm.category,
-        layer: layerOf(fm.layer),
+        // An extension's capabilities take the EXTENSION's layer — extensions
+        // are Synclair machinery, so their skills/agents sort with Synclair.
+        layer: fm.extension
+          ? (extensionById(fm.extension)?.layer ?? layerOf(fm.layer))
+          : layerOf(fm.layer),
+        extension: fm.extension,
         file: `.claude/agents/${f}`,
       }
     })

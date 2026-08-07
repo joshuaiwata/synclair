@@ -3,6 +3,14 @@ import type { Metadata } from "next"
 import { AppSidebar } from "@/components/blocks/app-sidebar"
 import { CommandPalette } from "@/components/blocks/command-palette"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import {
+  getExtensionState,
+  resolveEnabledExtensions,
+  resolveHiddenSections,
+} from "@/lib/system/extensions"
+import { coreSections, EXTENSIONS } from "@/lib/system/extensions-manifest"
+import { isHostedRuntime } from "@/lib/system/hub-identity"
+import { isMultiSurface } from "@/lib/system/surfaces"
 import { getLatestCommitDate } from "@/lib/system/git-dates"
 import { getHostStatus } from "@/lib/system/host-status"
 import { getSearchIndex } from "@/lib/system/search-index"
@@ -26,12 +34,28 @@ export default async function SynclairLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const [searchIndex, latestCommit, setupMode, hostStatus] = await Promise.all([
-    getSearchIndex(),
-    getLatestCommitDate(),
-    getSetupMode(),
-    getHostStatus(),
-  ])
+  const [searchIndex, latestCommit, setupMode, hostStatus, extensionState] =
+    await Promise.all([
+      getSearchIndex(),
+      getLatestCommitDate(),
+      getSetupMode(),
+      getHostStatus(),
+      getExtensionState(),
+    ])
+  // Nav state for the sidebar (docs/extensibility.md): hidden core sections
+  // plus each extension resolved against its manifest default. Hiding is
+  // resolved SERVER-side per environment — "local-only" sections drop out here
+  // on the hosted hub, so the client never re-derives environment rules.
+  const hiddenSections = resolveHiddenSections(
+    extensionState,
+    coreSections(isMultiSurface()),
+    isHostedRuntime()
+  )
+  const enabledExtensions = resolveEnabledExtensions(
+    extensionState,
+    EXTENSIONS.map((extension) => extension.id),
+    isHostedRuntime()
+  )
   // Live "last updated" from git history — never a hardcoded snapshot date.
   const updatedLabel = latestCommit
     ? `Updated ${new Date(latestCommit).toLocaleDateString("en-US", {
@@ -59,7 +83,9 @@ export default async function SynclairLayout({
           `${hostStatus.hostName}: ${hostStatus.catalogedCount} cataloged`,
           commits != null ? `${commits} host commits since intake` : null,
           gaps > 0 ? `${gaps} candidate component files uncataloged` : null,
-          attention ? "Refresh via the existing-project-intake skill." : "Catalog is current.",
+          attention
+            ? "Refresh via the existing-project-intake skill."
+            : "Catalog is current.",
         ]
           .filter(Boolean)
           .join(" · ")
@@ -68,7 +94,13 @@ export default async function SynclairLayout({
     : undefined
   return (
     <SidebarProvider>
-      <AppSidebar snapshot={updatedLabel} mode={modeBadge} host={hostBadge} />
+      <AppSidebar
+        snapshot={updatedLabel}
+        mode={modeBadge}
+        host={hostBadge}
+        hiddenSections={hiddenSections}
+        enabledExtensions={enabledExtensions}
+      />
       <SidebarInset>{children}</SidebarInset>
       <CommandPalette items={searchIndex} />
     </SidebarProvider>

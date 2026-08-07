@@ -11,6 +11,9 @@ export interface Frontmatter {
    * this repo's own. Absent ⇒ project (the default for a clone's own work).
    */
   layer?: string
+  /** Owning extension id (extensions-manifest.ts) — for extension-contributed
+   *  capabilities, so AI Setup can attribute them. */
+  extension?: string
 }
 
 /** Pull `name` / `description` / `category` / `layer` out of a leading `---` block. */
@@ -26,6 +29,7 @@ export function parseFrontmatter(content: string): Frontmatter {
     else if (key === "description") fm.description = value.trim()
     else if (key === "category") fm.category = value.trim()
     else if (key === "layer") fm.layer = value.trim()
+    else if (key === "extension") fm.extension = value.trim()
   }
   return fm
 }

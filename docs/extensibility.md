@@ -1,9 +1,34 @@
 # Synclair extensibility — Core vs Extensions
 
-**Status: DRAFT / plan for discussion. No code yet.** Nothing in this document
-changes a running clone. It exists to draw one line — **what is Core and what is
-an Extension** — and to define how Extensions could plug in *without ever
-breaking a working clone* (e.g. a reference clone).
+**Status: IMPLEMENTED (phase 1).** The registry, `/synclair/settings`, and the
+extension contribution points described below all ship. What is NOT yet built:
+per-extension detail screens (an extension declaring its own status checks),
+and installing an extension from the UI — today an extension is a folder plus a
+manifest entry.
+
+Where the pieces live:
+
+| Concern | File |
+|---|---|
+| The catalog — core sections + extension manifests | `lib/system/extensions-manifest.ts` |
+| On/off state and its resolution | `lib/system/extensions.ts` |
+| Mutations (admin-gated, serialized) | `lib/system/extensions-actions.ts` |
+| Who may change settings on a deployed hub | `lib/system/hub-identity.ts` |
+| The UI | `app/synclair/(hub)/settings/` |
+| Extension-contributed MCP tools | `scripts/extension-tools.mjs` |
+
+Two axes, and they are not the same axis:
+
+- **Visibility** — where a core section appears: everywhere, on the local clone
+  only, or nowhere. Hiding is nav-level; the route stays reachable by URL.
+- **Availability** — whether an extension runs at all: everywhere, locally
+  only, or off. Off means its nav entry AND its routes AND its MCP tools are
+  gone. Its data is never touched.
+
+"Local only" exists because a deployed hub and a working clone have different
+audiences: a team's working surfaces (reports, hygiene) don't belong in front
+of stakeholders, and a capability can be trialled locally before anyone else
+sees it. The deployed runtime identifies itself with `SYNCLAIR_HOSTED=1`.
 
 ## Why
 

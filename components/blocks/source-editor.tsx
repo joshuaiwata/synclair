@@ -1,7 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { Check, Eye, FilePenLine, Loader2, MoreHorizontal } from "lucide-react"
+import {
+  Check,
+  Eye,
+  FilePenLine,
+  Loader2,
+  MoreHorizontal,
+  Puzzle,
+} from "lucide-react"
 
 import { Markdown } from "@/components/markdown"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +38,8 @@ export interface SourceItem {
   source: string
   /** "foundation" (ships with Synclair) | "project" (this repo's own). */
   layer: "foundation" | "project"
+  /** Display name of the owning extension, when this capability ships with one. */
+  extensionName?: string
   summary: string
   /** repo-relative path to the .md file */
   file: string
@@ -50,16 +59,28 @@ export function SourceRow({ item }: { item: SourceItem }) {
   const base = { kind: item.kind, name: item.name, file: item.file }
   return (
     <TableRow className="group cursor-pointer" onClick={() => open(base)}>
-      <TableCell className="font-mono text-xs font-medium">{item.name}</TableCell>
+      <TableCell className="font-mono text-xs font-medium">
+        {item.name}
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Badge variant={item.layer === "foundation" ? "secondary" : "outline"}>
+          <Badge
+            variant={item.layer === "foundation" ? "secondary" : "outline"}
+          >
             {item.layer === "foundation" ? "Synclair" : "Project"}
           </Badge>
-          <span className="text-muted-foreground text-2xs">{item.source}</span>
+          {item.extensionName && (
+            <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <Puzzle className="size-3" />
+              {item.extensionName}
+            </Badge>
+          )}
+          <span className="text-2xs text-muted-foreground">{item.source}</span>
         </div>
       </TableCell>
-      <TableCell className="text-muted-foreground whitespace-normal">{item.summary}</TableCell>
+      <TableCell className="whitespace-normal text-muted-foreground">
+        {item.summary}
+      </TableCell>
       {/* Stop the row's open-in-Preview from also firing when using the menu. */}
       <TableCell onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end">
@@ -75,7 +96,9 @@ export function SourceRow({ item }: { item: SourceItem }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => open({ ...base, tab: "preview" })}>
+              <DropdownMenuItem
+                onSelect={() => open({ ...base, tab: "preview" })}
+              >
                 <Eye />
                 Preview
               </DropdownMenuItem>
@@ -96,7 +119,11 @@ export function SourceRow({ item }: { item: SourceItem }) {
  * active file rather than stacking a second sheet — so a save can only ever target
  * the file currently shown. Saving requires an explicit confirmation.
  */
-export function SourceEditorProvider({ children }: { children: React.ReactNode }) {
+export function SourceEditorProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [active, setActive] = React.useState<Active | null>(null)
   const [tab, setTab] = React.useState<EditorTab>("preview")
   const [loading, setLoading] = React.useState(false)
@@ -121,7 +148,9 @@ export function SourceEditorProvider({ children }: { children: React.ReactNode }
         setContent(text)
         setDraft(text)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load file"))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Failed to load file")
+      )
       .finally(() => setLoading(false))
   }, [])
 
@@ -159,17 +188,21 @@ export function SourceEditorProvider({ children }: { children: React.ReactNode }
       >
         <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-2xl">
           <SheetHeader className="border-b">
-            <SheetTitle className="font-mono text-sm">{active?.name}</SheetTitle>
-            <SheetDescription className="font-mono text-xs">{active?.file}</SheetDescription>
+            <SheetTitle className="font-mono text-sm">
+              {active?.name}
+            </SheetTitle>
+            <SheetDescription className="font-mono text-xs">
+              {active?.file}
+            </SheetDescription>
           </SheetHeader>
 
           {loading ? (
-            <div className="text-muted-foreground flex flex-1 items-center justify-center gap-2 text-sm">
+            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Loading…
             </div>
           ) : error && !content ? (
-            <div className="text-destructive flex-1 p-4 text-sm">{error}</div>
+            <div className="flex-1 p-4 text-sm text-destructive">{error}</div>
           ) : (
             <Tabs
               value={tab}
@@ -188,35 +221,55 @@ export function SourceEditorProvider({ children }: { children: React.ReactNode }
                   </TabsTrigger>
                 </TabsList>
                 <div className="flex items-center gap-2">
-                  {error && <span className="text-destructive text-xs">{error}</span>}
+                  {error && (
+                    <span className="text-xs text-destructive">{error}</span>
+                  )}
                   {saved && (
-                    <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Check className="size-3.5" /> Saved
                     </span>
                   )}
                   {confirming ? (
                     <>
-                      <span className="text-muted-foreground text-xs">Overwrite this file?</span>
-                      <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+                      <span className="text-xs text-muted-foreground">
+                        Overwrite this file?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setConfirming(false)}
+                      >
                         Cancel
                       </Button>
                       <Button size="sm" onClick={doSave} disabled={pending}>
-                        {pending && <Loader2 className="size-3.5 animate-spin" />}
+                        {pending && (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        )}
                         Confirm save
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" onClick={() => setConfirming(true)} disabled={!dirty || pending}>
+                    <Button
+                      size="sm"
+                      onClick={() => setConfirming(true)}
+                      disabled={!dirty || pending}
+                    >
                       Save
                     </Button>
                   )}
                 </div>
               </div>
 
-              <TabsContent value="preview" className="min-h-0 flex-1 overflow-y-auto p-5">
+              <TabsContent
+                value="preview"
+                className="min-h-0 flex-1 overflow-y-auto p-5"
+              >
                 <Markdown>{draft}</Markdown>
               </TabsContent>
-              <TabsContent value="edit" className="min-h-0 flex-1 overflow-hidden p-3">
+              <TabsContent
+                value="edit"
+                className="min-h-0 flex-1 overflow-hidden p-3"
+              >
                 <Textarea
                   value={draft}
                   onChange={(e) => {
