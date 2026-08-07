@@ -28,6 +28,13 @@ export interface DevServer {
   cwd?: string
   /** Which pages-map host this serves previews for — match to the map's `repo.name`. */
   host?: string
+  /**
+   * Where this host is DEPLOYED, e.g. "https://app-staging.example.com". Used
+   * only when the hub itself is running deployed (NODE_ENV=production), where
+   * `url` points at a localhost that exists on nobody's machine. Local dev is
+   * unaffected: it keeps preferring the real dev server and its boot banner.
+   */
+  hostedUrl?: string
 }
 
 export interface DevServerStatus extends DevServer {
@@ -35,6 +42,9 @@ export interface DevServerStatus extends DevServer {
 }
 
 const CONFIG_PATH = path.join(process.cwd(), "data", "dev-servers.json")
+
+/** True when the hub is the DEPLOYED build rather than someone's dev server. */
+const isDeployed = process.env.NODE_ENV === "production"
 
 function str(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined
@@ -59,6 +69,7 @@ export const getDevServerConfig = cache(async (): Promise<DevServer[]> => {
           command: str(s.command),
           cwd: str(s.cwd),
           host: str(s.host),
+          hostedUrl: str(s.hostedUrl),
         }
       })
       .filter((s): s is DevServer => s !== null)
@@ -89,9 +100,15 @@ async function isLive(url: string): Promise<boolean> {
   }
 }
 
-/** Probe every configured dev server once per request (deduped by React cache). */
+/**
+ * Probe every configured dev server once per request (deduped by React cache).
+ * Deployed, there is nothing to probe — `url` is a localhost port on someone
+ * else's laptop — so skip it rather than spend the timeout budget on every
+ * render, and report liveness as "is a deployed URL configured".
+ */
 export const getDevServers = cache(async (): Promise<DevServerStatus[]> => {
   const servers = await getDevServerConfig()
+  if (isDeployed) return servers.map((s) => ({ ...s, live: Boolean(s.hostedUrl) }))
   return Promise.all(servers.map(async (s) => ({ ...s, live: await isLive(s.url) })))
 })
 
@@ -109,6 +126,12 @@ function origin(u: string): string | null {
  * same-origin `previewBaseUrl`) to a configured server, returning its url only
  * if live; with no config, probes `previewBaseUrl` directly. Same-origin hub
  * routes have no host — pass nothing and previews use the route as-is.
+ *
+ * Deployed, the whole liveness dance is meaningless — `url` is a localhost port
+ * on a developer's laptop — so a configured `hostedUrl` wins outright and is
+ * NOT probed: the deployed host sits behind the same auth gate as the hub, so a
+ * server-side probe answers about the gate, not the app. Whether the iframe
+ * itself renders is then a browser-side question (the viewer's session).
  */
 export async function liveBaseUrlFor(
   repo?: { name?: string; previewBaseUrl?: string } | null
@@ -119,6 +142,7 @@ export async function liveBaseUrlFor(
     ? servers.find((s) => origin(s.url) && origin(s.url) === origin(repo.previewBaseUrl!))
     : undefined
   const match = byHost ?? byOrigin
+  if (isDeployed) return match?.hostedUrl?.replace(/\/$/, "") ?? null
   if (match) return match.live ? match.url.replace(/\/$/, "") : null
   if (repo?.previewBaseUrl && (await isLive(repo.previewBaseUrl)))
     return repo.previewBaseUrl.replace(/\/$/, "")

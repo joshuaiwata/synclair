@@ -23,6 +23,8 @@
     "scan:ux-coverage": "node scripts/scan-ux-coverage.mjs",
     "check:purity": "node scripts/check-foundation-purity.mjs",
     "check:pages": "node scripts/check-pages.mjs",
+    "check:tiering": "node scripts/check-tiering.mjs",
+    "check:recipes": "node scripts/check-recipes.mjs",
     "check:freshness": "node scripts/check-freshness.mjs",
     "refresh": "node scripts/refresh.mjs",
     "check:knowledge": "node scripts/check-knowledge.mjs",
@@ -57,7 +59,7 @@
     "mcp:install": "node scripts/mcp-install.mjs",
     "bridge:agents": "node scripts/bridge-agents.mjs",
     "check:agent-bridge": "node scripts/bridge-agents.mjs --check",
-    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:rulings-selftest && npm run check:augment && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host && npm run check:freshness -- --strict",
+    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:tiering && npm run check:recipes && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:rulings-selftest && npm run check:augment && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host && npm run check:freshness -- --strict",
     "postinstall": "patch-package"
   },
   "dependencies": {

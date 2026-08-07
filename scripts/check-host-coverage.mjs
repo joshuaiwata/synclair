@@ -70,6 +70,8 @@ const args = process.argv.slice(2);
 const hostFlag = args.indexOf("--host");
 let hosts;
 let items = [];
+/** Regions deliberately absorbed into their container — see the note at use site. */
+let folded = [];
 if (hostFlag !== -1) {
   const hostPath = args[hostFlag + 1];
   if (!hostPath) {
@@ -92,6 +94,7 @@ if (hostFlag !== -1) {
   }
   hosts = Array.isArray(catalog.hosts) ? catalog.hosts : catalog.host ? [catalog.host] : [];
   items = catalog.items ?? [];
+  folded = catalog.folded ?? [];
   if (hosts.length === 0) {
     console.log("Coverage: no hosts declared — nothing to check.");
     process.exit(0);
@@ -160,7 +163,7 @@ for (const host of hosts) {
     .map((rel) => ({ rel: norm(rel), exports: exportsOf(path.join(hostRootAbs, rel)) }))
     .filter((c) => c.exports.length > 0);
 
-  const uncataloged = candidates.filter((c) => !documented.has(c.rel));
+  let uncataloged = candidates.filter((c) => !documented.has(c.rel));
 
   // Inline-invention smell: files that define 2+ local (non-exported) components.
   // These primitives were born inside a screen and are invisible to the catalog.
@@ -259,6 +262,28 @@ for (const host of hosts) {
         ? ""
         : `, ${renderedCount} rendered${renderedCount < hostItems.length ? ` (${hostItems.length - renderedCount} documented-only)` : ""}`)
   );
+  /**
+   * FOLDED regions are not a coverage gap. An entry deliberately absorbed into
+   * its container (data/external-catalog.json `folded`, see check:tiering) still
+   * exports a PascalCase component, so the mechanical walk keeps finding it and
+   * reporting it as missing — which is an instruction to re-add exactly what was
+   * just removed. The two checks have to agree or the catalog re-bloats on the
+   * next intake: this one asks whether everything real is documented, the other
+   * asks whether anything is documented twice.
+   */
+  const foldedNames = new Set(
+    folded
+      .filter((f) => !f.surface || f.surface === host.surface)
+      .map((f) => f.name)
+  );
+  const foldedHere = uncataloged.filter((c) => c.exports.some((e) => foldedNames.has(e)));
+  uncataloged = uncataloged.filter((c) => !c.exports.some((e) => foldedNames.has(e)));
+  if (foldedHere.length > 0) {
+    console.log(
+      `\n  ${foldedHere.length} region(s) deliberately folded into their container — documented there, not as peers.`
+    );
+  }
+
   if (uncataloged.length > 0) {
     console.log(`\n  Uncataloged candidates (${uncataloged.length}) — the app has these, the catalog doesn't:`);
     for (const c of uncataloged.slice(0, 40)) {
