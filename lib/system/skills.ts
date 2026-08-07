@@ -4,6 +4,7 @@ import { readFile, readdir } from "node:fs/promises"
 import path from "node:path"
 
 import { layerOf, type CapabilityLayer } from "./capability-categories"
+import { extensionById } from "./extensions-manifest"
 import { readFrontmatter, summarize } from "./frontmatter"
 
 const SKILLS_DIR = path.join(process.cwd(), ".claude", "skills")
@@ -18,6 +19,8 @@ export interface SkillEntry {
   category?: string
   /** "foundation" (ships with Synclair) | "project" (this repo's own). */
   layer: CapabilityLayer
+  /** Owning extension id (frontmatter `extension:`) — badge on AI Setup. */
+  extension?: string
   /** repo-relative path to the SKILL.md file */
   file: string
 }
@@ -55,7 +58,12 @@ async function getSkillsUncached(): Promise<SkillEntry[]> {
         summary: summarize(fm.description),
         source: locked.has(dir) || locked.has(name) ? "official" : "custom",
         category: fm.category,
-        layer: layerOf(fm.layer),
+        // An extension's capabilities take the EXTENSION's layer — extensions
+        // are Synclair machinery, so their skills/agents sort with Synclair.
+        layer: fm.extension
+          ? (extensionById(fm.extension)?.layer ?? layerOf(fm.layer))
+          : layerOf(fm.layer),
+        extension: fm.extension,
         file: `.claude/skills/${dir}/SKILL.md`,
       }
     })

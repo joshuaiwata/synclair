@@ -20,7 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { groupByCategory, type CapabilityLayer } from "@/lib/system/capability-categories"
+import {
+  groupByCategory,
+  type CapabilityLayer,
+} from "@/lib/system/capability-categories"
+import { extensionById } from "@/lib/system/extensions-manifest"
 import { project } from "@/lib/system/seed/project"
 import type { SourceKind } from "@/lib/system/types"
 
@@ -31,6 +35,8 @@ export type CapabilityRow = {
   summary: string
   file: string
   category?: string
+  /** Owning extension id — resolved to its display name for the badge. */
+  extension?: string
 }
 
 type LayerFilter = CapabilityLayer
@@ -58,20 +64,25 @@ export function CapabilityTables({
   label: string
   rows: CapabilityRow[]
 }) {
-  const [filter, setFilter] = React.useState<LayerFilter>("project")
-
   const counts: Record<LayerFilter, number> = {
     foundation: rows.filter((r) => r.layer === "foundation").length,
     project: rows.filter((r) => r.layer === "project").length,
   }
+  // Project leads when the repo HAS its own capabilities — that's what a
+  // maintainer looks at first. When it has none, opening on an empty state
+  // teaches nothing, so the populated side leads instead.
+  const [filter, setFilter] = React.useState<LayerFilter>(
+    counts.project > 0 ? "project" : "foundation"
+  )
   const filtered = rows.filter((r) => r.layer === filter)
   const groups = groupByCategory(filtered, (r) => r.category)
-  const activeLabel = FILTERS.find((f) => f.value === filter)?.label ?? project.name
+  const activeLabel =
+    FILTERS.find((f) => f.value === filter)?.label ?? project.name
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <span className="text-muted-foreground text-xs">Origin</span>
+        <span className="text-xs text-muted-foreground">Origin</span>
         <PillToggle
           aria-label="Origin"
           value={filter}
@@ -117,11 +128,15 @@ export function CapabilityTables({
             <div className="flex flex-col gap-0.5">
               <div className="flex items-baseline gap-2">
                 <h3 className="text-sm font-medium">{category.label}</h3>
-                <span className="text-muted-foreground text-xs tabular-nums">{items.length}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {items.length}
+                </span>
               </div>
-              <p className="text-muted-foreground text-xs">{category.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {category.description}
+              </p>
             </div>
-            <div className="bg-card overflow-hidden rounded-lg border">
+            <div className="overflow-hidden rounded-lg border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -143,6 +158,10 @@ export function CapabilityTables({
                           layer: row.layer,
                           summary: row.summary,
                           file: row.file,
+                          extensionName: row.extension
+                            ? (extensionById(row.extension)?.name ??
+                              row.extension)
+                            : undefined,
                         } satisfies SourceItem
                       }
                     />
