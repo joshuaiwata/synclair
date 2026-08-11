@@ -20,6 +20,7 @@ import { getKnowledgeSources } from "@/lib/system/knowledge/sources"
 import { getPagesMap } from "@/lib/system/pages-map"
 import { getReferences } from "@/lib/system/references"
 import { synclair } from "@/lib/system/routes"
+import { project } from "@/lib/system/seed/project"
 import { getSkills } from "@/lib/system/skills"
 import {
   defaultSurfaceId,
@@ -299,6 +300,15 @@ export default async function Page() {
   return (
     <HubPage
       title="Synclair"
+      // Whose hub this is, the way the sidebar already says it. Alone, "Synclair"
+      // names the foundation on the one page that should be introducing the
+      // project the foundation serves.
+      heading={
+        <>
+          {project.name}{" "}
+          <span className="font-normal text-muted-foreground">/ Synclair</span>
+        </>
+      }
       action={
         <AgentAsk
           label="Re-sync"
