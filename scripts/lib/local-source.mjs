@@ -24,7 +24,7 @@
  */
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { createHash } from "node:crypto"
 import path from "node:path"
 
@@ -266,6 +266,20 @@ export function probeLocal(repoRoot, rel) {
       detail: `${rel} is not on disk — moved, renamed, or never committed`,
     }
   }
+  // A DIRECTORY is a legitimate thing to point at — "the SQL lives in etl/sql/",
+  // "the comps are in planning/" — and a manifest that does so should get an
+  // honest "can't verify this" rather than an EISDIR crash that takes the whole
+  // check down. Freshness needs one file's mtime and content hash, so a
+  // directory is unverifiable by construction, not broken.
+  if (statSync(abs).isDirectory()) {
+    return {
+      verifiable: false,
+      modifiedAt: null,
+      contentHash: null,
+      detail: `${rel} is a directory — point \`path\` at the one file that carries the content to track it`,
+    }
+  }
+
   const text = readFileSync(abs, "utf8")
   const iso = git(repoRoot, ["log", "-1", "--format=%cI", "--", rel])?.trim() || null
   return {
