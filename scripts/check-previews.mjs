@@ -178,9 +178,23 @@ if (existsSync(hostPreviewsDir)) {
       hostPreviewsSource += readFileSync(path.join(hostPreviewsDir, f), "utf8");
   }
 }
+// Match the KEY, not one way of writing the file. Both of these register a
+// preview, and an author has no way to know which one the check wants:
+//
+//   hostPreviews["data-grid"] = { component: DataGridPreview }        // assignment
+//   export const hostPreviews = { "data-grid": { … } }                // object literal
+//
+// Keying on the quoted name inside the registry means a clone that reaches for
+// the literal form doesn't get told its live imports are code-only — a false
+// failure that reads as "the port didn't work" when the port worked fine.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const registeredKey = (key) =>
+  new RegExp(`(hostPreviews\\s*\\[\\s*|[{,]\\s*)["'\`]${escapeRe(key)}["'\`]`).test(
+    hostPreviewsSource
+  );
 const hasLiveImport = (item) =>
-  hostPreviewsSource.includes(`hostPreviews["${item.name}"]`) ||
-  (item.surface && hostPreviewsSource.includes(`hostPreviews["${item.surface}:${item.name}"]`));
+  registeredKey(item.name) ||
+  (item.surface && registeredKey(`${item.surface}:${item.name}`));
 
 // Path B rewrite ports: a project-layer registered item owns the (surface, name).
 const portedKeys = new Set(

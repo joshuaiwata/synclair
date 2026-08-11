@@ -6,7 +6,7 @@
   "license": "GPL-3.0-or-later",
   "homepage": "https://synclair.dev",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 4100",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
