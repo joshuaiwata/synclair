@@ -80,3 +80,48 @@ export function scriptPathFor(hubRoot, hostRoot, mode, relScript) {
     ? path.relative(hostRoot, path.join(hubRoot, relScript)) || relScript
     : path.join(hubRoot, relScript)
 }
+
+/**
+ * WHERE people actually launch their agent.
+ *
+ * A project-scoped MCP config is read from the session's LAUNCH directory — it
+ * is not searched for up the tree. In a monorepo that means a single file at the
+ * repo root serves only the people who start at the repo root; anyone working in
+ * `apps/<app>` gets no tools at all, silently.
+ *
+ * So the registration belongs at the repo root AND at every host root the
+ * catalog declares — precisely the set of app directories the team works in,
+ * already maintained by intake.
+ *
+ * Shared by `mcp-install.mjs`, which writes these, and
+ * `check-mcp-registration.mjs`, which verifies them. Two scripts disagreeing
+ * about where a registration belongs is how "installed" and "actually working"
+ * drift apart.
+ */
+export function launchDirs(hubRoot, hostRoot) {
+  const dirs = new Set([hostRoot])
+  const cat = readJson(path.join(hubRoot, "data", "external-catalog.json"))
+  for (const h of Array.isArray(cat?.hosts) ? cat.hosts : []) {
+    if (typeof h?.root !== "string") continue
+    const abs = path.resolve(hubRoot, h.root)
+    if (existsSync(abs)) dirs.add(abs)
+  }
+  return [...dirs]
+}
+
+/** The per-client registration files that belong in each launch directory. */
+export function clientsFor(dirs) {
+  return dirs.flatMap((dir) => [
+    { id: "claude", label: "Claude Code", dir, file: path.join(dir, ".mcp.json") },
+    { id: "cursor", label: "Cursor", dir, file: path.join(dir, ".cursor", "mcp.json") },
+  ])
+}
+
+/**
+ * Claude Code's user-scope config. Launch-directory independent, which is the
+ * only thing that helps when a session starts somewhere the repo-scoped files
+ * are never read — above the repo, or in a folder holding several repos.
+ */
+export function userScopeFile() {
+  return path.join(process.env.HOME ?? "", ".claude.json")
+}

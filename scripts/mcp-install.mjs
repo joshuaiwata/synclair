@@ -24,13 +24,26 @@
  *   node scripts/mcp-install.mjs --print          # show what would be written
  *   node scripts/mcp-install.mjs                  # write it (target from setup.json)
  *   node scripts/mcp-install.mjs --host ../app    # explicit host repo
+ *   node scripts/mcp-install.mjs --user           # + Claude Code user scope
+ *   node scripts/mcp-install.mjs --codex          # + Codex user scope
+ *
+ * Verify afterwards with `npm run check:mcp`, which is the half this script
+ * cannot do for itself: whether a session launched from a given directory would
+ * actually find what was written.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
+import {
+  clientsFor,
+  isEmbeddedish,
+  launchDirs,
+  resolveTarget,
+  scriptPathFor,
+  userScopeFile,
+} from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const SERVER_REL = path.join("scripts", "mcp-server.mjs")
@@ -92,38 +105,16 @@ const entry = { command: "node", args: [serverPath], env: {} }
  * writes outside the repo, into a file the user owns.
  */
 /**
- * WHERE people actually launch their agent.
- *
- * A project-scoped `.mcp.json` is read from the session's LAUNCH directory —
- * it is not searched for up the tree. In a monorepo that means a single file at
- * the repo root serves only the people who start at the repo root; anyone
- * working in `apps/<app>` gets no tools at all, silently.
- *
- * So register at the repo root AND at every host root the catalog declares —
- * which is precisely the set of app directories the team works in, already
- * maintained by intake. Paths stay relative, so every file is committable and
- * correct on any clone.
+ * Where to write them is `launchDirs` in scripts/lib/topology.mjs — shared with
+ * the registration check, so "where it was installed" and "where it is looked
+ * for" can never disagree.
  *
  * (Repowise avoids this by shipping a binary on PATH, so its config is just
  * `repowise mcp` with no path to resolve. Synclair's server is deliberately
  * anchored to its own location so it always serves ITS hub — the trade is that
  * the config names a path, so the paths have to be right in each place.)
  */
-function launchDirs() {
-  const dirs = new Set([hostRoot])
-  const cat = readJson(path.join(HUB_ROOT, "data", "external-catalog.json"))
-  for (const h of Array.isArray(cat?.hosts) ? cat.hosts : []) {
-    if (typeof h?.root !== "string") continue
-    const abs = path.resolve(HUB_ROOT, h.root)
-    if (existsSync(abs)) dirs.add(abs)
-  }
-  return [...dirs]
-}
-
-const CLIENTS = launchDirs().flatMap((dir) => [
-  { id: "claude", label: "Claude Code", dir, file: path.join(dir, ".mcp.json") },
-  { id: "cursor", label: "Cursor", dir, file: path.join(dir, ".cursor", "mcp.json") },
-])
+const CLIENTS = clientsFor(launchDirs(HUB_ROOT, hostRoot))
 
 /** TOML block for Codex, marker-delimited so re-running replaces rather than repeats. */
 const CODEX_START = "# >>> synclair >>>"
@@ -166,6 +157,30 @@ for (const client of CLIENTS) {
   mkdirSync(path.dirname(client.file), { recursive: true })
   writeFileSync(client.file, `${JSON.stringify({ ...existing, mcpServers: servers }, null, 2)}\n`)
   console.log(`  ${had ? "updated" : "registered"} ${client.label.padEnd(12)} ${path.relative(hostRoot, client.file)}  →  ${fromHere}`)
+}
+
+/**
+ * USER-SCOPE registration for Claude Code.
+ *
+ * The repo-scoped files above are read from the session's launch directory, so
+ * they do nothing for a session started somewhere else — above the repo, or in
+ * a folder that holds several repos. That failure is silent: the agent simply
+ * never sees the tools and falls back to reading files, which is the expensive
+ * path the router warns about.
+ *
+ * User scope is launch-directory independent, so it covers that case. Opt-in,
+ * for the same reason `--codex` is: it writes outside the repo, into a file the
+ * user owns. The path must be absolute whatever the topology says.
+ */
+if (has("--user")) {
+  const userFile = userScopeFile()
+  const existing = readJson(userFile) ?? {}
+  const servers = { ...(existing.mcpServers ?? {}) }
+  const had = Boolean(servers.synclair)
+  servers.synclair = { command: "node", args: [path.join(HUB_ROOT, SERVER_REL)], env: {} }
+  mkdirSync(path.dirname(userFile), { recursive: true })
+  writeFileSync(userFile, `${JSON.stringify({ ...existing, mcpServers: servers }, null, 2)}\n`)
+  console.log(`  ${had ? "updated" : "registered"} Claude Code (user scope)  ${userFile}`)
 }
 
 if (has("--codex")) {
