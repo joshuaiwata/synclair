@@ -3,93 +3,168 @@ title: "What is Synclair?"
 description: "One aligned source of truth — design tokens, components, and knowledge — that humans and AI agents read the same way."
 ---
 
-Synclair is a **foundation you clone at the start of a project** that becomes the
-single, aligned source of truth for how that project is built: its design tokens,
-its components, and the knowledge (specs, decisions, architecture) that everyone —
-human or AI — needs to build consistently.
+Synclair is a **foundation you clone at the start of a project** that becomes the single
+source of truth for how that project is built: its design tokens, its components, and the
+knowledge — specs, decisions, architecture — that everyone needs to build consistently.
 
-It exists to close one specific gap: **humans and AI agents drifting out of sync.**
-A designer has the Figma, an engineer has the code, an agent has whatever fits in
-its context window, and a PM has the PRD in Drive. Synclair makes all of them read
-the *same bytes* — one fact, projected as a page for people and as machine-readable
-context for agents, so they can't disagree.
+Every fact lives **once** and is read three ways: **a page a person browses, ambient markdown
+an agent loads, and MCP tools an agent calls.** Same bytes, so they can't drift apart.
 
-<Note>
-**Synclair is the foundation, not the product.** You don't ship Synclair — you ship
-the app you build *on* Synclair. Think of it as the workshop and the reference
-library for your product, not a feature of the product itself.
-</Note>
-
-## The one-sentence version
-
-> Synclair is a **context and governance layer** for your product's design system
-> and knowledge — a hub that documents what your app is made of, kept honest by
-> machine checks, and readable by every AI tool you already use.
-
-## What you actually get
+<img className="block dark:hidden" src="/images/one-source.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty machine checks keeping all three honest" />
+<img className="hidden dark:block" src="/images/one-source-dark.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty machine checks keeping all three honest" />
 
 <CardGroup cols={2}>
-  <Card title="A component catalog" icon="shapes">
-    Every component, block, and template — with live previews, usage docs, and the
-    API — in one browsable gallery. Documented, not just rendered.
+  <Card title="Quickstart" icon="rocket" href="/installation">
+    `npx synclair new my-project` — clone, install, and open the hub on port 4100.
   </Card>
-  <Card title="Design tokens" icon="palette">
-    Color, type, and spacing as one semantic vocabulary. Lint-enforced, so raw
-    hex/px can't sneak back in.
+  <Card title="Set it up with your agent" icon="wand-magic-sparkles" href="/agents-and-skills">
+    Say *"run me through setup"* and the interview + reseed flow does the rest.
   </Card>
-  <Card title="A knowledge base for agents" icon="brain">
-    PRDs, Figma, and decisions distilled into skills your AI tools load on demand —
-    so agents never start from a blank context.
+  <Card title="How is this different from Storybook?" icon="circle-question" href="/vs-storybook">
+    The comparison everyone asks for — and where the two genuinely diverge.
   </Card>
-  <Card title="A map of the whole app" icon="map">
-    The route/page sitemap, the backend/system map, and the host component catalog —
-    visibility into what the codebase actually consists of.
+  <Card title="Adopt it onto an existing app" icon="eye" href="/setup-modes">
+    Companion mode: its own repo beside yours, documenting it one-way.
   </Card>
 </CardGroup>
 
-## The mental model that makes the rest click
+## Why building with agents decays
 
-Synclair is built on three principles. If you remember only these, the rest of this
-handbook follows:
+Not because the agent is bad at writing code. Because three things nobody built a place for
+keep going missing.
 
 <Steps>
-  <Step title="It documents your design system; it doesn't execute it">
-    A component in the gallery is a *documented entity* — its tokens, spec, usage
-    rules, code, and a picture. Live-rendering it inline is just one convenient way
-    to draw that picture. The documentation is the point, not the runtime.
+  <Step title="01 · Agents reinvent">
+    Your agent needs a data table. Two already exist in the repo; it finds neither, so now
+    there are three — each with its own padding, its own empty state, and its own idea of
+    what blue means. Nobody approved a third table. Nobody was asked.
   </Step>
-  <Step title="One source, two renderings">
-    Every fact lives once (in data/config files) and is projected two ways: an HTML
-    page for humans, and a machine-readable form for agents. They *can't* drift —
-    they derive from the same source.
+  <Step title="02 · Context dies with the session">
+    You explained the approval flow on Monday. On Thursday, a new session, you explain it
+    again — and the PRD that actually answers it is a 40-page doc in Drive that nothing in
+    the repo points to.
   </Step>
-  <Step title="Clone, then diverge deliberately">
-    You clone the foundation as your project's starting point and it becomes yours.
-    Nothing syncs automatically. When you *want* foundation improvements later, you
-    pull them with an ordinary git merge — on your terms.
+  <Step title="03 · Humans lose the thread">
+    Four views shipped this week. The designer has seen one, the PM is describing a flow
+    that changed on Tuesday, and the only honest way to find out what exists is to read the
+    code. So nobody does, and the drift turns up in a demo.
   </Step>
 </Steps>
 
+## One repo, three fixes
+
+Every one of those is the same failure — *the answer already existed and nothing made it
+reachable.* So Synclair writes each answer down once, in the repo, where it is read three
+ways: a page for people, ambient markdown for agents, and MCP tools for agents mid-task.
+
+| The problem | The fix | How it works |
+|---|---|---|
+| **01** Agents reinvent | **A library an agent has to check** | Every component registered at creation and rendered live, so *"do we already have this"* has an answer. Raw hex and stray px are lint errors, so a third blue can't ship even when nobody's looking |
+| **02** Context dies with the session | **Knowledge that outlives the session** | The 40-page read happens **once**: specs, Figma and decisions get distilled into skills any agent loads on demand — and the same digests answer as **nine MCP tools**, so a narrow question costs a query instead of a file read |
+| **03** Humans lose the thread | **A page anyone can look at** | Everything the agents produce renders as a hub — live components, a route map, plain-English reports — browsable without reading a line of code |
+
+<Note>
+**Synclair is the foundation, not the product.** You don't ship Synclair — you ship the app
+you build *on* Synclair. Think of it as the workshop and reference library for your
+product, not a feature of it.
+</Note>
+
+## What you actually get
+
+Eleven surfaces, all under `/synclair`, all rendered from files in your repo.
+
+<Frame caption="The Overview counts every card live from the repo — the current state of the foundation, not a snapshot someone remembered to update.">
+  <img src="/images/overview.png" alt="The Synclair overview page showing live counts for components, pages, foundations, knowledge, system map and AI setup" />
+</Frame>
+
+| Surface | What it holds |
+|---|---|
+| [**Foundations**](/foundations) | Design tokens — color, type, spacing, radius, motion — rendered live from the theme |
+| [**Component library**](/component-library) | Components, blocks and templates, each rendering **live**, each with UX docs |
+| [**Knowledge**](/knowledge) | Sources of record (PRDs, specs, Figma, decks) + distilled digests and summaries |
+| [**System map**](/system-map) | Areas, API surface, data model, jobs — what the codebase is beyond the UI |
+| [**Sitemap**](/sitemap) | Every route the app serves, previewed, with the components each one composes |
+| [**Reports**](/reports) | Plain-English state of the build + ranked next steps |
+| [**Hygiene**](/hygiene) | Where the code steps outside its own design system |
+| [**AI setup**](/agents-and-skills) | The skills, subagents and connected MCP servers this repo builds with, read live from `.claude/` |
+| [**References**](/references) | The project's research library — prior art, findings, recommendations |
+| [**Environment**](/environment) | Stack, services, and whether your foundation is behind upstream |
+| [**Settings**](/customizing) | Which sections this project shows, which extensions are on, who can change it |
+
+## The three ideas that make the rest click
+
+<Steps>
+  <Step title="It documents your design system; it doesn't execute it">
+    A component in the gallery is a *documented entity* — its tokens, spec, usage rules,
+    code, and a picture. Live-rendering it inline is one convenient way to draw that
+    picture. The documentation is the point, not the runtime.
+  </Step>
+  <Step title="One source, three readings">
+    Every fact lives once, in a file, and is read as an HTML page for humans, ambient markdown
+    for agents, and MCP tools mid-task. They *can't* drift — they derive from the same copy.
+  </Step>
+  <Step title="Clone, then diverge deliberately">
+    You clone the foundation and it becomes yours from the first commit. Nothing syncs
+    automatically. When you *want* foundation improvements later, you pull them with an
+    ordinary git merge, on your terms.
+  </Step>
+</Steps>
+
+## What keeps it honest
+
+Documentation that depends on discipline rots. Synclair's doesn't depend on discipline —
+`npm run verify-ui` has to pass before any UI work counts as done, and CI runs the same
+gate on every PR. Twenty checks, of which the load-bearing ones are:
+
+- **Tokens only.** Raw hex and arbitrary px values are lint errors.
+- **Everything registered.** A component that isn't in the registry doesn't exist for
+  reuse, so registration happens at creation.
+- **Everything renders.** A doc page that only shows a code snippet is a claim the browser
+  can't back up — and it fails the build.
+- **Docs anchored to source.** UX docs are commit-anchored to the code they describe, so
+  drift is flagged rather than quietly accumulating.
+
 ## Who it's for
 
-- **Teams pairing humans with AI agents** who keep re-explaining the same context
-  to every new session, and watching the design system erode one raw hex at a time.
-- **An existing app** that wants a living catalog + agent-readable knowledge layer
-  *beside* it, without becoming a dependency of it.
-- **A new project** that wants to start on rails — tokens, component conventions,
-  and an AI setup — instead of assembling them from scratch.
+| | Why |
+|---|---|
+| **Teams building with agents** | Velocity without a Frankenstein codebase — the guardrails make the fast path and the consistent path the same path |
+| **Teams inheriting an app** | One intake turns an unfamiliar codebase into a library, system map and hygiene report, without touching the host repo |
+| **Agencies & prototypers** | Every new project starts with a working design system, doc system and agent crew |
+| **Designers** | A live style guide that can't go stale, because it renders from the same tokens the app ships |
+| **Stakeholders** | See what's being built — live components, plain-English reports — without reading code |
+
+## What Synclair doesn't do
+
+The honest list, so you can rule it out quickly:
+
+- **It doesn't index or analyze your code** the way a code-intelligence tool does. No call
+  graph, no defect prediction, no dead-code detection.
+- **It has opinions about your stack.** The hub is Next + Tailwind + shadcn and the token
+  rules are lint-enforced. Live previews need something React-shaped; React Native works
+  via react-native-web, other stacks get documented rather than rendered.
+- **It ships no AI of its own.** Every intelligent thing here runs on the agent you already
+  pay for. Without one the hub is still a live style guide and component library — but the
+  flywheel doesn't spin.
+- **Its MCP server is read-only.** Nine tools answer questions about the catalog, tokens,
+  pages and knowledge; nothing writes through it. Building still happens through your agent
+  editing files, where the guardrails can see it. See [Skills & agents](/agents-and-skills).
+- **It isn't hosted.** Each person runs it from the clone. That's what makes git the
+  database and keeps your code on your machine.
+- **The seed starts blank on purpose.** Setup or intake is what populates it.
 
 ## Where to go next
 
 <CardGroup cols={2}>
-  <Card title="How is this different from Storybook?" icon="circle-question" href="/vs-storybook">
-    The comparison everyone asks for — and where the two genuinely diverge.
-  </Card>
   <Card title="How it works" icon="gears" href="/how-it-works">
-    The non-obvious parts: where the "database" is, how it rides on git and your AI tools.
+    The non-obvious parts: where the "database" is, and how it rides on git and the AI tools
+    you already use.
   </Card>
   <Card title="Install it" icon="download" href="/installation">
     Embed it in one repo, or watch it from a separate one.
+  </Card>
+  <Card title="Day to day" icon="repeat" href="/day-to-day">
+    What using it actually looks like once it's set up.
   </Card>
   <Card title="FAQ" icon="list-check" href="/faq">
     Separate app? Monorepo? Can I modify it? Fast answers.

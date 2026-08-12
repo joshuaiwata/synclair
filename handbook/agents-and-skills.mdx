@@ -19,6 +19,10 @@ explains what each is, how it works, and how they combine.
   </Card>
 </CardGroup>
 
+<Frame caption="/synclair/ai-setup reads .claude/ live, so the crew on the page is the crew on disk. Every capability is tagged foundation (ships with Synclair, syncs from upstream) or project (yours, never syncs).">
+  <img src="/images/ai-setup.png" alt="The AI Setup page listing the skills that ship with the clone, each with its origin and a one-line description of when it applies" />
+</Frame>
+
 ## Skills — reusable know-how, as plain markdown
 
 A **skill** is a folder — `.claude/skills/<name>/` — with a `SKILL.md` inside. No
@@ -108,6 +112,75 @@ narrow diggers also beat one know-it-all agent — each returns a sharper answer
 Diggers that ship include `codebase-surveyor`, `system-mapper`, `knowledge-harvester`,
 `token-archaeologist`, `component-cataloger` (the existing-app intake crew),
 `prd-retriever`, `figma-frame-reader`, and reviewers like `doc-quality-reviewer`.
+
+## MCP servers — the tools your agents can reach
+
+Skills and agents are *know-how*. **MCP servers are reach** — the connections that let an
+agent do something outside the repo: pull a frame from Figma, read a PRD in Notion, drive a
+browser to verify a view.
+
+Synclair works both ends of this. It **is** an MCP server — nine read-only tools over the
+hub's own data — *and* it catalogs the servers your project is wired to.
+
+### Synclair's own MCP server
+
+Ambient markdown is how an agent learns *how you work*; it's a poor way to ask one narrow
+question. So the same data is also served as tools:
+
+| Tool | Answers |
+|---|---|
+| `get_overview` | What this product is, how the clone is wired, what the hub knows + freshness |
+| `search_library` | Components, blocks, templates — native **and** cataloged host items |
+| `get_component` | Full record + which pages compose it (batched) |
+| `get_foundation` | Semantic tokens **and** the styling rules |
+| `get_page` | The sitemap, or full records for specific routes (batched) |
+| `get_system` | Areas, API surface, data model, jobs, integrations |
+| `get_knowledge` | Sources of record and where each digest lives |
+| `search_all` | One search across everything the hub knows — library, pages, system map, knowledge |
+| `whats_new` | What changed recently, narrated in product language from real repo history |
+
+- **No hub required** — it reads JSON off disk, so there's no port, no dev server, and
+  nothing to collide with the hub on 4100.
+- **No dependencies** — raw JSON-RPC over stdio rather than the SDK, so it works in any
+  clone with zero install.
+- **Two transports, one registry** — stdio for agents working in a clone, HTTP for a
+  teammate's client with no clone at all. Both import the same tool registry, so they can't
+  answer differently.
+
+Register it with `npm run mcp:install`. It's opt-in by design and deliberately not wired to
+`postinstall` — writing a repo's own `.mcp.json` is fair, but writing your *global* agent
+config as an install side effect would be invisible and hard to undo.
+
+<Note>
+**What it saves, stated carefully:** ~40% against equivalent file reads across comparable
+scenarios, versus a permanent +854-token tool surface. An earlier version of our own
+measurement harness claimed 86–97%; it was wrong three ways (skill bodies counted as lookup
+cost, filtered queries compared against whole-file reads, blank seed data producing fake
+wins). Fixed and enforced in the script, which now prints *"not comparable"* rather than a
+flattering number.
+</Note>
+
+### The servers your project is wired to
+
+Separately, Synclair catalogs the *other* servers your agents can reach, on the MCP tab of
+`/synclair/ai-setup` — each with its connection status and, more usefully, *what it's for
+here*:
+
+| Server | Its role in this project |
+|---|---|
+| **Figma** | Design context, screenshots, variables, Code Connect, write-back. The primary design bridge |
+| **Notion** | Where PRDs live, once their home is confirmed |
+| **Supabase** | Available if the prototype needs real data |
+| **Chrome / Preview** | Browser control for visual verification of views |
+
+<Note>
+The point of cataloging them is the same as the point of everything else here: a new
+teammate — or a new agent session — can see what tooling exists and what it's *for* without
+asking. An MCP server nobody documented is a capability nobody uses.
+</Note>
+
+Edit the list in `lib/synclair-data.ts`; the connections themselves are configured in your
+agent, not in Synclair.
 
 ## How skills and agents work together
 
