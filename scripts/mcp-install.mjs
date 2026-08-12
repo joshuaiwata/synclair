@@ -71,7 +71,7 @@ function readJson(p) {
  * needs the identical answer. Same reasoning that extracted `host-walk.mjs`:
  * the second copy is the moment to extract, because the third guarantees drift.
  */
-const { hostRoot, mode } = resolveTarget(HUB_ROOT, flag("--host"))
+const { hostRoot, mode, inferred } = resolveTarget(HUB_ROOT, flag("--host"))
 
 if (!hostRoot) {
   console.error(
@@ -133,7 +133,7 @@ function codexBlock() {
 }
 
 if (has("--print")) {
-  console.log(`topology:  ${mode}`)
+  console.log(`topology:  ${mode}${inferred ? " (inferred — not yet recorded in data/setup.json)" : ""}`)
   console.log(`hub:       ${HUB_ROOT}`)
   console.log(`host repo: ${hostRoot}`)
   console.log(`committable: ${embeddedish ? "yes — relative path" : "no — absolute path, gitignore it"}`)
