@@ -1,0 +1,141 @@
+---
+title: "The agent interface"
+description: "How Synclair's knowledge actually reaches an agent — ambient markdown, nine MCP tools on two transports, and a push hook that fires at the moment of an edit."
+---
+
+Synclair's knowledge reaches an agent three ways, and they're genuinely different
+mechanisms with different costs. Knowing which is which is the difference between a
+foundation that helps and one that just sits there.
+
+| | What it is | When it arrives | Cost |
+|---|---|---|---|
+| **Ambient** | The router plus every skill and agent *description* | Loaded before a task starts, every session | A fixed tax — **~8.3k tokens** in this repo |
+| **Pull** | Nine MCP tools | Only when the agent calls one | Free until used; **+854 tokens** for the tool surface |
+| **Push** | An edit-time hook | At the moment the agent touches a file | Costs nothing it wasn't already spending |
+
+## Ambient — how an agent learns the way you work
+
+The `AGENTS.md` router and every capability's one-line `description` sit in context from
+the start. That's what lets a skill auto-trigger without anyone naming it, and it's covered
+in [Skills & agents](/agents-and-skills).
+
+It's the right shape for *conventions* — "build views this way, register components at
+creation" — and the wrong shape for facts. Which is what the other two are for.
+
+## Pull — the nine MCP tools
+
+Ambient markdown is a poor way to ask **one narrow question**. *"What's the token for a
+warning background?"* shouldn't cost a 4,368-token read of `tokens.ts`. So the same data
+is served as task-shaped tools:
+
+| Tool | Answers |
+|---|---|
+| `get_overview` | What this product is, how the clone is wired, what the hub knows + freshness |
+| `search_library` | Components, blocks, templates — native **and** cataloged host items |
+| `get_component` | Full record + which pages compose it (batched) |
+| `get_foundation` | Semantic tokens **and** the styling rules that govern them |
+| `get_page` | The sitemap, or full records for specific routes (batched) |
+| `get_system` | Areas, API surface, data model, jobs, integrations |
+| `get_knowledge` | Sources of record and where each digest lives |
+| `search_all` | One search across everything the hub knows |
+| `whats_new` | What changed recently, narrated in product language from real repo history |
+
+<Frame caption="The MCP tab on /synclair/ai-setup. The synclair server's tool list is live from the same registry both transports share — so the page can't disagree with what an agent actually gets.">
+  <img src="/images/mcp-tools.png" alt="The AI Setup page's MCP servers tab showing the synclair server, serving, with nine tools" />
+</Frame>
+
+Three properties are the point:
+
+<CardGroup cols={3}>
+  <Card title="No hub required" icon="plug-circle-xmark">
+    It reads JSON off disk — no Next, no port, no dev server. Agents stop needing the hub
+    *running* to read the catalog.
+  </Card>
+  <Card title="No dependencies" icon="feather">
+    Raw JSON-RPC over stdio rather than the SDK, so a cloned foundation works in any clone
+    with zero install.
+  </Card>
+  <Card title="Two transports, one registry" icon="code-branch">
+    stdio for agents in a clone; HTTP for a teammate with none. Both import the same
+    registry, so they can't answer differently.
+  </Card>
+</CardGroup>
+
+### Registering it
+
+```bash
+npm run mcp:install
+```
+
+It resolves the target from `data/setup.json`, because the right answer depends on
+[topology](/setup-modes):
+
+| Topology | Path written | Committable |
+|---|---|---|
+| **embedded** / standalone | repo-relative | **Yes** — arrives on clone, zero setup for teammates |
+| **watcher** | absolute | **No** — machine-specific, gitignore it |
+
+It merges rather than clobbers an existing `.mcp.json`, and is deliberately **not** wired
+to `postinstall`. Writing a repo's own `.mcp.json` is fair — it's visible in git and gated
+by the client's approval prompt. Writing your *global* agent config as an install side
+effect would be invisible and hard to undo.
+
+<Warning>
+**Registration is the step that silently doesn't happen.** The server can run perfectly and
+its tools can return real content while every agent in the repo still reads whole files by
+hand — because nothing surfaces a tool that was never offered. `check:mcp` is in
+`verify-ui` for exactly this reason; see [the guardrails](/guardrails).
+</Warning>
+
+### The hosted endpoint
+
+A teammate with no clone points their client at the hub's `/api/mcp` route with a bearer
+token from `SYNCLAIR_MCP_TOKENS`. Same nine tools, same registry.
+
+With no tokens configured the endpoint returns **404 on every request** — the endpoint
+simply does not exist. A clone that never sets them never exposes one.
+
+## Push — context that arrives without being asked
+
+MCP tools are **pull**: an agent that never calls one gets nothing, and nothing tells it
+to. That's a real limitation, and the fix is a `PostToolUse` hook that fires when an agent
+edits a file.
+
+The reasoning is worth stating plainly: **a ruling recalled during review is an
+explanation; the same ruling surfaced before the code is written is a different outcome.**
+The session brief tells an agent the repo's state when a session opens — that's the cheap
+half. Firing at the moment of an edit is the half that changes what gets written.
+
+The hook reads its payload on stdin, writes at most a couple of lines, and gets out of the
+way. Its failure modes are inverted from a normal script's — printing when it shouldn't is
+worse than crashing — so it carries its own self-test (`check:augment`).
+
+## Measuring any of this
+
+Every change to the agent interface is judged against a baseline rather than a hunch:
+
+```bash
+npm run measure:agent-cost              # the ambient tax + lookup cost of representative questions
+npm run measure:agent-cost -- --compare # diff against the stored baseline
+```
+
+<Note>
+**The number, and what it isn't.** ~40% saving against equivalent file reads across
+comparable scenarios, versus a permanent +854-token tool surface.
+
+An earlier version of this harness reported **86–97%**. It was wrong three ways: it counted
+skill bodies as lookup cost (a skill is process guidance read on demand — the tool layer
+doesn't replace it), it compared *filtered* queries against whole-file reads (a narrower
+question dressed up as compression), and blank seed data produced fake wins (three
+scenarios had no data, so the tool answered "nothing here yet" cheaply and that read as a
+97% saving).
+
+All three are now enforced in the script, which prints *"not comparable"* rather than a
+flattering percentage. The harness has caught three real defects — a missing tool, its own
+inflated arithmetic, and a stdout-truncation bug in the server — which is the argument for
+building it before the thing it measures.
+</Note>
+
+<Card title="Related: the guardrails" icon="shield-check" href="/guardrails">
+  Including `check:mcp` and `check:mcp-contract`, which keep this interface honest.
+</Card>

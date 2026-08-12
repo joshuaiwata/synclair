@@ -39,7 +39,7 @@
 <table align="center">
 <tr>
 <td align="center" width="250"><h2>21 + 16</h2></td>
-<td align="center" width="250"><h2>20</h2></td>
+<td align="center" width="250"><h2>21</h2></td>
 <td align="center" width="250"><h2>9</h2></td>
 </tr>
 <tr>
@@ -57,7 +57,7 @@ tokens or nothing. <a href="#what-synclair-doesnt-do"><strong>What it doesn't do
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/one-source-dark.svg" />
-  <img src=".github/assets/one-source.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty machine checks keeping all three honest" width="100%" />
+  <img src=".github/assets/one-source.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty-one machine checks keeping all three honest" width="100%" />
 </picture>
 
 </div>
@@ -286,6 +286,7 @@ So none of it is left to discipline. `npm run verify-ui` has to pass before any 
 | `check:purity` | Seed content leaking into the portable foundation |
 | `check:host` | A host-component catalog entry whose source has changed underneath it |
 | `check:agent-bridge` | Skills and agents the hub can no longer read |
+| `check:mcp --strict` | **An MCP server that was never registered.** The probe proves it runs and the contract check proves its tools return real content — neither asks whether any agent can actually reach it. A stale entry from an earlier clone resolves fine and serves someone else's catalog |
 | `check:edges` · `check:anchors` · `check:rulings` · `check:augment` · `check:brief-feed` | **The checkers themselves.** Path normalisation and quiet-failure bugs don't announce themselves, so the risky seams carry self-tests |
 | `typecheck` | The usual |
 
