@@ -1,0 +1,83 @@
+---
+title: "Settings & extensions"
+description: "Trim the hub to the sections your project actually uses, add your own, and control who can change it."
+---
+
+Not every project wants all eleven surfaces. A team with no Figma doesn't need the Figma
+Manifest; a project with no backend doesn't need the System Map. Carrying surfaces you
+ignore makes the hub feel like someone else's tool.
+
+`/synclair/settings` is where that gets decided.
+
+<Frame caption="The Settings page: section visibility, extension toggles, and who's allowed to change them. State lives in data/extensions.json and is read on every request, so a toggle — or a hand edit of the file — shows immediately.">
+  <img src="/images/settings.png" alt="The Synclair Settings page showing section visibility toggles, extensions, and admin configuration" />
+</Frame>
+
+## Section visibility
+
+Every core section can be hidden. The list mirrors the sidebar — Overview, Reports,
+Knowledge, System Map, Hygiene, Figma Manifest, References, GitHub, Pages, Foundations, and
+the Library group.
+
+Hiding is a **project decision, not a deletion**: the route and its data stay, so turning a
+section back on loses nothing.
+
+<Note>
+State lives in `data/extensions.json` — a file in git, like everything else here. So "which
+sections this project shows" is a reviewable diff and travels with the clone, rather than
+being one person's local preference.
+</Note>
+
+## Extensions
+
+Core sections are what Synclair ships. **Extensions are what a project adds** — and the
+foundation ships the *contract*, not the extensions.
+
+`EXTENSIONS` in `lib/system/extensions-manifest.ts` is empty by design. A clone appends its
+own entries, and they never sync back — the same rule the rest of the seed follows.
+
+A minimal entry:
+
+```ts
+{
+  id: "my-extension",
+  name: "My Extension",
+  description: "One line, shown on the Settings row.",
+  layer: "project",
+  type: "section",
+  nav: { group: "Project", title: "My Extension", icon: Sparkles,
+         href: synclair("/my-extension"), placement: "end" },
+  routePrefix: synclair("/my-extension"),
+  defaultEnabled: true,
+}
+```
+
+<Warning>
+**Nav removal alone is not a gate.** The route's own layout is what enforces it — call
+`isExtensionEnabled(id)` there and render an off notice when it's false. Taking a link out
+of the sidebar hides a door; it doesn't lock it.
+</Warning>
+
+The governing principle for anything added here is inherited from the extensibility RFC:
+**additive, all-on, reversible.** Every extension must be a no-op for an existing clone
+until a human opts in.
+
+## Who can change it
+
+Locally there's no question — the clone is on your machine, you're its admin.
+
+Hosted is different. The hub sits behind the deployment's sign-in gate, and admins are the
+union of two lists:
+
+| Source | Durability |
+|---|---|
+| `SYNCLAIR_SETTINGS_ADMINS` (comma-separated emails) | Deploy config — survives every redeploy. **The source of record** |
+| `admins` in `data/extensions.json` | Approved from the Settings UI at runtime. On a hosted container this file resets on redeploy, so UI approvals are convenience, not record |
+
+It **fails closed** where it matters: on a hosted runtime with no identity header, nobody
+is an admin.
+
+<Card title="Related: customizing" icon="wrench" href="/customizing">
+  What's safe to change across the whole foundation, what syncs from upstream, and what's
+  yours forever.
+</Card>

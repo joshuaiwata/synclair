@@ -20,7 +20,14 @@
       },
       {
         "group": "Using Synclair",
-        "pages": ["day-to-day", "agents-and-skills", "catalog-sync", "customizing"]
+        "pages": [
+          "day-to-day",
+          "agents-and-skills",
+          "agent-interface",
+          "guardrails",
+          "catalog-sync",
+          "customizing"
+        ]
       },
       {
         "group": "The hub",
@@ -37,7 +44,8 @@
           "hygiene",
           "environment",
           "github",
-          "search"
+          "search",
+          "settings"
         ]
       },
       {

@@ -1,0 +1,122 @@
+---
+title: "The guardrails"
+description: "The twenty checks that stand between an agent and \"done\" — what each one refuses to let through, and why the list is mostly about claims staying true."
+---
+
+Documentation that depends on discipline rots. A convention a team agrees to is a
+convention someone stops following at 5pm on a Thursday — and an agent moving fast will
+find the gap before you do.
+
+So none of Synclair's rules are left to discipline. **`npm run verify-ui` has to pass
+before any UI work counts as done**, and CI runs the same gate on every pull request.
+
+```bash
+npm run verify-ui
+```
+
+<Note>
+Look at what the list below is mostly made of. Not *"did you write the docs"* — but
+**"is this claim still true."** A catalog that confidently describes something that has
+since moved is worse than no catalog at all, because people act on it.
+</Note>
+
+## What each check refuses
+
+### The design system holds
+
+| Check | Refuses |
+|---|---|
+| `lint` | Raw hex and arbitrary px values — the theme is the only styling vocabulary. Hardcoded `/synclair` paths fail too; use the `synclair()` helper |
+| `check:registry` | A component that exists in the codebase but not in `registry.json`. Unregistered means unfindable, which means it gets reinvented |
+| `check:previews` | **A library item that doesn't actually render.** A doc page showing only a code snippet is a claim the browser can't back up |
+| `check:ux-docs` | A stable block or template missing intent, interactions, states or responsive docs — or docs that have drifted from the source commit they were anchored to |
+
+### The catalog isn't lying
+
+Three directions a catalog can be wrong, and each has its own sweep:
+
+<CardGroup cols={3}>
+  <Card title="Inaccuracy" icon="triangle-exclamation">
+    `check:coverage` — does the catalog match what **exists**?
+  </Card>
+  <Card title="Redundancy" icon="copy">
+    `check:tiering` — are three entries secretly **the same thing**?
+  </Card>
+  <Card title="Absence" icon="ghost">
+    `check:recipes` — is a pattern used everywhere that **nothing documents**?
+  </Card>
+</CardGroup>
+
+Absence is the one most catalogs never check. A component library can be perfectly
+accurate about every entry it contains and still be useless, because the thing everyone
+actually copy-pastes was never added.
+
+### Nothing has gone stale underneath you
+
+| Check | Refuses |
+|---|---|
+| `check:freshness --strict` | Any generated digest whose source has moved since it was written. **One report across every artifact**, rather than each digest growing its own private staleness check |
+| `check:pages` · `resolve:pages` | A sitemap that no longer matches the routes on disk |
+| `check:host` | A host-component catalog entry whose source has changed underneath it |
+| `check:knowledge-local` | A knowledge digest that has come unmoored from its source |
+
+Freshness resolves to `fresh`, `stale`, or **`unanchored`** — and that third state matters.
+A host repo that isn't checked out on this machine *can't* be judged, so the hub shows
+nothing rather than crying wolf. Data written before the freshness contract existed
+resolves to `unanchored` too, never to a false `stale`.
+
+### The foundation stays portable
+
+| Check | Refuses |
+|---|---|
+| `check:purity` | Seed content (your brand, your domain, your data) leaking into the portable foundation — the thing that would break every future clone |
+| `check:agent-bridge` | Skills and agents the hub can no longer read |
+| `check:mcp-contract` | MCP tools that don't populate the fields they promise. A probe proves they *return*; this proves they return something **real** |
+| `check:mcp --strict` | An MCP server that was never **registered** — or an entry pointing at a different clone's hub |
+| `typecheck` | The usual |
+
+<Note>
+That last one is the subtlest failure Synclair has shipped a check for, and it's worth
+understanding. The server had a probe (does it run?) and a contract check (do its tools
+return real content?). **Both pass while every agent in the repo still reads whole files by
+hand** — because neither asks whether the thing is registered.
+
+The gap is silent by construction. Telling agents *"not offering those tools? register
+once"* asks an agent to notice an **absence**, which is the one thing it reliably cannot
+do: nothing surfaces a tool that was never offered. It just reads files instead, all
+session, at many times the tokens the tools would have cost. So the generated status block
+in `AGENTS.md` now **states** whether the server is registered rather than advising agents
+to prefer it.
+</Note>
+
+### The checkers check themselves
+
+| Check | Why it exists |
+|---|---|
+| `check:contracts` | The dangerous output of the API seam isn't a missed link — it's a **confident wrong one**. *"These 75 endpoints are unused"* invites someone to delete a live endpoint |
+| `check:edges` | Everything risky in the edge graph is path normalisation. Three artifacts record paths against three different bases, and getting one wrong produces a plausible graph, not an error |
+| `check:augment` | The edit-time hook fires on **every** edit an agent makes, so its failure modes are inverted: printing when it shouldn't is worse than crashing |
+| `check:brief-feed` | The change feed's failure modes are all about *when it stays quiet* — and quiet bugs don't announce themselves |
+| `check:anchors` · `check:rulings` | Self-tests for the anchoring and rulings seams |
+
+<Note>
+This is the part worth stealing even if you never use Synclair: **the seams whose failure
+mode is a plausible wrong answer get self-tests, not just the seams that can crash.** A
+crash tells you something is broken. A confidently wrong catalog doesn't.
+</Note>
+
+## When a check fails
+
+The error messages name the fix. Two rules:
+
+- **Don't `eslint-disable` around a guardrail.** If the token rule is genuinely wrong for
+  a case, the token vocabulary is what needs changing — that's a design decision, and it
+  belongs in `lib/system/tokens.ts` where everyone inherits it.
+- **Don't hand-edit a generated digest to make a freshness check pass.** Re-run the
+  generator (the `pages-map`, `codebase-map`, or `ux-doc` skill). Editing the artifact
+  makes the check green and the claim false, which is the exact failure the check exists
+  to catch.
+
+<Card title="Related: day to day" icon="repeat" href="/day-to-day">
+  Where these fit in the normal loop of building something.
+</Card>

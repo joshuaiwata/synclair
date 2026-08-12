@@ -10,8 +10,8 @@ knowledge — specs, decisions, architecture — that everyone needs to build co
 Every fact lives **once** and is read three ways: **a page a person browses, ambient markdown
 an agent loads, and MCP tools an agent calls.** Same bytes, so they can't drift apart.
 
-<img className="block dark:hidden" src="/images/one-source.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty machine checks keeping all three honest" />
-<img className="hidden dark:block" src="/images/one-source-dark.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty machine checks keeping all three honest" />
+<img className="block dark:hidden" src="/images/one-source.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty-one machine checks keeping all three honest" />
+<img className="hidden dark:block" src="/images/one-source-dark.svg" alt="Your code, PRDs, Figma files and git history are read once into one source of truth in your repo — tokens, registry, knowledge digests, maps — projected three ways: a page a person browses, ambient markdown an agent reads, and nine MCP tools an agent calls, with twenty-one machine checks keeping all three honest" />
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/installation">
@@ -114,7 +114,7 @@ Eleven surfaces, all under `/synclair`, all rendered from files in your repo.
 
 Documentation that depends on discipline rots. Synclair's doesn't depend on discipline —
 `npm run verify-ui` has to pass before any UI work counts as done, and CI runs the same
-gate on every PR. Twenty checks, of which the load-bearing ones are:
+gate on every PR. Twenty-one checks, of which the load-bearing ones are:
 
 - **Tokens only.** Raw hex and arbitrary px values are lint errors.
 - **Everything registered.** A component that isn't in the registry doesn't exist for
