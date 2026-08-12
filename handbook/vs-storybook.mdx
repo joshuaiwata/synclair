@@ -55,6 +55,24 @@ Synclair earns its place when the problem is bigger than the components:
 - You need one place that answers **"what is this whole app made of"** — pages, backend, knowledge — not just "what do the buttons look like."
 - You want a catalog for a stack Storybook **can't easily run** (native mobile, a host app you only observe).
 
+## And against agent-context tools?
+
+A newer category — repowise, CodeGraph, Serena and friends — also promises to stop your
+agent starting from zero. Different job, and a genuinely complementary one.
+
+| | **Agent-context tools** | **Synclair** |
+|---|---|---|
+| **What they index** | The code that already exists | The decisions behind what gets written |
+| **Typical output** | Call graph, git archaeology, dead code, code health | Tokens, component conventions, product requirements, maps |
+| **Read or write** | Helps an agent **read** your codebase well | Governs what an agent **writes** into it |
+| **How context reaches the agent** | An MCP server, queried per task | **Both** — ambient markdown *and* an MCP server with nine read-only tools |
+| **Human surface** | A generated wiki | A live design system + knowledge hub |
+| **Enforcement** | Advisory signals | Checks that fail the build |
+
+The short test: if your agent keeps *rediscovering* your codebase, index it. If your agent
+keeps *reinventing your button*, this is the one you want. Running both is reasonable —
+they don't overlap.
+
 ## Can they coexist?
 
 Yes. They answer different questions. A team can keep Storybook as the component

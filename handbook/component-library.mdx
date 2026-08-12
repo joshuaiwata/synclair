@@ -50,6 +50,16 @@ and each item has its own **doc page** (`/synclair/{tier}/[name]`) with:
 
 Everything is searchable from **⌘K**, across all three tiers plus tokens and docs.
 
+## What a doc page gives you
+
+Open any item and you get the documentation a design system actually needs — intent,
+anatomy, interaction rules, responsive behavior, the real API — beside a live preview you
+can flip between viewports and themes.
+
+<Frame caption="A block's doc page. Depth scales with tier: a component needs less than a block, a block less than a template — and docs are commit-anchored to the source they describe, so drift is flagged instead of quietly accumulating.">
+  <img src="/images/component-doc.png" alt="A block's doc page showing a live preview with viewport and theme switchers, its dependencies, and its UX documentation" />
+</Frame>
+
 ## How it works
 
 The catalog is driven by one registry (`registry.json`, the shadcn format) with a
