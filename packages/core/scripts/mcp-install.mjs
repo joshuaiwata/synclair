@@ -33,7 +33,8 @@ import { fileURLToPath } from "node:url"
 import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const SERVER_REL = path.join("scripts", "mcp-server.mjs")
+// The server ships inside the core package now (Phase 3 split).
+const SERVER_REL = path.join("node_modules", "@synclair", "core", "scripts", "mcp-server.mjs")
 
 const args = process.argv.slice(2)
 const flag = (name) => {

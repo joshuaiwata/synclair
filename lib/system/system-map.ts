@@ -1,4 +1,4 @@
-import { readSystemMapFile } from "@/lib/artifacts/system-map"
+import { readSystemMapFile } from "@synclair/core/artifacts/system-map"
 
 import { type Provenance, toProvenance } from "./provenance"
 

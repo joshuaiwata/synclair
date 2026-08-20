@@ -1,4 +1,4 @@
-import { readHostHygieneArtifact } from "@/lib/artifacts/host-hygiene"
+import { readHostHygieneArtifact } from "@synclair/core/artifacts/host-hygiene"
 import { cache } from "react"
 
 import type { Provenance } from "./provenance"

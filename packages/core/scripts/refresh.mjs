@@ -48,9 +48,10 @@ const readJson = (rel) => {
 
 function run(script, args = []) {
   // TS CLIs (artifact-module wrappers, battery B3) run under tsx.
-  const bin = script.endsWith(".ts") ? path.join(ROOT, "node_modules", ".bin", "tsx") : process.execPath
+  const tsxCandidates = [path.join(SCRIPTS_DIR, "..", "node_modules", ".bin", "tsx"), path.join(ROOT, "node_modules", ".bin", "tsx")]
+  const bin = script.endsWith(".ts") ? (tsxCandidates.find((c) => existsSync(c)) ?? "tsx") : process.execPath
   try {
-    const out = execFileSync(bin, [path.join(ROOT, "scripts", script), ...args], {
+    const out = execFileSync(bin, [path.join(SCRIPTS_DIR, script), ...args], {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],

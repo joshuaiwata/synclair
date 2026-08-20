@@ -16,6 +16,7 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const root = process.cwd()
 const SCAN_DIRS = ["app", "components", "lib", "hooks"]
@@ -73,7 +74,7 @@ for (const dir of SCAN_DIRS) {
 // reset script was written. Name-in-script is the contract; a new seed file
 // that reset shouldn't touch still gets named, in a comment, deliberately.
 const seedDir = path.join(root, "lib", "system", "seed")
-const resetSrc = readFileSync(path.join(root, "scripts", "synclair-reset.sh"), "utf8")
+const resetSrc = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "synclair-reset.sh"), "utf8")
 for (const name of readdirSync(seedDir)) {
   if (!/\.(ts|tsx)$/.test(name)) continue
   if (!resetSrc.includes(name.replace(/\.(ts|tsx)$/, ""))) {

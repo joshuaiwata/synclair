@@ -53,4 +53,4 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: bash scripts/sim-fresh-clone.sh
+      - run: npx synclair sim-fresh-clone

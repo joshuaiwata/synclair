@@ -1,4 +1,4 @@
-import { TOOLS, toolList } from "@/scripts/mcp-tools.mjs"
+import { TOOLS, toolList } from "@synclair/core/scripts/mcp-tools.mjs"
 
 import type { CapabilityLayer } from "@/lib/system/capability-categories"
 import {

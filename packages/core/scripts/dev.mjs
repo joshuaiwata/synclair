@@ -20,7 +20,8 @@ import { existsSync, readFileSync, watch } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = process.cwd()
 const CACHE = path.join(ROOT, ".synclair", "cache")
 const log = (msg) => console.log(`[synclair-dev] ${msg}`)
 
@@ -54,7 +55,7 @@ function reindex(reason) {
   }
   indexing = true
   const started = Date.now()
-  const run = spawn(process.execPath, [path.join(ROOT, "scripts", "index.mjs")], {
+  const run = spawn(process.execPath, [path.join(SCRIPTS_DIR, "index.mjs")], {
     cwd: ROOT,
     stdio: ["ignore", "ignore", "pipe"],
   })
