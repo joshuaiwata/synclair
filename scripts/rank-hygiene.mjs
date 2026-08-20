@@ -45,7 +45,7 @@ function readJson(rel) {
   }
 }
 
-const hygiene = readJson("data/host-hygiene.json")
+const hygiene = readJson(".synclair/cache/host-hygiene.json")
 if (!hygiene?.topFiles?.length) {
   console.log(
     "Hygiene ranking: no scan on record — run `npm run scan:hygiene` first."

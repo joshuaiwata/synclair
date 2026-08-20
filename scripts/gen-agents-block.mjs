@@ -31,8 +31,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
-import { launchDirs, resolveTarget, userScopeFile } from "./lib/topology.mjs"
-
 const ROOT = process.cwd()
 const TARGET = path.join(ROOT, "AGENTS.md")
 const START = "<!-- SYNCLAIR:STATUS:START -->"
@@ -73,7 +71,7 @@ function counts() {
   const pages = readJson("data/pages-map.json")
   const sys = readJson("data/system-map.json")
   const setup = readJson("data/setup.json")
-  const hygiene = readJson("data/host-hygiene.json")
+  const hygiene = readJson(".synclair/cache/host-hygiene.json")
   const knowledge = (readText("lib/system/knowledge/sources.ts") ?? "").match(/\bid:\s*"/g)?.length ?? 0
 
   const items = Array.isArray(reg?.items) ? reg.items : []
@@ -119,43 +117,6 @@ function counts() {
     knowledge,
     hygieneFindings: hygiene?.totals?.findings ?? null,
   }
-}
-
-/**
- * Is the MCP server registered anywhere a client would read it?
- *
- * Deliberately re-derived here from the same topology helpers the installer and
- * `check-mcp-registration.mjs` use, rather than reading a status file some
- * earlier step was supposed to write — a cached "installed: true" is exactly
- * the kind of claim that outlives the thing it describes.
- */
-function mcpRegistration() {
-  const serverAbs = path.join(ROOT, "scripts", "mcp-server.mjs")
-  const seen = new Set()
-
-  const names = (file, dir) => {
-    if (!existsSync(file)) return
-    let entry
-    try {
-      entry = JSON.parse(readFileSync(file, "utf8"))?.mcpServers?.synclair
-    } catch {
-      return
-    }
-    const recorded = Array.isArray(entry?.args) ? entry.args[0] : null
-    if (!recorded) return
-    const resolved = path.isAbsolute(recorded) ? recorded : path.resolve(dir, recorded)
-    if (existsSync(resolved) && path.resolve(resolved) === path.resolve(serverAbs)) return true
-  }
-
-  const { hostRoot } = resolveTarget(ROOT)
-  for (const dir of hostRoot ? launchDirs(ROOT, hostRoot) : []) {
-    if (names(path.join(dir, ".mcp.json"), dir)) seen.add("Claude Code")
-    if (names(path.join(dir, ".cursor", "mcp.json"), dir)) seen.add("Cursor")
-  }
-  const user = userScopeFile()
-  if (names(user, path.dirname(user))) seen.add("Claude Code user scope")
-
-  return { registered: seen.size > 0, clients: [...seen] }
 }
 
 // -------------------------------------------------------------------- render
@@ -222,34 +183,10 @@ function buildBlock() {
   if (c.hygieneFindings !== null) lines.push(`- **Hygiene** — ${c.hygieneFindings} finding(s)`)
 
   lines.push("")
-
-  /**
-   * The MCP line is the reason this block earns its keep.
-   *
-   * The old sentence here told agents to prefer the tools — useless advice to
-   * an agent whose client never registered them, because nothing can notice
-   * tools that were never offered. It quietly reads files instead, at many
-   * times the tokens, for the whole session.
-   *
-   * So state the answer rather than the instruction. This block loads in full
-   * every session, which makes it the one place a missing registration cannot
-   * go unread.
-   */
-  const mcp = mcpRegistration()
-  if (mcp.registered) {
-    lines.push(
-      `- **MCP** — registered (${mcp.clients.join(", ")}). Prefer these tools over`
-      + " reading the files above: `get_overview` answers most of it in one call."
-    )
-  } else {
-    lines.push(
-      "- **MCP** — **not registered**, so the `synclair` tools are unavailable and"
-      + " everything above has to be read from files instead. Fix once with"
-      + " `npm run mcp:install` (add `-- --user` if sessions start outside this"
-      + " repo), then `npm run check:mcp`."
-    )
-  }
-
+  lines.push(
+    "Agents: prefer the `synclair` MCP tools over reading these files —"
+    + " `get_overview` answers most of the above in one call."
+  )
   lines.push("")
   lines.push(END)
   return lines.join("\n")

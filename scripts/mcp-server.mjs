@@ -13,7 +13,12 @@
  *   node scripts/mcp-server.mjs --probe   # self-test: list tools + call each
  */
 
-import { HUB_ROOT, allTools, callTool, handle } from "./mcp-tools.mjs"
+// tsx's loader is registered BEFORE loading the tools, which import TS
+// artifact modules (B3). This keeps every existing registration and script
+// running the server as plain `node scripts/mcp-server.mjs`.
+import { register as registerTsx } from "tsx/esm/api"
+registerTsx()
+const { HUB_ROOT, allTools, callTool, handle } = await import("./mcp-tools.mjs")
 
 function serve() {
   let buffer = ""

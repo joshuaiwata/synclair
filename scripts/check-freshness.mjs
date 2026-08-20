@@ -28,6 +28,7 @@
  *   node scripts/check-freshness.mjs --json    machine-readable
  */
 
+import { execSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
@@ -248,17 +249,132 @@ report.push(
   checkProvenanced("data/system-map.json", "system-map", "not generated — `codebase-map` skill", "codebase-map skill")
 )
 report.push(
-  checkProvenanced("data/host-hygiene.json", "hygiene", "no scan on record", "npm run scan:hygiene")
+  checkProvenanced(".synclair/cache/host-hygiene.json", "hygiene", "no scan on record", "npm run scan:hygiene")
 )
 report.push(
   checkProvenanced(
-    "data/contracts.json",
+    ".synclair/cache/contracts.json",
     "contracts",
     "not derived — npm run scan:contracts",
     "npm run scan:contracts -- --write"
   )
 )
 report.push(checkFigmaManifest())
+
+// ------------------------------------------------------- judgment freshness
+/**
+ * The checks above anchor FACTS — hashes of the files a scan derived from.
+ * They can all read green while the WRITTEN layer rots, because prose has a
+ * different anchor: the day someone's judgment was committed, measured against
+ * how much the code has moved since. The 2026-08-19 hub audit found exactly
+ * that — every fact scan fresh, every summary twelve merges old — so the
+ * written artifacts get their own rows, measured in trunk merges, the unit a
+ * team actually reasons in.
+ *
+ * All ADVISORY: judgment going stale is a prompt for a human or agent to
+ * re-write it, never a build failure.
+ */
+function sh(cmd) {
+  try {
+    return execSync(cmd, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim()
+  } catch {
+    return null
+  }
+}
+
+function trunkRef() {
+  const dash = readJson("data/dashboard.json")
+  return dash?.trunk ?? "HEAD"
+}
+
+function mergesSince(isoDay) {
+  if (!isoDay) return null
+  const n = sh(`git -C .. rev-list --count --first-parent --since="${isoDay}T00:00:00" ${trunkRef()}`)
+  return n === null ? null : Number(n)
+}
+
+function daysOld(isoDay) {
+  if (!isoDay) return null
+  const t = Date.parse(isoDay)
+  return Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000)
+}
+
+function judgmentRow(artifact, writtenAt, { staleAfterMerges = 5, fix, missing }) {
+  const day = (writtenAt ?? "").slice(0, 10)
+  if (!day) {
+    return { artifact, state: "absent", detail: missing, advisory: true, ...(fix ? { fix } : {}) }
+  }
+  const merges = mergesSince(day)
+  const age = daysOld(day)
+  const stale = merges !== null && merges > staleAfterMerges
+  return {
+    artifact,
+    state: stale ? "stale" : "fresh",
+    detail:
+      merges === null
+        ? `written ${day} (${age}d ago)`
+        : `written ${day} — ${merges} trunk merge(s) since`,
+    stale: stale ? 1 : 0,
+    advisory: true,
+    kind: "judgment",
+    ...(fix ? { fix } : {}),
+  }
+}
+
+{
+  const reportsDir = path.join(ROOT, "data", "reports")
+  let latestReport = null
+  if (existsSync(reportsDir)) {
+    const dates = readdirSync(reportsDir)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => readJson(`data/reports/${f}`)?.date)
+      .filter(Boolean)
+      .sort()
+    latestReport = dates.at(-1) ?? null
+  }
+  report.push(
+    judgmentRow("report (latest)", latestReport, {
+      fix: "build-report skill",
+      missing: "no report on record — build-report skill",
+    })
+  )
+
+  const updates = readJson("data/dashboard-updates.json")
+  report.push(
+    judgmentRow("dashboard update", updates?.writtenAt, {
+      fix: "dashboard-update skill",
+      missing: "no weekly update written — dashboard-update skill",
+    })
+  )
+
+  const sysMap = readJson("data/system-map.json")
+  const emptyAreas = (sysMap?.areas ?? []).filter((a) => !(a.summary ?? "").trim()).length
+  const proseRow = judgmentRow("system-map prose", sysMap?.repo?.digestedAt, {
+    fix: "codebase-map skill",
+    missing: "not generated — codebase-map skill",
+  })
+  if (emptyAreas > 0 && proseRow.state !== "absent") {
+    proseRow.detail += ` · ${emptyAreas} area(s) with no summary`
+    if (proseRow.state === "fresh") proseRow.state = "stale"
+    proseRow.stale = 1
+  }
+  report.push(proseRow)
+
+  const probe = readJson(".synclair/cache/knowledge/freshness.json")
+  const probeDay = (probe?.checkedAt ?? "").slice(0, 10)
+  const unknown = (probe?.sources ?? []).filter((x) => !x.status || x.status === "unknown").length
+  report.push({
+    artifact: "knowledge probe",
+    state: probeDay ? ((daysOld(probeDay) ?? 0) > 7 || unknown > 0 ? "stale" : "fresh") : "absent",
+    detail: probeDay
+      ? `probed ${probeDay} — ${unknown} of ${(probe?.sources ?? []).length} sources unverifiable`
+      : "never probed — npm run check:knowledge",
+    stale: probeDay && ((daysOld(probeDay) ?? 0) > 7 || unknown > 0) ? 1 : 0,
+    advisory: true,
+    kind: "judgment",
+    fix: unknown > 0 ? "wire connectors so probes can verify (hub audit rec-connectors)" : "npm run check:knowledge",
+  })
+}
 
 // ----------------------------------------------------------------- cascade
 /**

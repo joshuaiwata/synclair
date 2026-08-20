@@ -63,10 +63,49 @@ const hookPath = path.join(hooksDir, "post-commit")
  * the commit was made from — in embedded topology the git root is the PRODUCT
  * repo, not the hub, so a relative path would break.
  */
+/**
+ * `--refresh` — actually re-index on commit, instead of only reporting.
+ *
+ * The default stays report-only, and the reasoning at the top of this file is
+ * still right about PROSE: no hook should fire a model. But it was written when
+ * the scanners could not write anything at all, and that is no longer true.
+ * `scan:system --write` is deterministic, additive, offline, and finishes in
+ * about a quarter of a second — it appends the mechanical row for an endpoint
+ * it can see and never touches authored text. That is safe on a commit in a way
+ * an agent run never will be.
+ *
+ * Opt-in rather than default because it writes files in the developer's working
+ * tree, right after they committed — a real surprise if you did not ask for it.
+ * The refreshed digests are left UNSTAGED on purpose: the hook's job is to make
+ * them current, and whether they ride along in the next commit is the
+ * developer's call, not a hook's.
+ *
+ *   npm run install:hooks              report drift only (default)
+ *   npm run install:hooks -- --refresh re-index the deterministic digests too
+ */
+const refresh = args.includes("--refresh")
+
+const refreshLines = refresh
+  ? [
+      `# Re-index the deterministic digests. No model, no network, ~0.3s. Leaves`,
+      `# the refreshed files unstaged — making them current is the hook's job;`,
+      `# committing them is yours.`,
+      `if [ -f "${path.join(HUB_ROOT, "scripts", "scan-system.mjs")}" ]; then`,
+      `  ( cd "${HUB_ROOT}" && node scripts/scan-system.mjs --write >/dev/null 2>&1`,
+      `    node scripts/scan-contracts.mjs --write >/dev/null 2>&1 ) || true`,
+      `fi`,
+    ]
+  : []
+
 const block = [
   START,
-  `# Reports drifted Synclair digests after a commit. Never regenerates (that`,
-  `# needs an agent) and never fails the commit. Managed by scripts/install-hooks.mjs.`,
+  refresh
+    ? `# Re-indexes the deterministic Synclair digests after a commit, then reports`
+    : `# Reports drifted Synclair digests after a commit. Never regenerates (that`,
+  refresh
+    ? `# anything left drifting. Never runs a model, never fails the commit.`
+    : `# needs an agent) and never fails the commit. Managed by scripts/install-hooks.mjs.`,
+  ...refreshLines,
   `if [ -f "${path.join(HUB_ROOT, "scripts", "check-freshness.mjs")}" ]; then`,
   `  _sc_out=$(cd "${HUB_ROOT}" && node scripts/check-freshness.mjs --json 2>/dev/null \\`,
   `    | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{`,
@@ -121,9 +160,37 @@ if (existing === null) {
 writeFileSync(hookPath, next)
 chmodSync(hookPath, 0o755)
 
+/**
+ * Register the merge driver `.gitattributes` names.
+ *
+ * Git will not run a driver it was only told about in a tracked file — that
+ * would let any clone execute code on merge — so every developer configures it
+ * once, locally. Doing it here means "I set Synclair up" is one command rather
+ * than one command plus a line in a README nobody reads, and an unregistered
+ * driver degrades to a normal conflict rather than breaking anything.
+ */
+let driver = "not registered"
+try {
+  execFileSync("git", [
+    "config", "merge.synclair-digest.name",
+    "Synclair derived digests — union both sides, re-anchor on the next scan",
+  ])
+  execFileSync("git", [
+    "config", "merge.synclair-digest.driver",
+    `node ${path.join(HUB_ROOT, "scripts", "merge-digest.mjs")} %O %A %B %P`,
+  ])
+  driver = "registered"
+} catch {
+  // Not fatal: without it, a digest conflict is an ordinary conflict.
+}
+
 console.log(
   `post-commit hook ${s === -1 ? "installed" : "updated"} → ${hookPath}\n`
-  + `  Reports drifted digests after a commit. Silent when everything is current.\n`
-  + `  It never regenerates and never fails a commit.\n`
+  + (refresh
+    ? `  Re-indexes the deterministic digests after each commit (~0.3s, no model),\n`
+      + `  leaves them unstaged, then reports anything still drifting.\n`
+    : `  Reports drifted digests after a commit. Silent when everything is current.\n`
+      + `  It never regenerates and never fails a commit.\n`)
+  + `  Merge driver for data/*.json: ${driver}.\n`
   + `  Remove with: node scripts/install-hooks.mjs --remove`
 )

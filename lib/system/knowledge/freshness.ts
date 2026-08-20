@@ -1,5 +1,7 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
+import {
+  readFreshnessArtifact,
+  readRedistillQueueArtifact,
+} from "@/lib/artifacts/knowledge-freshness"
 
 /**
  * KNOWLEDGE FRESHNESS — the read side of `check:knowledge` (scripts/check-knowledge.mjs).
@@ -8,7 +10,7 @@ import path from "node:path"
  * Drive, Notion, Figma. Each carries a `distilledAt` — when its in-repo digest was
  * written — but the SOURCE keeps moving. `check:knowledge` probes each linked
  * source's real last-modified, compares it to `distilledAt`, and writes the result
- * to `data/knowledge/freshness.json`; this module reads that cache for the hub
+ * to `.synclair/cache/knowledge/freshness.json`; this module reads that cache for the hub
  * (/synclair/knowledge) and the knowledge report.
  *
  * This is the source-side generalization of the Figma-only staleness in
@@ -18,9 +20,6 @@ import path from "node:path"
  *
  * `classifyFreshness()` here MUST stay in lockstep with `classify()` in the script.
  */
-
-const FRESHNESS_PATH = path.join(process.cwd(), "data", "knowledge", "freshness.json")
-const REDISTILL_QUEUE_PATH = path.join(process.cwd(), "data", "knowledge", "redistill-queue.json")
 
 /** Which host the source's last-modified was (or would be) probed from. */
 export type FreshnessHost = "local" | "github" | "figma" | "drive" | "notion" | "unknown"
@@ -127,17 +126,13 @@ export function classifyFreshness(
     : "fresh"
 }
 
-/** Read the freshness cache. `null` (not a throw) when the check has never run. */
+/** Read the freshness cache. `null` (not a throw) when the check has never run.
+ *  Validation lives in the artifact module (one owner — B3); this keeps the
+ *  hub-facing async API and domain types. */
 export async function readFreshnessReport(): Promise<FreshnessReport | null> {
-  try {
-    const raw = JSON.parse(await readFile(FRESHNESS_PATH, "utf8"))
-    return {
-      checkedAt: typeof raw.checkedAt === "string" ? raw.checkedAt : null,
-      sources: Array.isArray(raw.sources) ? (raw.sources as SourceFreshness[]) : [],
-    }
-  } catch {
-    return null
-  }
+  const raw = readFreshnessArtifact()
+  if (!raw) return null
+  return { checkedAt: raw.checkedAt, sources: raw.sources as SourceFreshness[] }
 }
 
 /** Count of sources in each state — the at-a-glance summary for a badge/report header. */
@@ -155,10 +150,5 @@ export function summarizeFreshness(report: FreshnessReport | null): Record<Fresh
 
 /** The pending re-distill requests `check:knowledge --queue` writes; an agent drains them. */
 export async function readRedistillQueue(): Promise<RedistillRequest[]> {
-  try {
-    const parsed = JSON.parse(await readFile(REDISTILL_QUEUE_PATH, "utf8"))
-    return Array.isArray(parsed?.requests) ? (parsed.requests as RedistillRequest[]) : []
-  } catch {
-    return []
-  }
+  return (readRedistillQueueArtifact()?.requests ?? []) as RedistillRequest[]
 }

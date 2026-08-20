@@ -58,6 +58,21 @@ export interface Provenance {
   generator?: string
   /** Trust in the judgment layer. Absent = unstated, not "high". */
   confidence?: Confidence
+  /**
+   * COVERAGE, from the generator that produced this digest.
+   *
+   * A digest is a sample of a larger surface, and a reader cannot tell a sample
+   * from a census by looking at it. The System Map page was stating coverage
+   * with a denominator borrowed from a DIFFERENT scanner — one blind to RPC —
+   * which flattered the ratio by leaving 39 endpoints out of the count. A
+   * generator that knows both numbers should record both.
+   *
+   * Counts, not judgments: `derived` is what the scan saw, `undescribed` is how
+   * many written rows still have no prose. Absent on maps written before this
+   * existed, which reads as "unstated" and shows nothing.
+   */
+  derivedEndpoints?: number
+  undescribedEndpoints?: number
 }
 
 /** Narrow unknown JSON into a Provenance block. Unknown/awkward values drop. */
@@ -66,6 +81,11 @@ export function toProvenance(raw: unknown): Provenance | undefined {
   const r = raw as Record<string, unknown>
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined)
   const conf = str(r.confidence)
+  // A count is only usable if it is a non-negative whole number; anything else
+  // is dropped rather than coerced, so a malformed value shows nothing instead
+  // of rendering "NaN of 90".
+  const count = (v: unknown) =>
+    typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : undefined
   const files = Array.isArray(r.sourceFiles)
     ? r.sourceFiles.filter((f): f is string => typeof f === "string")
     : undefined
@@ -78,6 +98,8 @@ export function toProvenance(raw: unknown): Provenance | undefined {
     generator: str(r.generator),
     confidence:
       conf === "high" || conf === "medium" || conf === "low" ? (conf as Confidence) : undefined,
+    derivedEndpoints: count(r.derivedEndpoints),
+    undescribedEndpoints: count(r.undescribedEndpoints),
   }
   return Object.values(out).some((v) => v !== undefined) ? out : undefined
 }

@@ -59,7 +59,7 @@ try {
   write("apps/web/src/other.ts", "export const y = 2\n")
   write(".prds/Billing_PRD.md", "# Billing\n\nbody\n")
 
-  write("synclair/data/rulings.json", {
+  write("synclair/.synclair/cache/rulings.json", {
     rulings: [
       { statement: "controls never share the container background", governs: ["apps/web/src/theme.ts"], state: "current" },
       { statement: "a retired rule", governs: ["apps/web/src/gone.ts"], state: "gone" },
@@ -111,7 +111,7 @@ try {
       { name: "Button", surface: "shared", hostPath: "src/button.tsx" },
     ],
   })
-  write("synclair/data/knowledge/freshness.json", {
+  write("synclair/.synclair/cache/knowledge/freshness.json", {
     sources: [{ id: "billing", localPath: ".prds/Billing_PRD.md", state: "stale", sections: { changed: ["Pricing", "Refunds"] } }],
   })
 
@@ -151,7 +151,7 @@ try {
   ok("garbage stdin exits 0, silent", run("{ not json").trim() === "")
   ok("empty stdin exits 0, silent", run("").trim() === "")
   ok("missing file_path exits 0, silent", run({ tool_name: "Edit", tool_input: {} }) === "")
-  write("synclair/data/rulings.json", "{ corrupt")
+  write("synclair/.synclair/cache/rulings.json", "{ corrupt")
   ok("a corrupt register is silent, not a crash", !/EXIT/.test(run(edit("apps/web/src/theme.ts"))))
 } finally {
   rmSync(root, { recursive: true, force: true })

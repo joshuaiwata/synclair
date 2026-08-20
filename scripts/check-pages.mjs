@@ -59,33 +59,67 @@ try {
 }
 
 const pages = Array.isArray(map.pages) ? map.pages : [];
-if (!map.repo || pages.length === 0) {
+const repoList = Array.isArray(map.repos) ? map.repos : [];
+if ((!map.repo && repoList.length === 0) || pages.length === 0) {
   console.log("Pages map: blank seed (no repo / no pages) — nothing to check. Generate it with the pages-map skill.");
   process.exit(0);
 }
 
 // Resolve the target repo root: null = this repo (cwd); a path = host repo,
 // relative to this repo. A host not checked out here soft-skips entirely.
-const repoRoot = typeof map.repo.root === "string" && map.repo.root ? path.resolve(root, map.repo.root) : root;
-if (!existsSync(repoRoot)) {
+//
+// MULTI-APP: each entry in `repos` maps one frontend from its OWN root, so a
+// page's files are resolved against the root of ITS surface. `repo` remains the
+// fallback, which is what every single-surface map resolves through.
+function resolveRoot(rel) {
+  return typeof rel === "string" && rel ? path.resolve(root, rel) : root;
+}
+const rootBySurface = new Map();
+for (const r of repoList) {
+  if (r && typeof r.surface === "string") rootBySurface.set(r.surface, resolveRoot(r.root));
+}
+const defaultRoot = map.repo ? resolveRoot(map.repo.root) : resolveRoot(repoList[0]?.root);
+
+// Every root the map points at must exist, or that surface soft-skips. A host
+// checked out on one machine and not another is normal (CI), not a failure.
+const missing = [...rootBySurface.entries()].filter(([, abs]) => !existsSync(abs));
+// The vacuous-truth trap: a single-`repo` map has an EMPTY repos list, so
+// `missing.length === repoList.length` was 0 === 0 and this check soft-skipped
+// on every single-surface host map — even with the host right there. Found by
+// the C5 intake drill; the skip must require actual missing surfaces.
+const allSurfacesMissing = repoList.length > 0 && missing.length === repoList.length;
+if (!existsSync(defaultRoot) || allSurfacesMissing) {
   console.log(
-    `Pages map: target repo not found at ${map.repo.root} (resolved ${repoRoot}) — skipping. ` +
+    `Pages map: target repo not found (resolved ${defaultRoot}) — skipping. ` +
       "Expected where the host isn't checked out (e.g. CI)."
   );
   process.exit(0);
 }
+for (const [surface, abs] of missing) {
+  console.log(`Pages map: surface "${surface}" not checked out at ${abs} — its pages are skipped.`);
+}
 
-function hashPageSource(files) {
+function rootForPage(page) {
+  const hit = page && typeof page.surface === "string" ? rootBySurface.get(page.surface) : undefined;
+  return hit ?? defaultRoot;
+}
+
+function hashPageSource(files, repoRoot) {
   const hash = createHash("sha256");
   let any = false;
   for (const rel of files) {
     const abs = path.join(repoRoot, rel);
-    if (!existsSync(abs)) continue;
     hash.update(rel);
     hash.update("\n");
-    hash.update(readFileSync(abs));
+    // A missing file used to be skipped outright, on BOTH the --reanchor and the
+    // check side — so deleting a screen a page composes changed nothing, and the
+    // page stayed "fresh" while citing a file that no longer existed. Hashing a
+    // marker instead makes the deletion the thing it is: a change to the sources.
+    hash.update(existsSync(abs) ? readFileSync(abs) : "\0<absent>");
     hash.update("\0");
-    any = true;
+    // Still anchor only on a real read: a host that is not checked out here must
+    // stay "unanchored", not turn every page stale at once.
+    if (existsSync(abs)) any = true;
   }
   return any ? hash.digest("hex") : null;
 }
@@ -97,7 +131,7 @@ if (reanchor) {
   let skipped = 0;
   for (const p of pages) {
     const files = Array.isArray(p.sourceFiles) ? p.sourceFiles.filter((f) => typeof f === "string") : [];
-    const hash = files.length ? hashPageSource(files) : null;
+    const hash = files.length ? hashPageSource(files, rootForPage(p)) : null;
     if (hash === null) {
       skipped += 1;
       continue;
@@ -109,7 +143,7 @@ if (reanchor) {
   const routerSources = Array.isArray(map.routerSources)
     ? map.routerSources.filter((f) => typeof f === "string")
     : [];
-  const routerHash = routerSources.length ? hashPageSource(routerSources) : null;
+  const routerHash = routerSources.length ? hashPageSource(routerSources, defaultRoot) : null;
   if (routerHash) map.routerSourcesHash = routerHash;
   else delete map.routerSourcesHash;
   writeFileSync(mapPath, JSON.stringify(map, null, 2) + "\n");
@@ -131,7 +165,7 @@ for (const p of pages) {
     unanchored.push(p.route ?? p.id ?? "<unnamed>");
     continue;
   }
-  const current = hashPageSource(files);
+  const current = hashPageSource(files, rootForPage(p));
   if (current === null) continue; // files gone → REMOVED handles it below
   if (current !== p.sourceHash) changed.push(p.route ?? p.id ?? "<unnamed>");
 }
@@ -139,34 +173,57 @@ for (const p of pages) {
 // ---- NEW / REMOVED: enumerate the Next.js app-router route set ------------
 
 const routerKind = typeof map.routerKind === "string" ? map.routerKind : "next-app";
-const appDir = ["app", "src/app"].map((d) => path.join(repoRoot, d)).find((d) => existsSync(d));
+
+// MULTI-APP: diff each surface against ITS OWN app dir. Enumerating one root
+// and comparing it to every page would report the other app's whole route set
+// as REMOVED — the map would look catastrophically wrong the moment a second
+// frontend was added.
+const dropFor = (r) => (Array.isArray(r?.dropSegments) ? r.dropSegments.filter((s) => typeof s === "string") : []);
+const surfaceTargets = repoList.length
+  ? repoList.map((r) => ({ surface: r.surface ?? null, root: resolveRoot(r.root), drop: dropFor(r) }))
+  : [{ surface: null, root: defaultRoot, drop: dropFor(map.repo) }];
+
+const appDirFor = (r) => ["app", "src/app"].map((d) => path.join(r, d)).find((d) => existsSync(d));
+const anyAppDir = surfaceTargets.some((t) => existsSync(t.root) && appDirFor(t.root));
 
 let added = [];
 let removed = [];
 let enumerated = false;
 let routerChanged = false;
 
-if ((routerKind === "next-app" || !map.routerKind) && appDir) {
+if ((routerKind === "next-app" || !map.routerKind) && anyAppDir) {
   enumerated = true;
-  const current = new Set();
-  const walk = (dir) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === "node_modules" || entry.name === ".next" || entry.name === ".git") continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/^page\.(tsx|ts|jsx|js)$/.test(entry.name)) current.add(fileToRoute(path.relative(appDir, full)));
-    }
-  };
-  walk(appDir);
+  for (const target of surfaceTargets) {
+    if (!existsSync(target.root)) continue;
+    const appDir = appDirFor(target.root);
+    if (!appDir) continue;
 
-  // Only diff renderable page nodes — API/layout nodes aren't page.* files.
-  const mapped = new Set(
-    pages
-      .filter((p) => p.kind !== "api" && p.kind !== "layout" && typeof p.route === "string")
-      .map((p) => p.route)
-  );
-  added = [...current].filter((r) => !mapped.has(r)).sort();
-  removed = [...mapped].filter((r) => !current.has(r)).sort();
+    const current = new Set();
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name === ".next" || entry.name === ".git") continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/^page\.(tsx|ts|jsx|js)$/.test(entry.name))
+          current.add(fileToRoute(path.relative(appDir, full), target.drop));
+      }
+    };
+    walk(appDir);
+
+    // Only diff renderable page nodes — API/layout nodes aren't page.* files.
+    // Pages carrying no surface belong to the default target.
+    const mapped = new Set(
+      pages
+        .filter((p) => (p.surface ?? null) === target.surface)
+        .filter((p) => p.kind !== "api" && p.kind !== "layout" && typeof p.route === "string")
+        .map((p) => p.route)
+    );
+    const label = (r) => (target.surface ? `${r}  (${target.surface})` : r);
+    added.push(...[...current].filter((r) => !mapped.has(r)).map(label));
+    removed.push(...[...mapped].filter((r) => !current.has(r)).map(label));
+  }
+  added.sort();
+  removed.sort();
 } else {
   // Non-filesystem routers (react-router, a config table) can't be enumerated
   // statically. Instead, hash the router source file(s) the page-mapper
@@ -175,7 +232,7 @@ if ((routerKind === "next-app" || !map.routerKind) && appDir) {
   const routerSources = Array.isArray(map.routerSources)
     ? map.routerSources.filter((f) => typeof f === "string")
     : [];
-  const routerHash = routerSources.length ? hashPageSource(routerSources) : null;
+  const routerHash = routerSources.length ? hashPageSource(routerSources, defaultRoot) : null;
   if (routerSources.length === 0) {
     console.log(
       `Pages map: router "${routerKind}" — no filesystem route enumeration and no routerSources ` +
@@ -192,12 +249,21 @@ if ((routerKind === "next-app" || !map.routerKind) && appDir) {
 }
 
 /** app-relative page file → served route: strip `page.*`, drop (route groups), keep [dynamic]. */
-function fileToRoute(relFromApp) {
+/**
+ * `dropSegments` are directory segments the ROUTER consumes that never appear
+ * in a URL — an i18n wrapper is the usual case: a `[locale]` dir whose prefix
+ * is omitted for the default locale, so `/[locale]/account` is served at
+ * `/account`. Without declaring them, every such route reports as BOTH new
+ * (enumerated with the segment) and removed (mapped without it).
+ * Route groups `(x)` are dropped unconditionally — those are never URL segments.
+ */
+function fileToRoute(relFromApp, dropSegments = []) {
   const withoutPage = relFromApp.replace(/(^|\/)page\.(tsx|ts|jsx|js)$/, "");
   const segs = withoutPage
     .split("/")
     .filter(Boolean)
-    .filter((s) => !(s.startsWith("(") && s.endsWith(")")));
+    .filter((s) => !(s.startsWith("(") && s.endsWith(")")))
+    .filter((s) => !dropSegments.includes(s));
   return segs.length === 0 ? "/" : "/" + segs.join("/");
 }
 

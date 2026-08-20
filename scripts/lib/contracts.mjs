@@ -23,12 +23,23 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 const SKIP_DIRS = new Set([
-  "node_modules", ".git", ".next", "dist", "build", "coverage", "out",
-  "__tests__", "__mocks__", ".turbo", ".cache",
+  "node_modules",
+  ".git",
+  ".next",
+  "dist",
+  "build",
+  "storybook-static",
+  "coverage",
+  "out",
+  "__tests__",
+  "__mocks__",
+  ".turbo",
+  ".cache",
 ])
 
 /** A route or call that exists only in a test is a fixture, not a contract. */
-const TEST_FILE = /(^|[./])(test|spec|e2e)\.[tj]sx?$|\.(test|spec|e2e)\.[tj]sx?$|^conftest\./i
+const TEST_FILE =
+  /(^|[./])(test|spec|e2e)\.[tj]sx?$|\.(test|spec|e2e)\.[tj]sx?$|^conftest\./i
 
 /** Third-party hosts are not this system's services. */
 const EXTERNAL_HOST = /^https?:\/\/(?!localhost|127\.0\.0\.1)/i
@@ -59,6 +70,50 @@ function walk(dir, out = [], depth = 0) {
 }
 
 /**
+ * Functions that take a path and go somewhere, rather than fetch something.
+ * Router and navigation built-ins across Next, React Router and the History
+ * API — the names a front end calls with a literal route many times per file.
+ */
+const NAV_HELPERS = new Set([
+  "redirect",
+  "permanentRedirect",
+  "navigate",
+  "push",
+  "replace",
+  "prefetch",
+  "revalidatePath",
+  "notFound",
+  "href",
+  "to",
+  "Link",
+  "NavLink",
+  "Redirect",
+  "matchPath",
+  "generatePath",
+  "resolvePath",
+  "createHref",
+  "assign",
+  "open",
+])
+
+/**
+ * Is the offset inside a `//` line comment or a block comment?
+ *
+ * The scanners read raw source, so prose counts as code: a doc comment reading
+ * `Overview ('/') must not stay lit on every route` was extracted as an HTTP
+ * call to `/`. Cheap scan from the start of the file — these files are small,
+ * and being right matters more here than being fast.
+ */
+function inCommentAt(src, index) {
+  const lineStart = src.lastIndexOf("\n", index) + 1
+  const line = src.slice(lineStart, index)
+  if (line.includes("//")) return true
+  const open = src.lastIndexOf("/*", index)
+  if (open === -1) return false
+  return src.lastIndexOf("*/", index) < open
+}
+
+/**
  * Normalise a path for matching: parameters lose their names, trailing slashes
  * go. `/users/:id`, `/users/${userId}` and `/users/[id]` are the same endpoint,
  * and matching them literally would report three unmatched consumers.
@@ -78,7 +133,11 @@ export function normalisePath(p) {
 
 const join = (...parts) =>
   normalisePath(
-    "/" + parts.filter((p) => typeof p === "string" && p.trim()).map((p) => p.replace(/^\/|\/$/g, "")).join("/")
+    "/" +
+      parts
+        .filter((p) => typeof p === "string" && p.trim())
+        .map((p) => p.replace(/^\/|\/$/g, ""))
+        .join("/")
   )
 
 /**
@@ -105,8 +164,14 @@ export function extractProviders(repoRoot, rel) {
 
     if (/@Controller\s*\(/.test(src)) {
       // One file can hold several controllers; track the prefix in source order.
-      const marks = [...src.matchAll(/@Controller\s*\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g)]
-      const verbs = [...src.matchAll(/@(Get|Post|Put|Patch|Delete)\s*\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g)]
+      const marks = [
+        ...src.matchAll(/@Controller\s*\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g),
+      ]
+      const verbs = [
+        ...src.matchAll(
+          /@(Get|Post|Put|Patch|Delete)\s*\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g
+        ),
+      ]
       for (const v of verbs) {
         const before = marks.filter((m) => m.index < v.index).pop()
         out.push({
@@ -120,15 +185,31 @@ export function extractProviders(repoRoot, rel) {
     }
 
     if (/(^|\/)route\.[tj]s$/.test(relFile)) {
-      const routePath = "/" + relFile
-        .replace(/^.*?(?:src\/)?app\//, "")
-        .replace(/\/route\.[tj]s$/, "")
-        .replace(/\((?:[^/]+)\)\//g, "") // Next route groups are not URL segments
-      for (const m of src.matchAll(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b/g)) {
-        out.push({ method: m[1], path: normalisePath(routePath), source: relFile, kind: "next" })
+      const routePath =
+        "/" +
+        relFile
+          .replace(/^.*?(?:src\/)?app\//, "")
+          .replace(/\/route\.[tj]s$/, "")
+          .replace(/\((?:[^/]+)\)\//g, "") // Next route groups are not URL segments
+      for (const m of src.matchAll(
+        /export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b/g
+      )) {
+        out.push({
+          method: m[1],
+          path: normalisePath(routePath),
+          source: relFile,
+          kind: "next",
+        })
       }
-      for (const m of src.matchAll(/export\s+const\s+(GET|POST|PUT|PATCH|DELETE)\s*=/g)) {
-        out.push({ method: m[1], path: normalisePath(routePath), source: relFile, kind: "next" })
+      for (const m of src.matchAll(
+        /export\s+const\s+(GET|POST|PUT|PATCH|DELETE)\s*=/g
+      )) {
+        out.push({
+          method: m[1],
+          path: normalisePath(routePath),
+          source: relFile,
+          kind: "next",
+        })
       }
     }
   }
@@ -158,19 +239,45 @@ export function extractConsumers(repoRoot, rel) {
 
     for (const m of src.matchAll(/\bfetch\s*\(\s*(['"`])([^'"`]*)\1/g)) {
       const raw = m[2]
-      if (!raw.trim()) { opaque++; continue }
-      const method = /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)/i.exec(
-        src.slice(m.index, m.index + 400)
-      )?.[1]?.toUpperCase() ?? "GET"
+      if (!raw.trim()) {
+        opaque++
+        continue
+      }
+      /**
+       * A leading `${…}` is a base URL this scanner cannot resolve, so only the
+       * REMAINDER can be trusted — and only if it is itself a path.
+       *
+       * Stripping the interpolation unconditionally turned
+       * `` fetch(`${this.baseUrl}?${query}`) `` into the path `/`, which then
+       * matched a sibling service's liveness route as an `exact` link. That is
+       * how a Google Maps client came to be documented as calling one of our own
+       * APIs. On this repo six of thirteen links were this same artefact, all
+       * pointing at `GET /`.
+       *
+       * `${base}/api/thing` still resolves — the part after the base is real.
+       * Anything else is opaque, which the diagnostics already report honestly.
+       */
+      const interpolated = /^\$\{[^}]*\}/.test(raw)
+      const remainder = raw.replace(/^\$\{[^}]*\}/, "")
+      if (interpolated && !remainder.startsWith("/")) {
+        opaque++
+        continue
+      }
+      const method =
+        /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)/i
+          .exec(src.slice(m.index, m.index + 400))?.[1]
+          ?.toUpperCase() ?? "GET"
       out.push({
         method,
-        path: normalisePath(raw.replace(/^\$\{[^}]*\}/, "")),
+        path: normalisePath(remainder),
         rawUrl: raw,
         external: EXTERNAL_HOST.test(raw),
         source: relFile,
       })
     }
-    for (const m of src.matchAll(/\baxios\.(get|post|put|patch|delete)\s*\(\s*(['"`])([^'"`]*)\2/g)) {
+    for (const m of src.matchAll(
+      /\baxios\.(get|post|put|patch|delete)\s*\(\s*(['"`])([^'"`]*)\2/g
+    )) {
       out.push({
         method: m[1].toUpperCase(),
         path: normalisePath(m[3]),
@@ -216,12 +323,35 @@ export function extractConsumers(repoRoot, rel) {
      * produces "this endpoint is dead", which is the output that gets live code
      * deleted. The asymmetry decides the trade.
      */
-    for (const m of src.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(\s*(['"`])(\/[A-Za-z0-9_\-./:$?{}[\]]*)\2/g)) {
+    for (const m of src.matchAll(
+      /(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(\s*(['"`])(\/[A-Za-z0-9_\-./:$?{}[\]]*)\2/g
+    )) {
       const fn = m[1]
       if (fn === "fetch" || fn === "require" || fn === "import") continue
-      const method = /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)/i.exec(
-        src.slice(m.index, m.index + 300)
-      )?.[1]?.toUpperCase() ?? "GET"
+      /**
+       * In a front end, "a function taking a path" is far more often ROUTING
+       * than an HTTP call, and the asymmetry argued above does not hold for it:
+       * a bogus consumer for `/` links to a sibling service's liveness route and
+       * is published as a service dependency, which is a wrong answer rather
+       * than a harmless extra.
+       *
+       * Measured here: `redirect('/')`, `useHiddenInMvp('/')` and a `('/')`
+       * inside a doc comment together produced five cross-app links from the
+       * prototype to claim-api, none of which exist.
+       *
+       * Three exclusions, each narrow: navigation/router built-ins by name, any
+       * React hook (`use…` is never an HTTP verb), and a bare `/` reached
+       * through a helper — a root-path API call written as a bare literal is
+       * rare enough to lose, and it is the single most over-matched string there
+       * is.
+       */
+      if (NAV_HELPERS.has(fn) || /^use[A-Z]/.test(fn)) continue
+      if (normalisePath(m[3]) === "/") continue
+      if (inCommentAt(src, m.index)) continue
+      const method =
+        /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)/i
+          .exec(src.slice(m.index, m.index + 300))?.[1]
+          ?.toUpperCase() ?? "GET"
       out.push({
         method,
         path: normalisePath(m[3]),
@@ -233,7 +363,8 @@ export function extractConsumers(repoRoot, rel) {
     }
 
     // Calls whose URL is a bare identifier: counted, never invented.
-    opaque += [...src.matchAll(/\bfetch\s*\(\s*[A-Za-z_$][\w$]*\s*[,)]/g)].length
+    opaque += [...src.matchAll(/\bfetch\s*\(\s*[A-Za-z_$][\w$]*\s*[,)]/g)]
+      .length
   }
   return { consumers: out, opaque }
 }
@@ -312,7 +443,9 @@ export function matchContracts(providers, consumers) {
   /** Also count intra-app calls: an endpoint its own app uses is not unused. */
   const usedPaths = new Set(consumers.map((c) => `${c.method} ${c.path}`))
   const orphans = providers.filter(
-    (p) => !linkedPaths.has(`${p.method} ${p.path}`) && !usedPaths.has(`${p.method} ${p.path}`)
+    (p) =>
+      !linkedPaths.has(`${p.method} ${p.path}`) &&
+      !usedPaths.has(`${p.method} ${p.path}`)
   )
 
   return { links, unmatched, orphans }
@@ -342,7 +475,8 @@ export function orphanConfidence({ resolved, opaque, providers, orphans }) {
    * endpoint check skipped" forever, which is exactly the kind of noise a fresh
    * clone must never see.
    */
-  if (providers === 0) return { trustworthy: true, coverage, orphanRate, why: null }
+  if (providers === 0)
+    return { trustworthy: true, coverage, orphanRate, why: null }
 
   /**
    * The orphan RATE is the load-bearing signal, and it is self-calibrating.
@@ -370,8 +504,8 @@ export function orphanConfidence({ resolved, opaque, providers, orphans }) {
       coverage,
       orphanRate,
       why:
-        `${orphans} of ${providers} endpoints have no visible caller (${Math.round(orphanRate * 100)}%) — `
-        + `a real system does not ship that many dead endpoints, so the callers are invisible to this scanner, not absent`,
+        `${orphans} of ${providers} endpoints have no visible caller (${Math.round(orphanRate * 100)}%) — ` +
+        `a real system does not ship that many dead endpoints, so the callers are invisible to this scanner, not absent`,
     }
   }
   // Too few resolved calls to say anything about a provider surface.
@@ -382,10 +516,10 @@ export function orphanConfidence({ resolved, opaque, providers, orphans }) {
       orphanRate,
       why:
         resolved === 0 && opaque === 0
-          // No calls AT ALL is a different statement from "we couldn't read
-          // them", and blurring the two would misdescribe every backend-only or
-          // frontend-only repo in the fleet.
-          ? `no call sites were found in the scanned roots — this repo may not call its own API, or its callers live elsewhere`
+          ? // No calls AT ALL is a different statement from "we couldn't read
+            // them", and blurring the two would misdescribe every backend-only or
+            // frontend-only repo in the fleet.
+            `no call sites were found in the scanned roots — this repo may not call its own API, or its callers live elsewhere`
           : `only ${resolved} call site(s) could be resolved against ${providers} endpoint(s) — most calls go through a client this scanner can't follow`,
     }
   }
@@ -400,7 +534,7 @@ export function orphanConfidence({ resolved, opaque, providers, orphans }) {
   return { trustworthy: true, coverage, orphanRate, why: null }
 }
 
-/** The workspace app a file belongs to — `apps/customer-web/...` → `customer-web`. */
+/** The workspace app a file belongs to — `apps/example-web/...` → `example-web`. */
 export function appOf(relFile) {
   const m = /^(?:apps|packages|services)\/([^/]+)\//.exec(relFile ?? "")
   return m ? m[1] : (relFile ?? "").split("/")[0] || "(root)"

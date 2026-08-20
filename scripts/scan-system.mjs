@@ -25,9 +25,17 @@
  */
 
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
+// One owner per artifact (B3): the write validates against the schema in the
+// TS artifact module. tsx's loader is registered HERE so this script keeps
+// running under plain `node` from every existing entrypoint (hooks, CI,
+// runners) — no command anywhere had to change.
+import { register as registerTsx } from "tsx/esm/api"
+registerTsx()
+
 import path from "node:path"
 
+import { endpointKeys, endpointsIn, patternConstants } from "./lib/api-surface.mjs"
 import { emitJson } from "./lib/emit.mjs"
 
 const ROOT = process.cwd()
@@ -153,51 +161,27 @@ function deriveAreas() {
 
 // ---------------------------------------------------------------------- api
 
-const HTTP = ["Get", "Post", "Put", "Patch", "Delete", "Options", "Head"]
-
 /**
- * Two conventions cover most of what we meet: NestJS decorators and the Next
- * app router's `route.ts`. Anything else is reported as unknown rather than
- * guessed at — a wrong endpoint list is worse than an admittedly partial one.
+ * Endpoint derivation lives in `lib/api-surface.mjs` so the CI gate can apply
+ * the identical rules to a pull request's changed files. Two copies of these
+ * regexes would drift, and a rule tightened here but not there is worse than
+ * no rule — it reads as covered.
  */
 function deriveApi() {
+  const read = (f) => {
+    try {
+      if (statSync(f).size > 300 * 1024) return null
+      return readFileSync(f, "utf8")
+    } catch {
+      return null
+    }
+  }
+  const patterns = patternConstants(files, read)
   const out = []
   for (const abs of files) {
-    const r = rel(abs)
-    let src
-    try {
-      if (statSync(abs).size > 300 * 1024) continue
-      src = readFileSync(abs, "utf8")
-    } catch {
-      continue
-    }
-
-    // NestJS: @Controller('base') then @Get('sub') on each handler.
-    if (r.endsWith(".controller.ts")) {
-      const base = /@Controller\(\s*['"`]([^'"`]*)['"`]/.exec(src)?.[1] ?? ""
-      for (const verb of HTTP) {
-        const re = new RegExp(`@${verb}\\(\\s*(?:['"\`]([^'"\`]*)['"\`])?\\s*\\)`, "g")
-        let m
-        while ((m = re.exec(src)) !== null) {
-          const sub = m[1] ?? ""
-          const full = `/${[base, sub].filter(Boolean).join("/")}`.replace(/\/+/g, "/")
-          out.push({ method: verb.toUpperCase(), path: full, source: r })
-        }
-      }
-      continue
-    }
-
-    // Next app router: exported HTTP verbs in a route.ts.
-    if (/(^|\/)route\.(ts|js)$/.test(r)) {
-      const routePath = `/${r.replace(/^(src\/)?app\//, "").replace(/\/route\.(ts|js)$/, "")}`
-        .replace(/\/\([^)]*\)/g, "")
-        .replace(/\/+/g, "/")
-      for (const verb of ["GET", "POST", "PUT", "PATCH", "DELETE"]) {
-        if (new RegExp(`export\\s+(?:async\\s+)?function\\s+${verb}\\b`).test(src)) {
-          out.push({ method: verb, path: routePath, source: r })
-        }
-      }
-    }
+    const src = read(abs)
+    if (src === null) continue
+    out.push(...endpointsIn(rel(abs), src, patterns))
   }
   return out.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method))
 }
@@ -301,7 +285,7 @@ const derived = {
 function drift() {
   const known = {
     areas: new Set((existing.areas ?? []).map((a) => a.path ?? a.name)),
-    api: new Set((existing.api ?? []).map((e) => `${e.method} ${e.path}`)),
+    api: new Set((existing.api ?? []).flatMap(endpointKeys)),
     data: new Set((existing.data ?? []).map((d) => d.name)),
     integrations: new Set((existing.integrations ?? []).map((i) => i.name.toLowerCase())),
   }
@@ -342,6 +326,35 @@ function departed() {
   const live = new Set(derived.data.map((d) => d.name))
   return {
     data: (existing.data ?? []).filter((d) => !live.has(bare(d.name))),
+    // Endpoints, by the one field that IS canonical in both places: `source`.
+    //
+    // The paragraph above rules out comparing endpoint PATHS, and rightly — a
+    // person writes `/upload`, the scanner derives `/files/upload`, and a check
+    // that cries wolf 23 times out of 25 is a check people learn to scroll past.
+    // But every entry also carries the file it came from, and a file either
+    // exists or it does not. No normalisation, no judgment, no false positives.
+    //
+    // This is the check that would have caught it: four endpoints in a reference
+    // clone's map, sourced to a `*.controller.ts` that had never existed, while
+    // the real surface sat in a transport handler beside it. Every gate green.
+    api: (existing.api ?? []).filter((e) => e.source && !existsSync(path.join(REPO, e.source))),
+    // A path the source file exists but does not serve. Both directions above
+    // compare GLOBAL sets of keys, so a row could name a real endpoint while
+    // attributing it to the wrong file, or drop a service's route prefix, and
+    // the key still matched something somewhere: eleven rows in a reference
+    // clone's map, one of which was masking a genuinely undocumented endpoint,
+    // with the scan printing "the map covers everything this scan can see".
+    //
+    // Scoped to what the scanner can actually see, which is what keeps it from
+    // crying wolf: a row is only judged when its own source file yielded at
+    // least one endpoint for that same verb. A convention this scanner does not
+    // parse yields nothing and is left alone.
+    mislocated: (existing.api ?? []).filter((e) => {
+      if (e.method === "RPC" || !e.source) return false
+      const here = derived.api.filter((d) => d.source === e.source && d.method === e.method)
+      if (!here.length) return false
+      return endpointKeys(e).some((k) => !here.some((d) => `${d.method} ${d.path}` === k))
+    }),
   }
 }
 
@@ -378,7 +391,14 @@ if (!existing.repo) {
     + `\n  Run the \`codebase-map\` skill; the system-mapper writes the summaries.`
   )
 } else if (missingTotal === 0) {
-  console.log(`\n  The map covers everything this scan can see.`)
+  // Only an all-clear when it IS one. "Covers everything" printed above a list
+  // of departures is the sentence a reader stops at, and it is the sentence that
+  // let four phantom endpoints sit in a map for months.
+  console.log(
+    goneTotal === 0
+      ? `\n  The map covers everything this scan can see.`
+      : `\n  Nothing in the code is missing from the map — but see below.`
+  )
 } else {
   console.log(`\n  ${missingTotal} item(s) exist in the code but not in the map:`)
   for (const [k, v] of Object.entries(missing)) {
@@ -403,7 +423,7 @@ if (!existing.repo) {
  * for it.
  */
 if (existing.repo && goneTotal > 0) {
-  console.log(`\n  ${goneTotal} item(s) in the map that the code no longer has:`)
+  console.log(`\n  ${goneTotal} item(s) the map describes that the code does not:`)
   for (const [k, v] of Object.entries(gone)) {
     if (!v.length) continue
     const labels = [...new Set(v.map((x) => x.name ?? `${x.method} ${x.path}`))]
@@ -423,10 +443,50 @@ console.log(
   + `\n  what any of it MEANS is written by the system-mapper and never guessed here.\n`
 )
 
+/**
+ * THE INDEX WRITES ITSELF; THE PROSE DOES NOT.
+ *
+ * Until now `--write` merged `areas` and nothing else, so a new endpoint was
+ * not merely undescribed — it was ABSENT. The map answered "here is the API
+ * surface" while omitting rows it had just been shown, which is the one failure
+ * mode that cannot be spotted by reading the output.
+ *
+ * Splitting the two halves fixes it without a language model anywhere near the
+ * routine path: the mechanical row (method, path, source) is derived and can be
+ * written the instant it is seen, while what the endpoint MEANS still waits for
+ * someone to write it. An indexed-but-undescribed row is visibly incomplete; a
+ * missing row is invisibly wrong.
+ *
+ * ADDITIVE, never destructive. Existing entries are authored — grouped by hand
+ * (one RPC row per handler, patterns joined by ` | `) and carrying prose no
+ * scanner can regenerate — so they are copied through untouched. Endpoints the
+ * code has and no existing entry covers are appended with an empty summary.
+ * Entries whose code is GONE are reported by `departed()` and left alone:
+ * deleting authored prose on a scanner's say-so is not a decision this script
+ * gets to make.
+ */
+function mergedApi() {
+  const known = new Set((existing.api ?? []).flatMap(endpointKeys))
+  const additions = derived.api
+    .filter((e) => !known.has(`${e.method} ${e.path}`))
+    // `surface` is deliberately not guessed — an unset field reads as "not yet
+    // classified", where a defaulted one reads as a decision nobody made.
+    .map((e) => ({ method: e.method, path: e.path, summary: "", source: e.source }))
+  return {
+    api: [...(existing.api ?? []), ...additions].sort(
+      (a, b) => String(a.path).localeCompare(String(b.path)) || a.method.localeCompare(b.method)
+    ),
+    added: additions.length,
+  }
+}
+
 if (write) {
   const byName = new Map((existing.areas ?? []).map((a) => [a.name, a]))
+  const { api: apiMerged } = mergedApi()
+  const undescribed = apiMerged.filter((e) => !e.summary).length
   const merged = {
     ...existing,
+    api: apiMerged,
     areas: derived.areas.map((a) => ({
       ...a,
       // Carry the agent's prose across; never overwrite it with a blank.
@@ -436,9 +496,44 @@ if (write) {
     })),
     provenance: {
       ...(existing.provenance ?? {}),
-      generatedAt: new Date().toISOString(),
+      /**
+       * DAY precision, not milliseconds — because this file is merged.
+       *
+       * Two developers who each re-index locally produce timestamps 465ms apart
+       * and a guaranteed merge conflict on this line, on every merge, forever,
+       * even when nothing else in the map differs. Nothing reads the time of
+       * day: the hub renders it through `formatDay`, and freshness is decided by
+       * `sourceHash`, never by this. So the precision bought nothing and cost a
+       * conflict per merge.
+       *
+       * Same-day scans now produce an identical value and merge silently.
+       * Across a day boundary it still differs, which is a real difference and
+       * the merge driver resolves it by regenerating.
+       */
+      generatedAt: new Date().toISOString().slice(0, 10),
       generator: "scan:system",
-      confidence: derived.areas.every((a) => byName.get(a.name)?.summary) ? "high" : "medium",
+      /**
+       * Confidence now accounts for the endpoints too. A map whose areas are
+       * all written but whose API surface is half blank rows is not "high"
+       * confidence — it is a complete index with an incomplete reading, and the
+       * number that says so is the one a caller should see.
+       */
+      confidence:
+        derived.areas.every((a) => byName.get(a.name)?.summary) && undescribed === 0
+          ? "high"
+          : "medium",
+      undescribedEndpoints: undescribed,
+      /**
+       * How many endpoints THIS scan saw, so the hub can state coverage from
+       * one source instead of inferring it from another.
+       *
+       * The System Map page was computing "documents N of M endpoints" with M
+       * taken from `contracts.json`'s provider count — a different scanner, one
+       * with no `@MessagePattern` awareness at all. It read as a reassuring 91%
+       * while excluding the entire RPC surface from the denominator. Two
+       * scanners, one ratio, and the number that looked best won.
+       */
+      derivedEndpoints: derived.api.length,
       // Mirror the repo commit so the freshness report can name it rather
       // than printing "anchored at ?".
       ...(existing.repo?.commit ? { commit: existing.repo.commit } : {}),
@@ -459,8 +554,21 @@ if (write) {
       ...anchorOf(schemaFiles()),
     },
   }
-  writeFileSync(MAP_PATH, `${JSON.stringify(merged, null, 2)}\n`)
+  const { writeSystemMap } = await import("../lib/artifacts/system-map.ts")
+  writeSystemMap(merged)
   console.log(`  areas merged into data/system-map.json (prose preserved)\n`)
 }
 
-process.exit(check && missingTotal > 0 && existing.repo ? 1 : 0)
+/**
+ * `--check` fails on a gap in either direction, but only where the signal is
+ * exact. Missing items are derived from code, so they are facts. Departed
+ * ENDPOINTS are facts too — a `source` file is present or absent. Departed DATA
+ * models stay advisory: they match on a name the agent may have disambiguated by
+ * hand, and a gate that can be wrong is a gate that gets bypassed.
+ *
+ * MISLOCATED rows are facts on the same terms: the row's own source file was
+ * parsed, it yielded endpoints for that verb, and this path was not among them.
+ * On the reference clone this found eleven and invented none.
+ */
+const goneHard = (gone.api?.length ?? 0) + (gone.mislocated?.length ?? 0)
+process.exit(check && existing.repo && (missingTotal > 0 || goneHard > 0) ? 1 : 0)

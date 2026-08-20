@@ -32,7 +32,10 @@ synclair_dev_pids() {
 }
 
 http_code() {
-  curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$PORT/" 2>/dev/null || echo 000
+  # -L: "/" legitimately 307s to the hub route. Probing without following
+  # redirects graded a healthy server WEDGED and prescribed killing it —
+  # health means "a request ends in 200", not "the first hop is 200".
+  curl -sL -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$PORT/" 2>/dev/null || echo 000
 }
 
 case "${1:-status}" in

@@ -1,10 +1,9 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
+import { readContractsArtifact } from "@/lib/artifacts/contracts"
 
 /**
  * THE SEAM, read side — which screens call which endpoints.
  *
- * `data/contracts.json` is written by `npm run scan:contracts` and is DERIVED
+ * `.synclair/cache/contracts.json` is written by `npm run scan:contracts` and is DERIVED
  * end to end: no model, no network, re-runnable on a hook. That is what makes it
  * different from the System Map's authored `api[]` list, which is one person's
  * reading at one moment and rots invisibly.
@@ -15,7 +14,6 @@ import path from "node:path"
  * live endpoint.
  */
 
-const CONTRACTS_PATH = path.join(process.cwd(), "data", "contracts.json")
 
 export interface ContractProvider {
   method: string
@@ -55,15 +53,10 @@ export interface ContractsReport {
   }
 }
 
-/** Read the seam. `null` (not a throw) when the scan has never run. */
+/** Read the seam. `null` (not a throw) when the scan has never run.
+ *  Validation lives in the artifact module (one owner — B3). */
 export async function getContracts(): Promise<ContractsReport | null> {
-  try {
-    const raw = JSON.parse(await readFile(CONTRACTS_PATH, "utf8")) as ContractsReport
-    if (!Array.isArray(raw?.links) || !Array.isArray(raw?.providers)) return null
-    return raw
-  } catch {
-    return null
-  }
+  return (readContractsArtifact() as ContractsReport | null) ?? null
 }
 
 const key = (method: string, p: string) => `${method.toUpperCase()} ${p}`

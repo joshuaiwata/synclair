@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * scan:contracts — derive the UI↔API seam into `data/contracts.json`.
+ * scan:contracts — derive the UI↔API seam into `.synclair/cache/contracts.json`.
  *
  * Unlike the prose halves of the System Map, this is DERIVED end to end: no
  * model, no network, re-runnable on a hook. That is the point — the authored
@@ -12,14 +12,20 @@
  * configured twice.
  *
  *   npm run scan:contracts            report
- *   npm run scan:contracts -- --write write data/contracts.json
+ *   npm run scan:contracts -- --write write .synclair/cache/contracts.json
  *   npm run scan:contracts -- --json
  */
 
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
+
+// One owner per artifact (B3): the write validates in the TS artifact module;
+// tsx's loader registers here so plain `node` keeps working everywhere.
+import { register as registerTsx } from "tsx/esm/api"
+registerTsx()
+
 import { fileURLToPath } from "node:url"
 
 import {
@@ -33,7 +39,6 @@ import { emitJson } from "./lib/emit.mjs"
 import { resolveTarget } from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const OUT = path.join(HUB_ROOT, "data", "contracts.json")
 
 const args = process.argv.slice(2)
 const asJson = args.includes("--json")
@@ -134,7 +139,10 @@ function sourceAnchor() {
 const report = {
   generatedAt: new Date().toISOString(),
   generator: "scan:contracts",
-  repo: { root: hostRoot === HUB_ROOT ? null : path.relative(HUB_ROOT, hostRoot) },
+  // "." when the scan covered the hub's own app: a null root made every
+  // downstream resolver fall back to a legacy ".." and grade real files as
+  // missing (found promoting the battery to the standalone mother repo).
+  repo: { root: hostRoot === HUB_ROOT ? "." : path.relative(HUB_ROOT, hostRoot) },
   provenance: {
     generatedAt: new Date().toISOString(),
     generator: "scan:contracts",
@@ -166,8 +174,8 @@ const report = {
 }
 
 if (write) {
-  mkdirSync(path.dirname(OUT), { recursive: true })
-  writeFileSync(OUT, JSON.stringify(report, null, 2) + "\n")
+  const { writeContractsArtifact } = await import("../lib/artifacts/contracts.ts")
+  writeContractsArtifact(report)
 }
 
 if (asJson) {
@@ -223,5 +231,5 @@ if (opaque) {
 }
 
 console.log(
-  write ? `\n  Written → data/contracts.json\n` : `\n  Report only. Add --write to persist.\n`
+  write ? `\n  Written → .synclair/cache/contracts.json\n` : `\n  Report only. Add --write to persist.\n`
 )

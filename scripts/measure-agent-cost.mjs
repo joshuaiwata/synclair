@@ -27,11 +27,11 @@
  */
 
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 const ROOT = process.cwd()
-const BASELINE_PATH = path.join(ROOT, "data", "agent-cost.json")
+const BASELINE_PATH = path.join(ROOT, ".synclair", "cache", "agent-cost.json")
 
 /**
  * Chars-per-token divisor. We deliberately do NOT take a tokenizer dependency —
@@ -552,7 +552,7 @@ if (args.has("--json")) {
 } else {
   let prev = null
   if (args.has("--compare")) {
-    const raw = readIfPresent("data/agent-cost.json")
+    const raw = readIfPresent(".synclair/cache/agent-cost.json")
     if (raw) {
       try {
         prev = JSON.parse(raw)
@@ -567,6 +567,7 @@ if (args.has("--json")) {
 }
 
 if (args.has("--save")) {
+  mkdirSync(path.dirname(BASELINE_PATH), { recursive: true })
   writeFileSync(BASELINE_PATH, `${JSON.stringify(snap, null, 2)}\n`)
-  console.log(`baseline written → data/agent-cost.json\n`)
+  console.log(`baseline written → .synclair/cache/agent-cost.json\n`)
 }

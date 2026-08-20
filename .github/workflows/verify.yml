@@ -1,8 +1,8 @@
-# The machine-enforced foundation gate (see AGENTS.md → Rules → "Verify before done").
-# Same command agents run locally: typecheck + lint guardrails + registry drift check.
-# Deliberately no `next build` — this repo's dev workflow forbids production builds
-# in the working dir, and the gate is about foundation compliance, not deployability.
-name: verify-ui
+# The battery, standalone edition — verify-ui, a booted-app smoke, and the
+# scripted fresh-clone simulation, on every push and PR. Promoted from a
+# reference clone where this exact harness caught a month of machinery bugs
+# (docs/hardening-battery lineage; boundary: docs/core-boundary.md).
+name: battery
 
 on:
   push:
@@ -19,4 +19,38 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The derived cache is gitignored — rebuild it so the checks grade the
+      # derived layer instead of skipping an absent one.
+      - run: npm run index
       - run: npm run verify-ui
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run index
+      - run: npm run build
+      - name: Boot the hub and smoke it
+        run: |
+          npm run start -- --port 4100 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:4100/synclair && break
+            sleep 1
+          done
+          npm run smoke
+
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: bash scripts/sim-fresh-clone.sh

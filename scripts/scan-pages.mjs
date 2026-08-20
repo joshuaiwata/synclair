@@ -24,13 +24,22 @@
  *   node scripts/scan-pages.mjs            scan + write data/pages-map.json
  *   node scripts/scan-pages.mjs --check    report drift, exit 1 (CI)
  *   node scripts/scan-pages.mjs --print    show what it found, write nothing
+ *   node scripts/scan-pages.mjs --surface <surface-id>
+ *                                           scan one entry from `repos`
  *
  * Full deterministic pass: `npm run map:pages` (scan → resolve → reanchor).
  */
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
+// One owner per artifact (B3): the write validates against the schema in the
+// TS artifact module. tsx's loader is registered HERE so this script keeps
+// running under plain `node` from every existing entrypoint (hooks, CI,
+// runners) — no command anywhere had to change.
+import { register as registerTsx } from "tsx/esm/api"
+registerTsx()
+
 
 const ROOT = process.cwd()
 const MAP_PATH = path.join(ROOT, "data", "pages-map.json")
@@ -38,6 +47,13 @@ const MAP_PATH = path.join(ROOT, "data", "pages-map.json")
 const args = process.argv.slice(2)
 const check = args.includes("--check")
 const printOnly = args.includes("--print")
+const surfaceIndex = args.indexOf("--surface")
+const requestedSurface = surfaceIndex === -1 ? null : args[surfaceIndex + 1]
+
+if (surfaceIndex !== -1 && !requestedSurface) {
+  console.error("Pages scan: --surface requires a surface name.")
+  process.exit(1)
+}
 
 // --------------------------------------------------------------- host guard
 
@@ -75,9 +91,21 @@ const existing = readExisting()
  * router we don't understand (react-router, Expo, Next pages) — that genuinely
  * needs the `page-mapper` agent reading host source.
  */
-const hostRoot = typeof existing?.repo?.root === "string" && existing.repo.root ? existing.repo.root : null
+const selectedRepo = requestedSurface
+  ? existing?.repos?.find((repo) => repo?.surface === requestedSurface)
+  : existing?.repo
+
+if (requestedSurface && !selectedRepo) {
+  console.error(`Pages scan: surface "${requestedSurface}" is not declared in data/pages-map.json repos.`)
+  process.exit(1)
+}
+
+const hostRoot = typeof selectedRepo?.root === "string" && selectedRepo.root ? selectedRepo.root : null
 const REPO_DIR = hostRoot ? path.resolve(ROOT, hostRoot) : ROOT
 const routerKind = existing?.routerKind ?? null
+const dropSegments = Array.isArray(selectedRepo?.dropSegments)
+  ? selectedRepo.dropSegments.filter((segment) => typeof segment === "string")
+  : []
 
 // `src/app` or `app` — both are conventional Next app-router layouts.
 const APP_DIR = [path.join(REPO_DIR, "src", "app"), path.join(REPO_DIR, "app")].find((d) =>
@@ -171,8 +199,9 @@ function previewFor(route, dynamic, api, sameOrigin) {
 
 const found = walk(APP_DIR)
   .map(({ file, segments, api }) => {
-    const route = `/${segments.join("/")}`.replace(/\/+/g, "/")
-    const dynamic = segments.some((s) => s.startsWith("["))
+    const routeSegments = segments.filter((segment) => !dropSegments.includes(segment))
+    const route = `/${routeSegments.join("/")}`.replace(/\/+/g, "/")
+    const dynamic = routeSegments.some((s) => s.startsWith("["))
     return {
       id: slugify(route),
       route,
@@ -186,7 +215,30 @@ const found = walk(APP_DIR)
 
 // ------------------------------------------------------------------- merge
 
-const prior = Array.isArray(existing.pages) ? existing.pages : []
+const allPrior = Array.isArray(existing.pages) ? existing.pages : []
+
+/**
+ * MULTI-APP: this scanner enumerates ONE app dir. Every page belonging to a
+ * different surface is therefore invisible to it — and "invisible" must not be
+ * read as "deleted". Without this scoping the first commit after a second app
+ * was mapped would report that app's whole route set as gone and drop it from
+ * the file, silently, on a hook that never blocks.
+ *
+ * The scanned surface is whichever `repos` entry shares this scan's root (or
+ * `repo.surface`); pages tagged with any other surface are carried through
+ * untouched and excluded from the added/removed diff.
+ */
+const scannedSurface =
+  requestedSurface ??
+  (Array.isArray(existing.repos)
+    ? existing.repos.find((r) => (r?.root ?? null) === hostRoot)?.surface
+    : undefined) ??
+  existing.repo?.surface ??
+  null
+
+const ownsPage = (p) => (scannedSurface ? p.surface === scannedSurface : !p.surface || !existing.repos)
+const prior = allPrior.filter(ownsPage)
+const untouchedPages = allPrior.filter((p) => !ownsPage(p))
 const priorByRoute = new Map(prior.map((p) => [p.route, p]))
 
 /**
@@ -198,7 +250,14 @@ const PROSE_FIELDS = ["title", "summary", "auth", "surface", "templateName", "li
 
 const pages = found.map((node) => {
   const before = priorByRoute.get(node.route)
-  if (!before) return { ...node, items: [] }
+  if (!before) {
+    return {
+      ...node,
+      ...(scannedSurface ? { surface: scannedSurface } : {}),
+      items: [],
+      sourceFiles: [node.file],
+    }
+  }
   const carried = {}
   for (const f of PROSE_FIELDS) {
     if (before[f] !== undefined) carried[f] = before[f]
@@ -209,7 +268,10 @@ const pages = found.map((node) => {
     // Facts the resolver/anchor own — preserved so a scan alone doesn't blank
     // them, then refreshed by the next step in the pass.
     items: Array.isArray(before.items) ? before.items : [],
-    ...(before.sourceFiles ? { sourceFiles: before.sourceFiles } : {}),
+    sourceFiles:
+      Array.isArray(before.sourceFiles) && before.sourceFiles.length > 0
+        ? before.sourceFiles
+        : [node.file],
     ...(before.sourceHash ? { sourceHash: before.sourceHash } : {}),
   }
 })
@@ -272,15 +334,33 @@ if (check) {
 
 const next = {
   ...existing,
-  repo: {
-    name: existing.repo?.name ?? path.basename(ROOT),
-    root: hostRoot,
-    commit: commit(),
-    digestedAt: new Date().toISOString(),
-    ...(existing.repo?.previewBaseUrl ? { previewBaseUrl: existing.repo.previewBaseUrl } : {}),
-  },
+  repo: requestedSurface
+    ? existing.repo
+    : {
+        name: existing.repo?.name ?? path.basename(ROOT),
+        root: hostRoot,
+        commit: commit(),
+        digestedAt: new Date().toISOString(),
+        ...(existing.repo?.previewBaseUrl ? { previewBaseUrl: existing.repo.previewBaseUrl } : {}),
+        ...(existing.repo?.surface ? { surface: existing.repo.surface } : {}),
+      },
+  ...(requestedSurface && Array.isArray(existing.repos)
+    ? {
+        repos: existing.repos.map((repo) =>
+          repo?.surface === requestedSurface
+            ? { ...repo, commit: commit(), digestedAt: new Date().toISOString() }
+            : repo
+        ),
+      }
+    : {}),
   routerKind: "next-app",
-  pages,
+  // Other surfaces' pages ride through unchanged — this scan never saw their
+  // app dir and has nothing to say about them.
+  pages: [...pages, ...untouchedPages].sort(
+    (a, b) =>
+      String(a.surface ?? "").localeCompare(String(b.surface ?? "")) ||
+      String(a.route).localeCompare(String(b.route))
+  ),
   provenance: {
     generatedAt: new Date().toISOString(),
     commit: commit(),
@@ -291,7 +371,8 @@ const next = {
   },
 }
 
-writeFileSync(MAP_PATH, `${JSON.stringify(next, null, 2)}\n`)
+const { writePagesMap } = await import("../lib/artifacts/pages-map.ts")
+writePagesMap(next)
 
 console.log(summary.join("\n"))
 console.log(`  written → data/pages-map.json`)

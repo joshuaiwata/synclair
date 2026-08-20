@@ -1,0 +1,8 @@
+{
+  "name": "@synclair/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Synclair's machinery — scanners, artifact modules, checks, MCP server, lifecycle scripts — as a versioned package. SKELETON: contents move here per docs/core-boundary.md once the package name/registry decision lands (north-star owner decisions).",
+  "type": "module",
+  "license": "GPL-3.0-or-later"
+}

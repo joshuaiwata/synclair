@@ -42,8 +42,8 @@ const readJson = (rel) => {
 const catalog = readJson("data/external-catalog.json")
 const registry = readJson("registry.json")
 const pages = readJson("data/pages-map.json")
-const knowledge = readJson("data/knowledge/freshness.json")
-const contracts = readJson("data/contracts.json")
+const knowledge = readJson(".synclair/cache/knowledge/freshness.json")
+const contracts = readJson(".synclair/cache/contracts.json")
 const system = readJson("data/system-map.json")
 
 /**

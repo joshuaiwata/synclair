@@ -223,10 +223,32 @@ for (const host of hosts) {
   }
   const jsxTag = (name) =>
     "<" + name.split("-").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
-  const liveFileCount = (name) => {
+  /**
+   * Search for what the CODE calls it, not only what the CATALOG calls it.
+   *
+   * A catalog `name` is a display/disambiguation label — two surfaces can each
+   * own a `CallbackHandler.tsx`, so the entries get renamed (`LoginCallbackHandler`,
+   * `AuthenticateCallbackHandler`) to stay distinct. Matching that label against
+   * JSX finds nothing, and the entry reads as dead code forever, on every run.
+   * `draft-host-catalog` already resolves the real identifier this way.
+   */
+  const tagsFor = (it) => {
+    const names = new Set([it.name]);
+    if (it.hostPath) {
+      try {
+        for (const e of exportsOf(path.join(hostRootAbs, it.hostPath))) names.add(e);
+      } catch {
+        /* source gone — the catalog name is all we have to go on */
+      }
+    }
+    return [...names];
+  };
+  const liveFileCount = (it) => {
     if (webCorpus.length === 0) return null;
-    const re = new RegExp(`${jsxTag(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=[\\s/>])`);
-    return webCorpus.filter((text) => re.test(text)).length;
+    const res = tagsFor(it).map(
+      (n) => new RegExp(`${jsxTag(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=[\\s/>])`)
+    );
+    return webCorpus.filter((text) => res.some((re) => re.test(text))).length;
   };
   // Shared adoption is a LIVE measure across consumer surfaces — the cataloger's
   // intake-time snapshot isn't an adoption signal, so don't let it mask a real
@@ -234,8 +256,8 @@ for (const host of hosts) {
   // App surfaces keep the snapshot fallback for their non-web (e.g. mobile) case.
   const unusedCataloged = hostItems.filter((it) =>
     isShared
-      ? (liveFileCount(it.name) ?? 0) === 0
-      : (liveFileCount(it.name) ?? it.usage?.fileCount ?? 0) === 0
+      ? (liveFileCount(it) ?? 0) === 0
+      : (liveFileCount(it) ?? it.usage?.fileCount ?? 0) === 0
   );
 
   /**

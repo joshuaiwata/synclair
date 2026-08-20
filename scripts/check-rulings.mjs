@@ -8,14 +8,14 @@
  *
  * REPORTS; NEVER WRITES THE REGISTER. A scan yields candidates, and candidates
  * are not decisions — the same restraint `draft:host-catalog` applies to
- * components. `--write` persists to `data/rulings.json` only when a human asks.
+ * components. `--write` persists to `.synclair/cache/rulings.json` only when a human asks.
  *
  * No model, no network. The delivery half lives in `agent-brief`, which surfaces
  * the rulings governing whatever you're currently editing.
  *
  *   npm run check:rulings
  *   npm run check:rulings -- --json
- *   npm run check:rulings -- --write          persist data/rulings.json
+ *   npm run check:rulings -- --write          persist .synclair/cache/rulings.json
  *   npm run check:rulings -- --for <file>...  which rulings govern these files
  */
 
@@ -29,7 +29,7 @@ import { resolveTarget } from "./lib/topology.mjs"
 
 const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const hostRoot = resolveTarget(HUB_ROOT).hostRoot ?? HUB_ROOT
-const OUT = path.join(HUB_ROOT, "data", "rulings.json")
+const OUT = path.join(HUB_ROOT, ".synclair", "cache", "rulings.json")
 
 const args = process.argv.slice(2)
 const asJson = args.includes("--json")
@@ -105,4 +105,4 @@ if (byState.gone) {
     + `\n  guidance whose subject is gone is the kind people learn to skip.`
   )
 }
-console.log(write ? `\n  Written → data/rulings.json\n` : `\n  Report only. Add --write to persist.\n`)
+console.log(write ? `\n  Written → .synclair/cache/rulings.json\n` : `\n  Report only. Add --write to persist.\n`)
