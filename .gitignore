@@ -42,3 +42,6 @@ next-env.d.ts
 # NEVER committed: "what I last saw" is personal. Sharing one cursor would mean
 # whoever ran the brief first silently consumed everyone else's notifications.
 /data/.local/
+
+# Derived cache — rebuilt by `npm run index`; never committed (north-star Phase 1)
+.synclair/

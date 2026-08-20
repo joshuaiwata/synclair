@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
+import { readPagesMapFile } from "@/lib/artifacts/pages-map"
 
 import type { Provenance } from "./provenance"
 
@@ -28,13 +27,32 @@ import type { MapSurface } from "./system-map"
  * exactly which pages drifted as people add and merge routes.
  */
 
-const MAP_PATH = path.join(process.cwd(), "data", "pages-map.json")
 
 export interface PagesMapRepo {
   /** Project name, e.g. "acme-app". */
   name: string
   /** null = THIS repo; otherwise the host repo root, relative to this repo. */
   root: string | null
+  /**
+   * Which surface this root serves. Set only on entries in `repos` — a
+   * multi-app project maps each frontend from its OWN root, so a page's
+   * `sourceFiles` resolve against the root of ITS surface, not a shared one.
+   */
+  surface?: MapSurface
+  /**
+   * True when the host refuses to be framed (`X-Frame-Options: DENY` /
+   * `frame-ancestors 'none'`). Production apps commonly do, and without this
+   * the hub renders a permanently blank iframe instead of saying why. Distinct
+   * from a page's `previewable`: this is a property of the HOST, not the route.
+   */
+  framesBlocked?: boolean
+  /**
+   * Directory segments the ROUTER consumes that never appear in a URL — an i18n
+   * wrapper is the usual case (`["[locale]"]` for a `localePrefix: "as-needed"`
+   * app, where `/[locale]/account` is served at `/account`). Undeclared, every
+   * such route reports as BOTH new and removed on every check.
+   */
+  dropSegments?: string[]
   /** Commit hash the digest was generated from — the staleness anchor. */
   commit?: string
   /** ISO date the map was last generated. */
@@ -108,7 +126,18 @@ export interface PageNode {
 }
 
 export interface PagesMap {
+  /**
+   * The primary/default target. Kept as the single source for single-surface
+   * projects (and every map authored before `repos` existed), so older data
+   * loads unchanged.
+   */
   repo: PagesMapRepo | null
+  /**
+   * Multi-app projects: one entry per frontend, each with its own `root` and
+   * `previewBaseUrl`. A page resolves its root through `rootForPage()`, which
+   * matches on `surface` and falls back to `repo`. Absent = single-surface.
+   */
+  repos?: PagesMapRepo[]
   /** "next-app" | "next-pages" | "react-router" | ... — how routes are defined. */
   routerKind?: string
   /**
@@ -175,10 +204,20 @@ function normRepo(v: unknown): PagesMapRepo | null {
   return {
     name,
     root: typeof r.root === "string" ? r.root : null,
+    ...(str(r.surface) ? { surface: str(r.surface) as MapSurface } : {}),
+    ...(r.framesBlocked === true ? { framesBlocked: true } : {}),
+    ...(strList(r.dropSegments) ? { dropSegments: strList(r.dropSegments) } : {}),
     commit: str(r.commit),
     digestedAt,
     previewBaseUrl: str(r.previewBaseUrl),
   }
+}
+
+/** Normalise the multi-app list; a malformed entry is dropped, not fatal. */
+function normRepos(v: unknown): PagesMapRepo[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const list = v.map(normRepo).filter((r): r is PagesMapRepo => r !== null)
+  return list.length > 0 ? list : undefined
 }
 
 function normItem(e: Record<string, unknown>): PageItemUse | null {
@@ -244,11 +283,20 @@ export function slugifyRoute(route: string): string {
  * sparse node instead of crashing the page.
  */
 export async function getPagesMap(): Promise<PagesMap> {
-  try {
-    const raw = await readFile(MAP_PATH, "utf8")
-    const parsed = JSON.parse(raw) as Record<string, unknown>
+  // File access goes through the artifact module (one owner — B3);
+  // normalization of whatever shape is in it stays here.
+  const file = readPagesMapFile()
+  if (file.state === "absent") return EMPTY
+  if (file.state === "unreadable") {
+    // A corrupt file must be loud in the UI too, not a lying "no map yet".
+    console.error("[pages-map] data/pages-map.json unreadable — flagging on the page:", file.error)
+    return { ...EMPTY, unreadable: true }
+  }
+  {
+    const parsed = file.value as Record<string, unknown>
     return {
       repo: normRepo(parsed.repo),
+      repos: normRepos(parsed.repos),
       routerKind: str(parsed.routerKind),
       routerSources: strList(parsed.routerSources),
       surfacesNote: str(parsed.surfacesNote),
@@ -258,20 +306,34 @@ export async function getPagesMap(): Promise<PagesMap> {
       provenance: toProvenance(parsed.provenance),
       pages: entries<PageNode>(parsed.pages, normPage),
     }
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return EMPTY
-    // A corrupt file must be loud in the UI too, not a lying "no map yet".
-    console.error(
-      "[pages-map] data/pages-map.json unreadable — flagging on the page:",
-      e instanceof Error ? e.message : e
-    )
-    return { ...EMPTY, unreadable: true }
   }
 }
 
 /** True when a map has been generated (drives the page's empty state). */
 export function hasPagesMap(map: PagesMap): boolean {
-  return map.repo !== null
+  return map.repo !== null || (map.repos?.length ?? 0) > 0
+}
+
+/**
+ * The repo entry a page belongs to. Matches `repos` on the page's `surface`
+ * first, then falls back to `repo` — so a single-surface map (and every map
+ * authored before `repos` existed) resolves exactly as it always did.
+ */
+export function repoForPage(map: PagesMap, node: PageNode): PagesMapRepo | null {
+  if (node.surface && map.repos) {
+    const hit = map.repos.find((r) => r.surface === node.surface)
+    if (hit) return hit
+  }
+  return map.repo
+}
+
+/**
+ * The on-disk root a page's `sourceFiles` are relative to. Use this rather than
+ * `map.repo.root` anywhere a page's files are read — with two apps in one map,
+ * the shared root is wrong for at least one of them.
+ */
+export function rootForPage(map: PagesMap, node: PageNode): string | null {
+  return repoForPage(map, node)?.root ?? null
 }
 
 /**

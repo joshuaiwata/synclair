@@ -29,7 +29,7 @@
  */
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -47,8 +47,10 @@ const readJson = (rel) => {
 }
 
 function run(script, args = []) {
+  // TS CLIs (artifact-module wrappers, battery B3) run under tsx.
+  const bin = script.endsWith(".ts") ? path.join(ROOT, "node_modules", ".bin", "tsx") : process.execPath
   try {
-    const out = execFileSync(process.execPath, [path.join(ROOT, "scripts", script), ...args], {
+    const out = execFileSync(bin, [path.join(ROOT, "scripts", script), ...args], {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
@@ -112,6 +114,49 @@ if (!hostMode && hasPagesMap) {
     })
   }
 }
+
+/**
+ * The freshness board — check-freshness's --json output written to data/, so
+ * the Environment page can show the whole team whether what the hub says is
+ * still true. The check is the single owner of that judgment; this step only
+ * makes its answer renderable. Runs in --check too: reporting on freshness
+ * IS the check.
+ */
+/**
+ * The discovery loop — what appeared beside registered documents that nothing
+ * covers. Never registers; recording is a deliberate human/agent act. See
+ * scripts/check-discovery.mjs for the doctrine.
+ */
+steps.push({
+  label: "doc discovery",
+  run: () => run("check-discovery.ts", checkOnly ? ["--check"] : []),
+  read: (out) => {
+    const m = out.match(/(\d+) file\(s\) no manifest entry covers/)
+    return m ? `${m[1]} uncovered file(s)` : "nothing uncovered"
+  },
+})
+
+steps.push({
+  label: "freshness board",
+  run: () => {
+    const res = run("check-freshness.mjs", ["--json"])
+    if (res.ok) {
+      const body = res.out.endsWith("\n") ? res.out : res.out + "\n"
+      mkdirSync(path.join(ROOT, ".synclair", "cache"), { recursive: true })
+      writeFileSync(path.join(ROOT, ".synclair", "cache", "digest-freshness.json"), body)
+    }
+    return res
+  },
+  read: (out) => {
+    try {
+      const parsed = JSON.parse(out)
+      const stale = parsed.artifacts.filter((a) => a.state === "stale").length
+      return stale ? `${parsed.artifacts.length} artifact(s) · ${stale} stale` : `${parsed.artifacts.length} artifact(s) · all fresh`
+    } catch {
+      return "written"
+    }
+  },
+})
 
 steps.push({
   label: "AGENTS.md block",

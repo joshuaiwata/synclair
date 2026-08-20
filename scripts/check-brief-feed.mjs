@@ -45,8 +45,8 @@ try {
   write("data/external-catalog.json", { items: [{ name: "Button", surface: "web" }] })
   write("registry.json", { items: [{ name: "hub-card" }] })
   write("data/pages-map.json", { pages: [{ route: "/home" }] })
-  write("data/knowledge/freshness.json", { sources: [{ id: "billing", state: "fresh" }] })
-  write("data/contracts.json", { providers: [{ method: "GET", path: "/health" }], links: [] })
+  write(".synclair/cache/knowledge/freshness.json", { sources: [{ id: "billing", state: "fresh" }] })
+  write(".synclair/cache/contracts.json", { providers: [{ method: "GET", path: "/health" }], links: [] })
   const artifacts = [{ artifact: "pages", state: "fresh" }]
 
   // ── first run ───────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ try {
   advanceCursor(hub, fingerprint(hub, artifacts))
 
   // ── endpoints: a backend build is news too ──────────────────────────────────
-  write("data/contracts.json", {
+  write(".synclair/cache/contracts.json", {
     providers: [
       { method: "GET", path: "/health" },
       { method: "GET", path: "/invoices/outstanding" },
@@ -108,7 +108,7 @@ try {
   ok("and it clears once seen", changesSince(hub, fingerprint(hub, artifacts)).events.length === 0)
 
   // ── knowledge transitions, not states ───────────────────────────────────────
-  write("data/knowledge/freshness.json", { sources: [{ id: "billing", state: "stale" }] })
+  write(".synclair/cache/knowledge/freshness.json", { sources: [{ id: "billing", state: "stale" }] })
   feed = changesSince(hub, fingerprint(hub, artifacts))
   ok("a spec going stale is news", /drifted/.test(texts(feed.events)), texts(feed.events))
   advanceCursor(hub, fingerprint(hub, artifacts))

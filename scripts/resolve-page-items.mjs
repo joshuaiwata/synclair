@@ -25,7 +25,14 @@
  * Run by the pages-map skill after the page-mapper returns routes; then
  * check:pages --reanchor stamps the fresh hashes.
  */
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+// One owner per artifact (B3): the write validates against the schema in the
+// TS artifact module. tsx's loader is registered HERE so this script keeps
+// running under plain `node` from every existing entrypoint (hooks, CI,
+// runners) — no command anywhere had to change.
+import { register as registerTsx } from "tsx/esm/api";
+registerTsx();
+
 import path from "node:path";
 
 const root = process.cwd();
@@ -238,7 +245,8 @@ if (check) {
   process.exit(0);
 }
 
-writeFileSync(mapPath, JSON.stringify(map, null, 2) + "\n");
+const { writePagesMap } = await import("../lib/artifacts/pages-map.ts");
+writePagesMap(map);
 console.log(
   `Resolved composition for ${pages.length} pages → data/pages-map.json` +
     (changedPages ? ` (${changedPages} changed).` : " (no change).")

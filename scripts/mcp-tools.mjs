@@ -32,12 +32,29 @@
  * freshness. Measure the difference with `npm run measure:agent-cost`.
  */
 
+import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { extensionTools } from "./extension-tools.mjs"
+
+// One owner per artifact (B3): map file access goes through lib/artifacts/*.
+// This file loads under tsx (registered by its entrypoints), so importing TS
+// here is fine. The adapter mirrors readJson's old sentinel contract.
+import { readPagesMapFile } from "../lib/artifacts/pages-map.ts"
+import { readSystemMapFile } from "../lib/artifacts/system-map.ts"
+import { readHostHygieneArtifact } from "../lib/artifacts/host-hygiene.ts"
+
+const readMapArtifact = (readFn) => {
+  const file = readFn()
+  if (file.state === "absent") return null
+  if (file.state === "unreadable") return { __unreadable: true }
+  return file.value
+}
+const readPagesMapJson = () => readMapArtifact(readPagesMapFile)
+const readSystemMapJson = () => readMapArtifact(readSystemMapFile)
 
 /** <hubRoot>/scripts/mcp-tools.mjs → <hubRoot>. Never `process.cwd()`. */
 export const HUB_ROOT = path.dirname(
@@ -191,6 +208,10 @@ function scanKnowledgeSources() {
       kind: pick("kind"),
       area: pick("area"),
       url: pick("url"),
+      // The repo-relative file for in-repo sources — without it an agent can
+      // FIND a document here and still be unable to open it (found by
+      // consuming this tool: nine ticket packs returned with no way in).
+      path: pick("path"),
       distilledInto: pick("distilledInto"),
     })
   }
@@ -200,6 +221,36 @@ function scanKnowledgeSources() {
 // -------------------------------------------------------------- data loaders
 
 const lower = (s) => (s ?? "").toString().toLowerCase()
+
+/**
+ * A query's words. Every search here took the query as ONE substring, which
+ * quietly made multi-word queries phrase searches: "roster contact" worked only
+ * because that exact phrase happens to be written in a summary, while "file
+ * upload" returned nothing at all from a corpus holding `UploadSession`, a
+ * `file-api` area and four endpoints about presigned uploads.
+ *
+ * Zero results is the worst possible wrong answer — it doesn't read as "phrase
+ * not found", it reads as "this tool doesn't know about that", which is the one
+ * conclusion that stops someone opening it again.
+ */
+const terms = (q) => lower(q).trim().split(/\s+/).filter(Boolean)
+
+/**
+ * Does `fields` match `q`? The exact phrase wins; failing that, EVERY word must
+ * appear somewhere in the record (AND, not OR — an OR over words turns a
+ * two-word query into a flood, which teaches the same distrust by the opposite
+ * route). Returns the phrase/word distinction so callers can keep ranking
+ * phrase hits above scattered-word hits.
+ */
+function hit(fields, q) {
+  const hay = fields.filter(Boolean).map(lower)
+  const phrase = lower(q).trim()
+  if (!phrase) return { phrase: false, all: false }
+  if (hay.some((f) => f.includes(phrase))) return { phrase: true, all: true }
+  const words = terms(q)
+  if (words.length < 2) return { phrase: false, all: false }
+  return { phrase: false, all: words.every((w) => hay.some((f) => f.includes(w))) }
+}
 
 /** A caller-supplied `limit` as a usable positive integer, or the default. */
 function clampLimit(value, fallback) {
@@ -275,7 +326,7 @@ function externalItems() {
 const allItems = () => [...registryItems(), ...externalItems()]
 
 function pagesMap() {
-  const map = readJson("data/pages-map.json")
+  const map = readPagesMapJson()
   if (!map || map.__unreadable || !map.repo) return null
   return map
 }
@@ -288,11 +339,132 @@ function pagesMap() {
  * can't, and the alternative — silently serving a stale answer — is the failure
  * mode this whole layer exists to prevent.
  */
+/**
+ * IS THE ANSWER BEHIND THE CALLER'S OWN WORKING TREE?
+ *
+ * The digests are regenerated at commit, at merge and daily — which leaves one
+ * window uncovered, and it is the worst one: between saving a file and
+ * committing it. That is exactly when someone is building with an agent beside
+ * them, and until now the tools answered questions about their half-finished
+ * work with total confidence and no idea it existed. A saved-but-uncommitted
+ * controller returned zero results and `_meta` said nothing at all.
+ *
+ * Cheap and specific: ask git whether anything is uncommitted among the files
+ * the API surface is derived from. Not a general "you have changes" — a
+ * developer always has changes — but "changes to the kind of file that would
+ * alter this answer".
+ *
+ * Reported, never corrected. Rescanning inside a read tool would make every
+ * question write to disk, and a tool that mutates the thing it is describing is
+ * a worse trade than one that admits its age. Silent when the tree is clean, so
+ * the common case costs one `git status` and says nothing.
+ */
+const API_PATHS = [
+  "apps/*/src/**/*.controller.ts",
+  "apps/*/src/**/*.handler.ts",
+  "apps/*/app/**/route.ts",
+  "apps/*/prisma/schema.prisma",
+  "packages/*/src/transport",
+]
+function workingTreeDrift() {
+  const map = readSystemMapJson()
+  const root = map?.repo?.root
+  if (!root) return null
+  const cwd = path.join(HUB_ROOT, root)
+  if (!existsSync(cwd)) return null
+  try {
+    const out = execFileSync(
+      "git",
+      ["status", "--porcelain", "--", ...API_PATHS],
+      { cwd, encoding: "utf8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"] }
+    ).trim()
+    if (!out) return null
+    const n = out.split("\n").filter(Boolean).length
+    return `${n} uncommitted change(s) to API-declaring files — these answers describe the last commit, not your working tree. Re-run \`npm run scan:system -- --write\` to include them.`
+  } catch {
+    // Not a git repo, git unavailable, or a timeout. Unknown is not a warning.
+    return null
+  }
+}
+
+/**
+ * HOW OLD IS THIS ANSWER, AND WHAT COMMIT DOES IT DESCRIBE?
+ *
+ * `workingTreeDrift` covers the save-to-commit window. This covers the much
+ * wider one after it: commits that landed since the digest was generated —
+ * someone else's merge, a pull, a branch switch. The hub PAGE has always shown
+ * this ("N commits touching the code this map is built from have landed
+ * since"), but an agent never sees the page. It sees `_meta`, and `_meta` said
+ * nothing — so an artifact that was simply behind read as authoritative.
+ *
+ * That is not hypothetical: a scan indexed two whole backend modules without
+ * describing them, an agent queried the map, got an empty list, and concluded
+ * the codebase had no such endpoints. Nothing in the response could have told
+ * it otherwise.
+ *
+ * Reported, never corrected — same rule as the working-tree check. `behind` is
+ * omitted entirely when the digest is level with HEAD, so a fresh clone says
+ * nothing rather than carrying a reassurance nobody needs.
+ */
+function indexAge() {
+  const map = readSystemMapJson()
+  const indexedCommit = map?.provenance?.commit ?? map?.repo?.commit
+  const generatedAt = map?.provenance?.generatedAt ?? map?.repo?.digestedAt
+  if (!indexedCommit && !generatedAt) return {}
+
+  const out = {}
+  if (indexedCommit) out.indexedCommit = indexedCommit
+  if (generatedAt) {
+    const ms = Date.now() - new Date(generatedAt).getTime()
+    if (Number.isFinite(ms) && ms >= 0) out.indexAgeDays = Math.floor(ms / 86_400_000)
+  }
+
+  const root = map?.repo?.root
+  const cwd = root ? path.join(HUB_ROOT, root) : HUB_ROOT
+  if (!indexedCommit || !existsSync(cwd)) return out
+  try {
+    const head = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd,
+      encoding: "utf8",
+      timeout: 3000,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim()
+    // Short vs long hashes: compare on the shorter of the two.
+    const n = Math.min(head.length, indexedCommit.length)
+    if (head.slice(0, n) === indexedCommit.slice(0, n)) return out
+    const count = execFileSync("git", ["rev-list", "--count", `${indexedCommit}..HEAD`], {
+      cwd,
+      encoding: "utf8",
+      timeout: 3000,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim()
+    out.behind =
+      `indexed at ${indexedCommit.slice(0, 7)}, HEAD is ${head.slice(0, 7)}` +
+      (/^\d+$/.test(count) && count !== "0" ? ` (${count} commit(s) since)` : "") +
+      ` — anything added since is missing here, not absent from the codebase. ` +
+      `Re-run \`npm run scan:system -- --write\` to catch up.`
+  } catch {
+    // Unknown is not a warning: an unresolvable commit (shallow clone, rebased
+    // away) must not manufacture a staleness claim we cannot support.
+  }
+  return out
+}
+
 function meta(extra = {}) {
   const setup = readJson("data/setup.json")
+  const drift = workingTreeDrift()
   return {
     source: "synclair",
-    hubRoot: HUB_ROOT,
+    ...indexAge(),
+    ...(drift ? { workingTree: drift } : {}),
+    /**
+     * Locally this is how an agent finds the hub on disk. On a hosted
+     * deployment the caller has no access to that filesystem, so the absolute
+     * container path is useless to them and is simply infrastructure detail
+     * handed to whoever holds a token. Omitted there — the same signal that
+     * says "this is a hosted corpus" says "there is no local path to give".
+     */
+    ...(process.env.SYNCLAIR_CORPUS_REF ? {} : { hubRoot: HUB_ROOT }),
     setupMode: setup?.mode ?? null,
     /**
      * WHICH TREE do these answers describe? Locally: the working tree, so
@@ -425,9 +597,9 @@ export const TOOLS = {
       const project = scanProject()
       const items = allItems()
       const pages = pagesMap()
-      const sys = readJson("data/system-map.json")
+      const sys = readSystemMapJson()
       const knowledge = scanKnowledgeSources()
-      const hygiene = readJson("data/host-hygiene.json")
+      const hygiene = readHostHygieneArtifact()
 
       const byTier = (t, origin) =>
         items.filter((i) => i.tier === t && (!origin || i.origin === origin))
@@ -528,6 +700,8 @@ export const TOOLS = {
           else if ((i.categories ?? []).some((c) => lower(c).includes(q)))
             s = 30
           else if (lower(i.description).includes(q)) s = 20
+          // All the words, not the phrase — ranked under every phrase hit above.
+          else if (hit([i.name, i.title, i.description, ...(i.categories ?? [])], q).all) s = 10
           if (s === 0) return 0
           // In a companion clone the product's catalogue is what's being asked
           // about; the hub's own components are a fallback, not the lead.
@@ -547,7 +721,12 @@ export const TOOLS = {
       const limit = clampLimit(args.limit, 40)
       const total = items.length
 
-      const asked = PROJECTIONS[args.fields] ? args.fields : "compact"
+      // `Object.hasOwn`, not a truthiness test: a bare `PROJECTIONS[x]` reaches
+      // the prototype, so `fields: "__proto__"` resolved to an object and
+      // `fields: "valueOf"` to a function, and both were then used as the item
+      // mapper — the tool answered "search_library failed" for an argument the
+      // schema says is optional.
+      const asked = Object.hasOwn(PROJECTIONS, String(args.fields)) ? args.fields : "compact"
       const build = (width, count) => ({
         query: args.query ?? null,
         total,
@@ -695,11 +874,7 @@ export const TOOLS = {
     run(args = {}) {
       const { tokens, unreadable, scope, hubTokens, note } = scanTokens()
       const q = lower(args.query)
-      const filtered = q
-        ? tokens.filter(
-            (t) => lower(t.name).includes(q) || lower(t.usage).includes(q)
-          )
-        : tokens
+      const filtered = q ? tokens.filter((t) => hit([t.name, t.usage], q).all) : tokens
       return {
         rules: [
           "Reach for a SEMANTIC token first (primary, muted, border…); drop to the brand ramp only for accents semantics can't cover.",
@@ -744,6 +919,11 @@ export const TOOLS = {
           ],
           description: "Route path(s). Omit to list every page.",
         },
+        surface: {
+          type: "string",
+          description:
+            "Narrow to one frontend when the same route exists on several (multi-surface maps).",
+        },
       },
       additionalProperties: false,
     },
@@ -765,6 +945,11 @@ export const TOOLS = {
         name: p.title,
         summary: p.summary,
         auth: p.auth,
+        // Which frontend serves this route. Multi-surface maps carry the same
+        // route on different apps (/find-work exists on two of them), and a
+        // record that doesn't say whose it is misleads — found by consuming
+        // this tool against a three-surface map.
+        surface: p.surface,
         sourceFiles: p.sourceFiles,
         composes: p.items,
         linksTo: p.links,
@@ -776,9 +961,38 @@ export const TOOLS = {
 
       if (args.route) {
         const routes = Array.isArray(args.route) ? args.route : [args.route]
-        const picked = routes.map((r) => {
-          const node = nodes.find((p) => (p.route ?? p.path) === r)
-          return node ? withFreshness(node) : { route: r, found: false }
+        const picked = routes.flatMap((r) => {
+          // ALL surfaces' pages for the route, not the first hit — a colliding
+          // route returns one record per surface, optionally narrowed.
+          const matches = nodes.filter(
+            (p) =>
+              (p.route ?? p.path) === r &&
+              (!args.surface || p.surface === args.surface)
+          )
+          if (matches.length) return matches.map(withFreshness)
+          // A bare {found:false} strands the caller (the C1 drill asked for
+          // /my-applications when the view lives at /roster and got nothing to
+          // go on). Hand back the nearest real routes by shared path tokens.
+          const tokens = lower(r).split(/[^a-z0-9]+/).filter(Boolean)
+          const closest = nodes
+            .map((p) => {
+              const hay = lower(`${p.route ?? p.path} ${p.title ?? ""} ${p.summary ?? ""}`)
+              return { route: p.route ?? p.path, score: tokens.filter((t) => hay.includes(t)).length }
+            })
+            .filter((c) => c.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+            .map((c) => c.route)
+          return [
+            {
+              route: r,
+              found: false,
+              ...(closest.length ? { closest } : {}),
+              hint: closest.length
+                ? "No page at this route — `closest` lists the likeliest matches; search_all also spans titles and summaries."
+                : "No page at this route — omit `route` for the sitemap, or search_all to search titles and summaries.",
+            },
+          ]
         })
         return fitBatch(
           picked,
@@ -837,7 +1051,7 @@ export const TOOLS = {
       additionalProperties: false,
     },
     run(args = {}) {
-      const map = readJson("data/system-map.json")
+      const map = readSystemMapJson()
       if (!map || map.__unreadable || !map.repo) {
         return {
           empty: true,
@@ -848,9 +1062,7 @@ export const TOOLS = {
         }
       }
       const q = lower(args.query)
-      const match = (e) =>
-        !q ||
-        [e.name, e.path, e.summary, e.method].some((f) => lower(f).includes(q))
+      const match = (e) => !q || hit([e.name, e.path, e.summary, e.method], q).all
 
       const sections = {
         overview:
@@ -869,13 +1081,27 @@ export const TOOLS = {
         freshness: syncState(map.provenance, map.repo?.root),
       }
 
+      // `sections` is a plain object, so an unknown `section` reached its
+      // PROTOTYPE — `section: "__proto__"` handed back Object.prototype and
+      // `section: "bogus"` produced `{bogus: undefined}`, which serialises to a
+      // response with no sections at all. An agent reads that as "the map has
+      // nothing", which is the one answer this tool must never give by accident.
+      const named = args.section != null ? String(args.section) : null
+      const known = named !== null && Object.hasOwn(sections, named)
+
       // Asking for one section (or filtering) means you want the detail.
-      if (args.section || q) {
+      if (named || q) {
+        if (named && !known) {
+          return {
+            ...base,
+            error: `unknown section "${named}"`,
+            sections: Object.keys(sections),
+            _meta: meta({ generatedAt: map.repo?.digestedAt, commit: map.repo?.commit }),
+          }
+        }
         return {
           ...base,
-          ...(args.section
-            ? { [args.section]: sections[args.section] }
-            : sections),
+          ...(known ? { [named]: sections[named] } : sections),
           _meta: meta({
             generatedAt: map.repo?.digestedAt,
             commit: map.repo?.commit,
@@ -925,27 +1151,45 @@ export const TOOLS = {
     inputSchema: {
       type: "object",
       properties: {
+        id: {
+          type: "string",
+          description: "Exact source id from a previous listing — returns just that entry.",
+        },
         topic: {
           type: "string",
-          description: "Filter by title, area, or kind.",
+          description: "Filter by id, title, area, or kind.",
         },
       },
       additionalProperties: false,
     },
     run(args = {}) {
       const sources = scanKnowledgeSources()
+      // The listing prints an `id` on every row, so the id must be a usable
+      // handle — before this, passing one back (as `id` OR as `topic`) was
+      // silently ignored and the caller got the full manifest again.
+      const id = typeof args.id === "string" ? args.id.trim() : ""
+      if (id) {
+        const one = sources.filter((s) => s.id === id)
+        return {
+          total: sources.length,
+          returned: one.length,
+          sources: one,
+          hint: one.length
+            ? "Read `distilledInto` first. The raw source is at `path` (repo-relative, from the repo root) when in-repo, else `url` — dig raw via the prd-retriever agent only if the digest is insufficient."
+            : `No source with id "${id}" — call get_knowledge with no args (or a topic) to list what exists.`,
+          _meta: meta(),
+        }
+      }
       const q = lower(args.topic)
       const filtered = q
-        ? sources.filter((s) =>
-            [s.title, s.area, s.kind].some((f) => lower(f).includes(q))
-          )
+        ? sources.filter((s) => hit([s.id, s.title, s.area, s.kind], q).all)
         : sources
       return {
         total: sources.length,
         returned: filtered.length,
         sources: filtered,
         hint: filtered.length
-          ? "Read `distilledInto` first; dig the raw `url` via the prd-retriever agent only if the digest is insufficient."
+          ? "Read `distilledInto` first. The raw source is at `path` (repo-relative, from the repo root) when in-repo, else `url` — dig raw via the prd-retriever agent only if the digest is insufficient."
           : "No knowledge sources registered yet — see lib/system/knowledge/sources.ts.",
         _meta: meta(),
       }
@@ -999,6 +1243,10 @@ export const TOOLS = {
             else if (name.startsWith(q)) s = 80
             else if (name.includes(q)) s = 60
             else if (textsOf(e).some((t) => lower(t).includes(q))) s = 20
+            // Below every phrase match, never instead of one: a record that
+            // carries all the words but not the phrase is a real answer, and it
+            // was the difference between eight results and none.
+            else if (hit([nameOf(e), ...textsOf(e)], q).all) s = 10
             return { e, s }
           })
           .filter((x) => x.s > 0)
@@ -1019,7 +1267,7 @@ export const TOOLS = {
         (p) => [p.summary]
       )
 
-      const sys = readJson("data/system-map.json")
+      const sys = readSystemMapJson()
       const sysEntries =
         !sys || sys.__unreadable
           ? []
@@ -1154,7 +1402,7 @@ export const TOOLS = {
           empty: true,
           hint: data?.__unreadable
             ? `data/dashboard-updates.json is corrupt: ${data.__unreadable}`
-            : "No narrated updates written yet — a project writes them to data/dashboard-updates.json.",
+            : "No narrated updates written yet — the `dashboard-update` skill generates them.",
           _meta: meta(),
         }
       }

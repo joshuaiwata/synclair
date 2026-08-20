@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
+import { readHostHygieneArtifact } from "@/lib/artifacts/host-hygiene"
 import { cache } from "react"
 
 import type { Provenance } from "./provenance"
@@ -14,7 +13,7 @@ import type { Provenance } from "./provenance"
  * Advisory by design — these are conversation starters for the team ("we said
  * tokens; here's where we didn't"), never build failures on someone else's repo.
  *
- * Source of truth: `data/host-hygiene.json`, written by
+ * Source of truth: `.synclair/cache/host-hygiene.json`, written by
  * `scripts/scan-host-hygiene.mjs` (`npm run scan:hygiene`). Blank in the mother
  * repo; regenerate whenever the report's `scannedAt` drifts behind the host.
  */
@@ -111,22 +110,10 @@ export interface HostHygieneReport {
   provenance?: Provenance
 }
 
-const REPORT_PATH = path.join(process.cwd(), "data", "host-hygiene.json")
 
 /** The persisted hygiene report, or null when no scan has run (a valid blank). */
 export const getHostHygiene = cache(async (): Promise<HostHygieneReport | null> => {
-  try {
-    const raw = await readFile(REPORT_PATH, "utf8")
-    const parsed = JSON.parse(raw) as HostHygieneReport
-    if (!parsed || typeof parsed.scannedAt !== "string" || !Array.isArray(parsed.rules)) return null
-    return parsed
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.error(
-        "[host-hygiene] data/host-hygiene.json unreadable — treating as absent:",
-        e instanceof Error ? e.message : e
-      )
-    }
-    return null
-  }
+  // Validation lives in the artifact module (one owner — B3); it warns once
+  // and returns null on garbage, which is exactly this reader's contract.
+  return (readHostHygieneArtifact() as HostHygieneReport | null) ?? null
 })

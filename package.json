@@ -6,7 +6,7 @@
   "license": "GPL-3.0-or-later",
   "homepage": "https://synclair.dev",
   "scripts": {
-    "dev": "next dev --port 4100",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -27,7 +27,7 @@
     "check:recipes": "node scripts/check-recipes.mjs",
     "check:freshness": "node scripts/check-freshness.mjs",
     "refresh": "node scripts/refresh.mjs",
-    "check:knowledge": "node scripts/check-knowledge.mjs",
+    "check:knowledge": "tsx scripts/check-knowledge.mjs",
     "check:knowledge-local": "node scripts/check-knowledge-local.mjs",
     "check:anchors": "node scripts/check-anchors.mjs",
     "check:rulings": "node scripts/check-rulings.mjs",
@@ -60,8 +60,17 @@
     "mcp:install": "node scripts/mcp-install.mjs",
     "bridge:agents": "node scripts/bridge-agents.mjs",
     "check:agent-bridge": "node scripts/bridge-agents.mjs --check",
-    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:tiering && npm run check:recipes && npm run check:ux-docs && npm run check:purity && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:rulings-selftest && npm run check:augment && npm run check:agent-bridge && npm run check:mcp -- --strict && npm run resolve:pages -- --check && npm run check:host && npm run check:freshness -- --strict",
-    "postinstall": "patch-package"
+    "verify-ui": "npm run typecheck && npm run lint && npm run check:registry && npm run check:previews && npm run check:tiering && npm run check:recipes && npm run check:ux-docs && npm run check:purity && npm run check:reset-safe && npm run check:form-defaults && npm run check:pages && npm run check:knowledge-local && npm run check:edges && npm run check:brief-feed && npm run check:contracts && npm run check:anchors-selftest && npm run check:pages-selftest && npm run check:rulings-selftest && npm run check:artifacts-selftest && npm run check:augment && npm run check:agent-bridge && npm run resolve:pages -- --check && npm run check:host && npm run scan:system -- --check && npm run audit:mcp && npm run check:freshness -- --strict",
+    "postinstall": "patch-package",
+    "dev:bare": "next dev",
+    "index": "node scripts/index.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "audit:mcp": "node scripts/audit-mcp.mjs",
+    "check:discovery": "tsx scripts/check-discovery.ts",
+    "check:reset-safe": "node scripts/check-reset-safe.mjs",
+    "check:form-defaults": "node scripts/check-form-defaults.mjs",
+    "check:pages-selftest": "node scripts/check-pages-selftest.mjs",
+    "check:artifacts-selftest": "tsx scripts/check-artifacts-selftest.ts"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
@@ -93,7 +102,9 @@
     "prettier-plugin-tailwindcss": "^0.8.0",
     "shadcn": "^4.12.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.23.12",
+    "zod": "^4.4.3"
   },
   "engines": {
     "node": ">=20"

@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
+import { readSystemMapFile } from "@/lib/artifacts/system-map"
 
 import { type Provenance, toProvenance } from "./provenance"
 
@@ -21,7 +20,6 @@ import { type Provenance, toProvenance } from "./provenance"
  * for humans at `/synclair/system`; agents read this file (or the loader) direct.
  */
 
-const MAP_PATH = path.join(process.cwd(), "data", "system-map.json")
 
 export interface SystemMapRepo {
   /** Project name, e.g. "acme-app". */
@@ -210,9 +208,16 @@ function normRepo(v: unknown): SystemMapRepo | null {
  * bad entry degrades to a sparse row instead of crashing the page.
  */
 export async function getSystemMap(): Promise<SystemMap> {
-  try {
-    const raw = await readFile(MAP_PATH, "utf8")
-    const parsed = JSON.parse(raw) as Record<string, unknown>
+  // File access goes through the artifact module (one owner — B3);
+  // normalization of whatever shape is in it stays here.
+  const file = readSystemMapFile()
+  if (file.state === "absent") return EMPTY
+  if (file.state === "unreadable") {
+    console.error("[system-map] data/system-map.json unreadable — flagging on the page:", file.error)
+    return { ...EMPTY, unreadable: true }
+  }
+  {
+    const parsed = file.value as Record<string, unknown>
     return {
       repo: normRepo(parsed.repo),
       stack: str(parsed.stack),
@@ -273,14 +278,6 @@ export async function getSystemMap(): Promise<SystemMap> {
       }),
       provenance: toProvenance(parsed.provenance),
     }
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return EMPTY
-    // A corrupt file must be loud in the UI too, not a lying "no map yet".
-    console.error(
-      "[system-map] data/system-map.json unreadable — flagging on the page:",
-      e instanceof Error ? e.message : e
-    )
-    return { ...EMPTY, unreadable: true }
   }
 }
 

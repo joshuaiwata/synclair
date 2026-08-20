@@ -143,7 +143,7 @@ function artifactStaleness() {
  * "we last looked three weeks ago" is a different claim from "it is current".
  */
 function knowledgeStaleness() {
-  const report = readJson("data/knowledge/freshness.json")
+  const report = readJson(".synclair/cache/knowledge/freshness.json")
   if (!report) return null
   const sources = Array.isArray(report.sources) ? report.sources : []
   if (sources.length === 0) return null
@@ -251,7 +251,7 @@ function workInProgress() {
  * the repo and is far too slow for a session start.
  */
 function governingRulings() {
-  const register = readJson("data/rulings.json")
+  const register = readJson(".synclair/cache/rulings.json")
   const list = Array.isArray(register?.rulings) ? register.rulings : []
   if (list.length === 0) return null
   const impact = runJson("impact.mjs")
@@ -270,7 +270,64 @@ function governingRulings() {
   }
 }
 
-for (const fn of [governingRulings, workInProgress, artifactStaleness, knowledgeStaleness, uxDebt]) {
+/**
+ * API SURFACE DRIFT — the one staleness nothing else here can see.
+ *
+ * `artifactStaleness` reads freshness anchors, and the System Map's anchor is
+ * its Prisma schemas: add a controller and the map goes on describing a surface
+ * that has grown, while every gate reports fresh. That is the normal outcome of
+ * rebasing from a backend trunk, and it lands on the agent least likely to
+ * check — the one about to wire a screen to an endpoint.
+ *
+ * Ambient because it has to be: nobody runs a drift scan before asking a
+ * question. The number is the whole message; the fix is one command.
+ */
+function apiDrift() {
+  const scan = runJson("scan-system.mjs")
+  const derived = Array.isArray(scan?.derived?.api) ? scan.derived.api : []
+  if (derived.length === 0) return null
+  const missing = Array.isArray(scan?.missing?.api) ? scan.missing.api : []
+  const gone = Array.isArray(scan?.gone?.api) ? scan.gone.api : []
+  if (missing.length === 0 && gone.length === 0) return null
+
+  const parts = []
+  if (missing.length) parts.push(`${missing.length} endpoint(s) in the code the System Map doesn't have`)
+  if (gone.length) parts.push(`${gone.length} it describes that the code no longer has`)
+  return {
+    key: "api-drift",
+    line: `${parts.join(", ")} — treat /synclair/system as partial for the backend (\`npm run scan:system -- --check\`)`,
+    count: missing.length + gone.length,
+  }
+}
+
+/**
+ * INDEXED BUT UNDESCRIBED — a different thing from drift, and a much better
+ * problem to have.
+ *
+ * Since `scan:system --write` became additive, a new endpoint lands in the map
+ * the moment it is scanned, with an empty summary. So the map is no longer
+ * MISSING it — the row is there, the path and source are right, and only the
+ * meaning is outstanding. Worth a separate line because the fix is different:
+ * drift needs a scan, this needs someone to write a sentence.
+ *
+ * Silent at zero, and never louder than the drift signal above it.
+ */
+function undescribedEndpoints() {
+  const map = readJson("data/system-map.json")
+  const api = Array.isArray(map?.api) ? map.api : []
+  const blank = api.filter((e) => !e.summary)
+  if (blank.length === 0) return null
+  const sample = blank.slice(0, 3).map((e) => `${e.method} ${e.path}`).join(", ")
+  return {
+    key: "undescribed-api",
+    line:
+      `${blank.length} endpoint(s) indexed but not yet described (${sample}${blank.length > 3 ? " …" : ""})`
+      + ` — the paths are right, the meaning isn't written; the \`codebase-map\` skill drains it.`,
+    count: blank.length,
+  }
+}
+
+for (const fn of [governingRulings, workInProgress, artifactStaleness, knowledgeStaleness, uxDebt, apiDrift, undescribedEndpoints]) {
   try {
     const s = fn()
     if (s) signals.push(s)

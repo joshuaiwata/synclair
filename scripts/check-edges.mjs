@@ -79,7 +79,7 @@ try {
   })
 
   write("data/ux-docs/anchors.json", { anchors: [{ name: "web:Card" }] })
-  write("data/knowledge/freshness.json", {
+  write(".synclair/cache/knowledge/freshness.json", {
     sources: [{ id: "billing-prd", localPath: ".prds/Billing_PRD.md" }],
   })
 

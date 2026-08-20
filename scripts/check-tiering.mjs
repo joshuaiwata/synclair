@@ -31,7 +31,7 @@
  *
  * Usage:
  *   npm run check:tiering
- *   npm run check:tiering -- --surface web
+ *   npm run check:tiering -- --surface prototype
  *   npm run check:tiering -- --json
  */
 import { existsSync, readFileSync } from "node:fs"

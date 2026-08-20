@@ -118,7 +118,7 @@ const lines = []
  * it. Persisted register only; scanning the repo on every edit would be absurd.
  */
 try {
-  const register = readJson("data/rulings.json")
+  const register = readJson(".synclair/cache/rulings.json")
   for (const r of register?.rulings ?? []) {
     if (r?.state === "gone") continue
     if ((r.governs ?? []).includes(rel)) {
@@ -161,7 +161,7 @@ try {
    *
    * `sourceFiles` records what the closure walker reached, and the walker stops
    * at a re-export — so a page that renders `Table` records
-   * `src/components/toolbelt-ui/index.ts`, never `toolbelt-ui/table.tsx`.
+   * `src/components/ui/index.ts`, never `ui/table.tsx`.
    * Editing the component thirteen screens depend on matched zero of them:
    * exactly the case this signal exists for, silent in the repo that needs it.
    *
@@ -221,7 +221,7 @@ try {
  * area-matching would fire on half the repo and teach everyone to ignore it.
  */
 try {
-  const fresh = readJson("data/knowledge/freshness.json")
+  const fresh = readJson(".synclair/cache/knowledge/freshness.json")
   for (const s of fresh?.sources ?? []) {
     if (s?.localPath === rel && s.state === "stale") {
       const moved = s.sections?.changed?.length

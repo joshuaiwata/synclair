@@ -144,7 +144,7 @@ export function buildGraph(hubRoot) {
   }
 
   // ── knowledge sources that are files in the repo ───────────────────────────
-  const freshness = readJson(path.join(hubRoot, "data", "knowledge", "freshness.json"))
+  const freshness = readJson(path.join(hubRoot, ".synclair", "cache", "knowledge", "freshness.json"))
   for (const s of freshness?.sources ?? []) {
     if (s?.localPath) add(fileToKnowledge, s.localPath, s.id)
   }

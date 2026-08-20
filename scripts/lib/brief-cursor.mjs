@@ -51,8 +51,8 @@ export function fingerprint(hubRoot, artifacts = []) {
   const catalog = readJson(path.join(hubRoot, "data", "external-catalog.json"))
   const registry = readJson(path.join(hubRoot, "registry.json"))
   const pages = readJson(path.join(hubRoot, "data", "pages-map.json"))
-  const fresh = readJson(path.join(hubRoot, "data", "knowledge", "freshness.json"))
-  const contracts = readJson(path.join(hubRoot, "data", "contracts.json"))
+  const fresh = readJson(path.join(hubRoot, ".synclair", "cache", "knowledge", "freshness.json"))
+  const contracts = readJson(path.join(hubRoot, ".synclair", "cache", "contracts.json"))
 
   const items = {}
   for (const i of catalog?.items ?? []) if (i?.name) items[`${i.surface ?? "shared"}:${i.name}`] = 1

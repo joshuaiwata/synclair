@@ -28,15 +28,23 @@
  * `verify-ui` (which must stay hermetic for CI); it is a scheduled / on-demand
  * check, the engine a future daily "knowledge report" runs.
  *
- * Writes data/knowledge/freshness.json — the cache the hub (and the report)
+ * Writes .synclair/cache/knowledge/freshness.json — the cache the hub (and the report)
  * read via lib/system/knowledge/freshness.ts. The classify() logic here and
  * `classifyFreshness()` there must stay in lockstep.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+// One owner per artifact (B3): the write validates against the schema in the
+// artifact module, so a probe inventing a new state fails HERE, in this run.
+import {
+  readRedistillQueueArtifact,
+  writeFreshnessArtifact,
+  writeRedistillQueueArtifact,
+} from "../lib/artifacts/knowledge-freshness";
 
 import {
   changedSections,
@@ -58,8 +66,6 @@ const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const hostRepoRoot = resolveTarget(HUB_ROOT).hostRoot ?? HUB_ROOT;
 const originRepoSlug = originSlugs(hostRepoRoot);
 const SOURCES_TS = path.join(root, "lib", "system", "knowledge", "sources.ts");
-const FRESHNESS_PATH = path.join(root, "data", "knowledge", "freshness.json");
-const REDISTILL_QUEUE_PATH = path.join(root, "data", "knowledge", "redistill-queue.json");
 
 const args = process.argv.slice(2);
 const asJson = args.includes("--json");
@@ -326,19 +332,12 @@ const undocumented = doDiscover
 const report = { checkedAt: new Date().toISOString(), sources: results };
 if (doDiscover) report.undocumented = undocumented;
 
-mkdirSync(path.dirname(FRESHNESS_PATH), { recursive: true });
-writeFileSync(FRESHNESS_PATH, JSON.stringify(report, null, 2) + "\n");
+writeFreshnessArtifact(report);
 
 // ── --queue: enqueue stale sources for an agent to re-distill ─────────────────
 const staleOnes = results.filter((r) => r.state === "stale");
 if (doQueue && staleOnes.length) {
-  let queue = { requests: [] };
-  try {
-    const parsed = JSON.parse(readFileSync(REDISTILL_QUEUE_PATH, "utf8"));
-    if (Array.isArray(parsed?.requests)) queue = parsed;
-  } catch {
-    /* missing / unreadable → fresh queue */
-  }
+  const queue = readRedistillQueueArtifact() ?? { requests: [] };
   const have = new Set(queue.requests.map((r) => r.sourceId));
   const now = new Date().toISOString();
   for (const r of staleOnes) {
@@ -361,7 +360,7 @@ if (doQueue && staleOnes.length) {
       requestedAt: now,
     });
   }
-  writeFileSync(REDISTILL_QUEUE_PATH, JSON.stringify(queue, null, 2) + "\n");
+  writeRedistillQueueArtifact(queue);
 }
 
 // ── output ────────────────────────────────────────────────────────────────────
@@ -433,7 +432,7 @@ if (asJson) {
     if (stale) {
       console.log(
         doQueue
-          ? `\n${stale} stale source(s) enqueued → data/knowledge/redistill-queue.json (drain via product-spec / figma-distiller).`
+          ? `\n${stale} stale source(s) enqueued → .synclair/cache/knowledge/redistill-queue.json (drain via product-spec / figma-distiller).`
           : `\n${stale} stale source(s). Re-distill them (product-spec / figma-distiller), or run with --queue to enqueue.`
       );
     }

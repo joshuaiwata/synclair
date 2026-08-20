@@ -3,7 +3,7 @@
  * Foundation-hygiene scan of the HOST codebase — finds where host code steps
  * outside its own design foundation: inline styles, raw hex / color functions,
  * Tailwind arbitrary values, !important, and native elements used where a
- * design-system primitive exists. Writes data/host-hygiene.json (schema +
+ * design-system primitive exists. Writes .synclair/cache/host-hygiene.json (schema +
  * rendering: lib/system/host-hygiene.ts → /synclair/hygiene).
  *
  * ADVISORY by design: always exits 0 — this is a read on someone else's repo,
@@ -15,11 +15,16 @@
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+// One owner per artifact (B3): the write validates in the TS artifact module;
+// tsx's loader registers here so plain `node` keeps working everywhere.
+import { register as registerTsx } from "tsx/esm/api";
+registerTsx();
+
+
 const root = process.cwd();
-const OUT_PATH = path.join(root, "data", "host-hygiene.json");
 const MAX_FILE_BYTES = 300 * 1024;
 const FINDINGS_CAP_PER_RULE = 200;
 const SNIPPET_MAX = 160;
@@ -163,7 +168,13 @@ for (const host of hosts) {
   );
   let commit;
   try {
-    commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: hostRootAbs })
+    // stdio: git's own "fatal: not a git repository" goes to stderr and leaked
+    // into the scan output on non-git hosts (seen in the C5 intake drill) —
+    // the catch already handles the case, so keep stderr quiet.
+    commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
+      cwd: hostRootAbs,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
       .toString()
       .trim();
   } catch {
@@ -309,10 +320,11 @@ const report = {
     ...sourceAnchor(),
   },
 };
-writeFileSync(OUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+const { writeHostHygieneArtifact } = await import("../lib/artifacts/host-hygiene.ts");
+writeHostHygieneArtifact(report);
 
 console.log(
-  `Hygiene: ${totals.findings} finding${totals.findings === 1 ? "" : "s"} across ${totals.files}/${scannedFiles} scanned files → data/host-hygiene.json`
+  `Hygiene: ${totals.findings} finding${totals.findings === 1 ? "" : "s"} across ${totals.files}/${scannedFiles} scanned files → .synclair/cache/host-hygiene.json`
 );
 for (const r of rules) console.log(`  ${r.rule}: ${r.count} in ${r.files} file${r.files === 1 ? "" : "s"}`);
 console.log("View at /synclair/hygiene.");

@@ -39,6 +39,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  declaresEndpoints,
+  endpointKeys,
+  endpointsIn,
+  patternConstants,
+} from "./lib/api-surface.mjs";
+
 const synclairRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Repo root = where the PR diff paths are rooted. In CI that's $GITHUB_WORKSPACE;
 // locally, ask git; if neither is available, assume Synclair IS the repo.
@@ -77,7 +84,10 @@ const items = catalog.items ?? [];
 // the CI in this repo can't see their files, so there is nothing to gate.
 const hostEntries = hosts.map((h) => {
   const rel = path.relative(repoRoot, path.resolve(synclairRoot, h.root)).split(path.sep).join("/");
-  return { surface: h.surface, prefix: rel && !rel.startsWith("..") ? rel : null };
+  return {
+    surface: h.surface,
+    prefix: rel && !rel.startsWith("..") ? rel : null,
+  };
 });
 const hostPrefixes = hostEntries.map((h) => h.prefix).filter(Boolean);
 
@@ -95,6 +105,7 @@ function prefixForItem(it) {
 
 const norm = (p) => p.replace(/^\.\//, "").split(path.sep).join("/");
 const documented = new Set(items.map((it) => norm(it.hostPath ?? "")));
+const folded = Array.isArray(catalog.folded) ? catalog.folded : [];
 
 const SKIP_FILE = /\.(test|spec|stories|docs|d)\.tsx?$|\.d\.ts$/;
 const EXPORT_PATTERNS = [
@@ -117,7 +128,11 @@ function exportsOf(abs) {
     let m;
     while ((m = re.exec(src)) !== null) {
       for (const part of m[1].split(",")) {
-        const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+        const name = part
+          .trim()
+          .split(/\s+as\s+/)
+          .pop()
+          ?.trim();
         if (name && /^[A-Z][A-Za-z0-9]*$/.test(name)) names.add(name);
       }
     }
@@ -130,9 +145,17 @@ function exportsOf(abs) {
 // organized UI (screens/views/features/shell/blocks/layouts) counts too — the
 // catalog gate must not go blind to a whole UI tree kept outside components/.
 const UI_DIR_SEGMENTS = new Set([
-  "components", "ui", "shell", "screens", "views", "features", "blocks", "layouts",
+  "components",
+  "ui",
+  "shell",
+  "screens",
+  "views",
+  "features",
+  "blocks",
+  "layouts",
   // Atomic-design vocabulary — how design-system packages commonly organise themselves.
-  "primitives", "composites",
+  "primitives",
+  "composites",
 ]);
 // A leading underscore is Next's private-folder convention (app/**/_components/):
 // opted out of routing, not renamed. Strip it before matching, or this gate goes
@@ -153,6 +176,16 @@ for (const file of changed) {
   if (!existsSync(abs)) continue; // deleted in this PR
   const exportNames = exportsOf(abs);
   if (exportNames.length === 0) continue;
+  // Keep this diff-aware gate aligned with the live coverage scan: a route-owned
+  // region deliberately folded into its container is documented there and must
+  // not be reintroduced as a peer catalog entry on every PR.
+  const host = hostEntries.find((entry) => entry.prefix === prefix);
+  const foldedNames = new Set(
+    folded
+      .filter((entry) => !entry.surface || entry.surface === host?.surface)
+      .map((entry) => entry.name),
+  );
+  if (exportNames.some((name) => foldedNames.has(name))) continue;
   uncataloged.push({ hostRel, file: norm(file), exports: exportNames });
 }
 
@@ -234,7 +267,11 @@ const removedPages = [];
       const segs = hostRel.replace(/^(src\/)?app\//, "").split("/");
       segs.pop(); // page.*
       const route = "/" + segs.filter((s) => !(s.startsWith("(") && s.endsWith(")"))).join("/");
-      unmappedPages.push({ hostRel, file: norm(file), route: route === "//" ? "/" : route });
+      unmappedPages.push({
+        hostRel,
+        file: norm(file),
+        route: route === "//" ? "/" : route,
+      });
     }
     for (const p of pages) {
       const f = norm(`${pagesPrefix}/${p.file ?? ""}`);
@@ -250,10 +287,24 @@ const removedPages = [];
 const sourcesPath = path.join(synclairRoot, "lib", "system", "knowledge", "sources.ts");
 const sourcesText = existsSync(sourcesPath) ? readFileSync(sourcesPath, "utf8") : "";
 const DOC_DIR_SEGMENTS = new Set([
-  "docs", "_docs", "doc", "adr", "adrs", "decisions", "specs", "spec",
-  "prd", "prds", "product", "rfc", "rfcs", "wiki", "handbook",
+  "docs",
+  "_docs",
+  "doc",
+  "adr",
+  "adrs",
+  "decisions",
+  "specs",
+  "spec",
+  "prd",
+  "prds",
+  "product",
+  "rfc",
+  "rfcs",
+  "wiki",
+  "handbook",
 ]);
-const SKIP_DOC = /^(readme|changelog|contributing|license|code_of_conduct|security|claude|agents)\b/i;
+const SKIP_DOC =
+  /^(readme|changelog|contributing|license|code_of_conduct|security|claude|agents)\b/i;
 const unregisteredDocs = [];
 for (const file of changed) {
   const prefix = hostPrefixes.find((p) => file.startsWith(p + "/"));
@@ -269,8 +320,58 @@ for (const file of changed) {
   unregisteredDocs.push({ hostRel, file: norm(file) });
 }
 
+// --- API surface drift -------------------------------------------------------
+//
+// The gate watched the FRONT END — components, routes, docs — and nothing at
+// all on the backend. So a PR landing a dozen controllers changed the API
+// surface, the System Map silently stopped describing it, and every check
+// stayed green: `check:freshness` anchors the map to the Prisma schemas only,
+// and a new controller touches no schema.
+//
+// That is the exact shape of a rebase from a backend trunk, which is when the
+// map is most read and least true. Same derivation the local scan uses
+// (lib/api-surface.mjs), applied to this PR's changed files only.
+const newEndpoints = [];
+const removedEndpointSources = [];
+{
+  const mapPath = path.join(synclairRoot, "data", "system-map.json");
+  const map = existsSync(mapPath) ? JSON.parse(readFileSync(mapPath, "utf8")) : null;
+  if (map?.api) {
+    const known = new Set(map.api.flatMap(endpointKeys));
+    const readIf = (rel) => {
+      const abs = path.join(repoRoot, rel);
+      if (!existsSync(abs)) return null;
+      try {
+        return readFileSync(abs, "utf8");
+      } catch {
+        return null;
+      }
+    };
+    // Constants resolve from the files this PR can see plus the shared kernel;
+    // an unresolved wire name is reported as the symbol, never invented.
+    const patternFiles = changed.filter((f) => /(^|[/-])patterns\.ts$/.test(f));
+    const patterns = patternConstants(patternFiles, readIf);
+
+    for (const file of changed) {
+      const rel = norm(file);
+      if (!declaresEndpoints(rel)) continue;
+      const src = readIf(rel);
+      if (src === null) {
+        // Deleted a file the map still cites.
+        if (map.api.some((e) => e.source === rel)) removedEndpointSources.push(rel);
+        continue;
+      }
+      for (const e of endpointsIn(rel, src, patterns)) {
+        if (!known.has(`${e.method} ${e.path}`)) newEndpoints.push(e);
+      }
+    }
+  }
+}
+
 // --- report ------------------------------------------------------------------
 const hasGaps =
+  newEndpoints.length > 0 ||
+  removedEndpointSources.length > 0 ||
   uncataloged.length > 0 ||
   staled.length > 0 ||
   unrenderedFromPr.length > 0 ||
@@ -279,21 +380,48 @@ const hasGaps =
   unregisteredDocs.length > 0;
 const lines = ["## Synclair sync gate", ""];
 if (!hasGaps) {
-  lines.push("✅ **Synclair layer in sync with this PR** — no uncataloged components, no unmapped routes, no unregistered docs, no cataloged sources touched.");
+  lines.push(
+    "✅ **Synclair layer in sync with this PR** — no uncataloged components, no unmapped routes, no unregistered docs, no cataloged sources touched.",
+  );
 } else {
+  if (newEndpoints.length > 0) {
+    lines.push(
+      `**This PR adds ${newEndpoints.length} endpoint(s) the System Map doesn't describe:**`,
+    );
+    for (const e of newEndpoints.slice(0, 20)) {
+      lines.push(`- \`${e.method} ${e.path}\` (\`${e.source}\`)`);
+    }
+    if (newEndpoints.length > 20) lines.push(`- …and ${newEndpoints.length - 20} more`);
+    lines.push(
+      "",
+      "_Refresh with the `codebase-map` skill, or `npm run scan:system -- --check` locally._",
+      "",
+    );
+  }
+  if (removedEndpointSources.length > 0) {
+    lines.push(
+      `**This PR deletes ${removedEndpointSources.length} source(s) the System Map still cites:**`,
+    );
+    for (const s of removedEndpointSources) lines.push(`- \`${s}\``);
+    lines.push("");
+  }
   if (uncataloged.length > 0) {
     lines.push(`**This PR introduces ${uncataloged.length} uncataloged component file(s):**`);
-    for (const c of uncataloged) lines.push(`- \`${c.hostRel}\` (${c.exports.slice(0, 4).join(", ")})`);
+    for (const c of uncataloged)
+      lines.push(`- \`${c.hostRel}\` (${c.exports.slice(0, 4).join(", ")})`);
     lines.push("");
   }
   if (staled.length > 0) {
-    lines.push(`**This PR touches ${staled.length} cataloged source(s)** — their entries go stale on merge:`);
+    lines.push(
+      `**This PR touches ${staled.length} cataloged source(s)** — their entries go stale on merge:`,
+    );
     for (const { it } of staled) lines.push(`- \`${it.name}\` (\`${it.hostPath}\`)`);
     lines.push("");
   }
   if (unrenderedFromPr.length > 0) {
     lines.push(`**Documented but not rendered (from this PR):**`);
-    for (const it of unrenderedFromPr) lines.push(`- \`${it.name}\` — no preview scene or screenshot`);
+    for (const it of unrenderedFromPr)
+      lines.push(`- \`${it.name}\` — no preview scene or screenshot`);
     lines.push("");
   }
   if (unmappedPages.length > 0) {
@@ -302,19 +430,28 @@ if (!hasGaps) {
     lines.push("");
   }
   if (removedPages.length > 0) {
-    lines.push(`**This PR deletes the source of ${removedPages.length} mapped route(s)** — drop them from \`data/pages-map.json\`:`);
+    lines.push(
+      `**This PR deletes the source of ${removedPages.length} mapped route(s)** — drop them from \`data/pages-map.json\`:`,
+    );
     for (const r of removedPages) lines.push(`- \`${r}\``);
     lines.push("");
   }
   if (unregisteredDocs.length > 0) {
-    lines.push(`**This PR touches ${unregisteredDocs.length} doc(s) the knowledge manifest doesn't reference:**`);
+    lines.push(
+      `**This PR touches ${unregisteredDocs.length} doc(s) the knowledge manifest doesn't reference:**`,
+    );
     for (const d of unregisteredDocs) lines.push(`- \`${d.hostRel}\``);
     lines.push("");
   }
-  lines.push("_The sync job on this workflow runs the sync agent on this branch and pushes the catalog / pages-map / knowledge commit here — no action needed. (If it was skipped, add the `ANTHROPIC_API_KEY` repo secret to enable it, or fix manually: `component-cataloger` skill for components, `page-mapper` for routes, `knowledge-harvester` for docs.)_");
+  lines.push(
+    "_The sync job on this workflow runs the sync agent on this branch and pushes the catalog / pages-map / knowledge commit here — no action needed. (If it was skipped, add the `ANTHROPIC_API_KEY` repo secret to enable it, or fix manually: `component-cataloger` skill for components, `page-mapper` for routes, `knowledge-harvester` for docs.)_",
+  );
 }
 if (unrendered.length > unrenderedFromPr.length) {
-  lines.push("", `<sub>Pre-existing backlog (not this PR): ${unrendered.length - unrenderedFromPr.length} entr(y/ies) documented-but-not-rendered repo-wide — see \`npm run check:coverage\`.</sub>`);
+  lines.push(
+    "",
+    `<sub>Pre-existing backlog (not this PR): ${unrendered.length - unrenderedFromPr.length} entr(y/ies) documented-but-not-rendered repo-wide — see \`npm run check:coverage\`.</sub>`,
+  );
 }
 
 const body = lines.join("\n");
@@ -323,10 +460,7 @@ const commentPath = path.join(os.tmpdir(), "synclair-catalog-comment.md");
 writeFileSync(commentPath, body);
 
 if (process.env.GITHUB_OUTPUT) {
-  const gapFiles = [
-    ...uncataloged.map((c) => c.file),
-    ...staled.map((s) => s.file),
-  ];
+  const gapFiles = [...uncataloged.map((c) => c.file), ...staled.map((s) => s.file)];
   appendFileSync(process.env.GITHUB_OUTPUT, `has_gaps=${hasGaps}\n`);
   // Where the comment body was written — the workflow's comment step reads
   // this instead of assuming the runner's tmpdir is /tmp.
