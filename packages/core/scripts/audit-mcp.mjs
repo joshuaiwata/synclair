@@ -113,7 +113,25 @@ const call = async (name, args) => {
   return r
 }
 
-const readJson = (p) => JSON.parse(readFileSync(path.join(HUB, p), "utf8"))
+// The two maps live split across a committed prose file and a derived cache
+// (Phase 2's artifact modules) — read them MERGED, the way every page and tool
+// does, so the audit grades what consumers actually see.
+const { readPagesMapFile } = await import(
+  new URL("../lib/artifacts/pages-map.ts", import.meta.url).href
+)
+const { readSystemMapFile } = await import(
+  new URL("../lib/artifacts/system-map.ts", import.meta.url).href
+)
+const mergedMap = (read, label) => {
+  const r = read()
+  if (r.state === "ok") return r.value
+  throw new Error(`${label}: ${r.state === "absent" ? "absent" : r.error}`)
+}
+const readJson = (p) => {
+  if (p === "data/system-map.json") return mergedMap(readSystemMapFile, p)
+  if (p === "data/pages-map.json") return mergedMap(readPagesMapFile, p)
+  return JSON.parse(readFileSync(path.join(HUB, p), "utf8"))
+}
 
 /** Representative arguments for the tools whose schema requires input. */
 const PROBE = { get_component: { name: "status-badge" }, search_all: { query: "account" } }

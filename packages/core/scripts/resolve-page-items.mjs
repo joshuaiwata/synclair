@@ -36,23 +36,22 @@ registerTsx();
 import path from "node:path";
 
 const root = process.cwd();
-const mapPath = path.join(root, "data", "pages-map.json");
 const check = process.argv.slice(2).includes("--check");
 
-if (!existsSync(mapPath)) {
+const { readPagesMapFile } = await import("../lib/artifacts/pages-map.ts");
+const mapRead = readPagesMapFile();
+if (mapRead.state === "absent") {
   console.log("Pages map: data/pages-map.json not present — nothing to resolve.");
   process.exit(0);
 }
-let map;
-try {
-  map = JSON.parse(readFileSync(mapPath, "utf8"));
-} catch (e) {
+if (mapRead.state === "unreadable") {
   console.error(
-    `Pages map: data/pages-map.json is not valid JSON (${e.message}). ` +
+    `Pages map: data/pages-map.json is not readable (${mapRead.error}). ` +
       "Fix the file by hand or regenerate it via the pages-map skill — schema: lib/system/pages-map.ts."
   );
   process.exit(1);
 }
+const map = mapRead.value;
 const pages = Array.isArray(map.pages) ? map.pages : [];
 if (!map.repo || pages.length === 0) {
   console.log("Pages map: blank seed — nothing to resolve.");

@@ -113,6 +113,159 @@ ok(
     }).success
 )
 
+// 6. THE PROSE/DERIVED SPLIT (Phase-2 leftover). The maps' one-owner modules
+// split on write (judgment → committed data/, facts → gitignored cache) and
+// merge on read. This is the tripwire for the whole arrangement: prose must
+// never land in the cache, churn (stamps, skeletons, composition) must never
+// land in git, and the merged read must reconstruct the full map — including
+// from a LEGACY mixed committed file that predates the split.
+{
+  const hub = path.join(tmp, "hub")
+  const prevCwd = process.cwd()
+  const fresh = async () => {
+    rmSync(hub, { recursive: true, force: true })
+    const { mkdirSync } = await import("node:fs")
+    mkdirSync(hub, { recursive: true })
+    process.chdir(hub)
+  }
+  const readRaw = (rel: string) => JSON.parse(readFileSync(path.join(hub, rel), "utf8"))
+
+  const { writePagesMap, readPagesMapFile } = await import("../lib/artifacts/pages-map")
+  const { writeSystemMap, readSystemMapFile } = await import("../lib/artifacts/system-map")
+
+  type LooseRow = Record<string, unknown>
+  interface MapView {
+    pages?: LooseRow[]
+    areas?: LooseRow[]
+    api?: LooseRow[]
+    repo?: LooseRow | null
+  }
+  const view = (r: { state: string } & Record<string, unknown>): MapView | null =>
+    r.state === "ok" ? (r.value as MapView) : null
+
+  // Pages: a SELF map (repo.root null) — composition is derived → cache.
+  await fresh()
+  writePagesMap({
+    repo: { name: "hub", root: null, commit: "abc123", digestedAt: "2026-08-21T00:00:00Z" },
+    routerKind: "next-app",
+    pages: [
+      {
+        id: "x", route: "/x", file: "app/x/page.tsx", kind: "page",
+        title: "X", summary: "The X screen.", sourceHash: "h1",
+        items: [{ name: "button" }], sourceFiles: ["app/x/page.tsx"],
+        previewUrl: "/x", previewable: true,
+      },
+      { id: "y", route: "/y", file: "app/y/page.tsx", kind: "page", items: [], sourceFiles: ["app/y/page.tsx"] },
+    ],
+    provenance: { generatedAt: "2026-08-21", generator: "scan:pages" },
+  })
+  const proseFile = readRaw("data/pages-map.json")
+  const cacheFile = readRaw(".synclair/cache/pages-map.json")
+  ok(
+    "pages split: committed side holds prose only",
+    proseFile.pages.length === 1 &&
+      proseFile.pages[0].title === "X" &&
+      proseFile.pages[0].file === undefined &&
+      proseFile.pages[0].items === undefined &&
+      proseFile.provenance === undefined &&
+      proseFile.repo.commit === undefined &&
+      proseFile.repo.digestedAt === undefined
+  )
+  ok(
+    "pages split: cache holds the derived rows + stamps",
+    cacheFile.pages.length === 2 &&
+      cacheFile.pages[0].file === "app/x/page.tsx" &&
+      cacheFile.pages[0].title === undefined &&
+      cacheFile.provenance?.generator === "scan:pages" &&
+      cacheFile.repo?.commit === "abc123"
+  )
+  const mp = view(readPagesMapFile())
+  const mpx = mp?.pages?.find((p) => p.route === "/x")
+  ok(
+    "pages merge: full map reconstructs",
+    mp?.pages?.length === 2 &&
+      mpx?.title === "X" &&
+      mpx?.file === "app/x/page.tsx" &&
+      mp?.repo?.commit === "abc123" &&
+      mp?.repo?.name === "hub"
+  )
+
+  // A HOST map keeps agent-resolved composition committed.
+  await fresh()
+  writePagesMap({
+    repo: { name: "host", root: "..", commit: "def456" },
+    pages: [{ route: "/r", title: "R", items: [{ name: "card" }], sourceFiles: ["app/r.tsx"] }],
+  })
+  ok(
+    "pages split: host-map composition stays committed",
+    readRaw("data/pages-map.json").pages[0].items?.[0]?.name === "card"
+  )
+
+  // LEGACY mixed committed file (no cache): reads whole, unchanged.
+  await fresh()
+  const { mkdirSync } = await import("node:fs")
+  mkdirSync(path.join(hub, "data"), { recursive: true })
+  writeFileSync(
+    path.join(hub, "data", "pages-map.json"),
+    JSON.stringify({ repo: { root: null }, pages: [{ route: "/old", title: "Old", file: "app/old.tsx" }] })
+  )
+  const lv = view(readPagesMapFile())
+  ok(
+    "pages merge: legacy mixed file reads whole",
+    lv?.pages?.[0]?.title === "Old" && lv?.pages?.[0]?.file === "app/old.tsx"
+  )
+
+  // System: authored rows stay committed; skeletons (empty summary) → cache;
+  // an authored GROUPED row suppresses its inventory skeletons on merge.
+  await fresh()
+  writeSystemMap({
+    repo: { name: "hub", root: "..", commit: "abc", digestedAt: "2026-08-21" },
+    areas: [
+      { name: "auth", path: "src/auth", summary: "Signs people in." },
+      { name: "billing", path: "src/billing", summary: "" },
+    ],
+    api: [
+      { method: "RPC", path: "get_a | get_b", source: "a.ts", summary: "The A/B reads." },
+      { method: "GET", path: "/bare", source: "b.ts", summary: "" },
+    ],
+    data: [], jobs: [], integrations: [],
+    provenance: { generatedAt: "2026-08-21", generator: "scan:system" },
+  })
+  const sysProse = readRaw("data/system-map.json")
+  const sysCache = readRaw(".synclair/cache/system-map.json")
+  ok(
+    "system split: authored rows committed, skeletons cached",
+    sysProse.areas.length === 1 &&
+      sysProse.api.length === 1 &&
+      sysProse.provenance === undefined &&
+      sysProse.repo.commit === undefined &&
+      sysCache.areas.length === 1 &&
+      sysCache.api.length === 1 &&
+      sysCache.provenance?.generator === "scan:system"
+  )
+  const ms = view(readSystemMapFile())
+  ok(
+    "system merge: full map reconstructs with stamps",
+    ms?.areas?.length === 2 && ms?.api?.length === 2 && ms?.repo?.commit === "abc" && ms?.repo?.name === "hub"
+  )
+  // The grouped-row suppression: an inventory row covered by an authored group
+  // must not reappear as a duplicate.
+  writeFileSync(
+    path.join(hub, ".synclair", "cache", "system-map.json"),
+    JSON.stringify({
+      areas: [], api: [{ method: "RPC", path: "get_b", source: "a.ts", summary: "" }],
+      data: [], jobs: [], integrations: [],
+    })
+  )
+  const dv = view(readSystemMapFile())
+  ok(
+    "system merge: authored group suppresses its skeletons",
+    dv?.api?.length === 1 && dv?.api?.[0]?.path === "get_a | get_b"
+  )
+
+  process.chdir(prevCwd)
+}
+
 rmSync(tmp, { recursive: true, force: true })
 
 if (failures.length) {

@@ -31,7 +31,7 @@
  */
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import path from "node:path"
 // One owner per artifact (B3): the write validates against the schema in the
 // TS artifact module. tsx's loader is registered HERE so this script keeps
@@ -42,7 +42,6 @@ registerTsx()
 
 
 const ROOT = process.cwd()
-const MAP_PATH = path.join(ROOT, "data", "pages-map.json")
 
 const args = process.argv.slice(2)
 const check = args.includes("--check")
@@ -60,20 +59,23 @@ if (surfaceIndex !== -1 && !requestedSurface) {
 /**
  * A corrupt map must report itself, not throw a stack trace. It also must NOT
  * be treated as "no map" — that would silently discard every summary in it on
- * the next write.
+ * the next write. The artifact module merges the committed prose file with the
+ * derived cache, so `existing` is the full map wherever its halves live.
  */
+const { readPagesMapFile, writePagesMap } = await import("../lib/artifacts/pages-map.ts")
+
 function readExisting() {
-  if (!existsSync(MAP_PATH)) return {}
-  try {
-    return JSON.parse(readFileSync(MAP_PATH, "utf8"))
-  } catch (e) {
+  const read = readPagesMapFile()
+  if (read.state === "absent") return {}
+  if (read.state === "unreadable") {
     console.error(
-      `data/pages-map.json is not valid JSON (${e instanceof Error ? e.message : e}).\n`
+      `data/pages-map.json is not readable (${read.error}).\n`
       + "  Refusing to scan — rewriting now would destroy whatever prose it still holds.\n"
       + "  Fix the file (or restore it from git) and re-run."
     )
     process.exit(1)
   }
+  return read.value
 }
 
 const existing = readExisting()
@@ -371,11 +373,10 @@ const next = {
   },
 }
 
-const { writePagesMap } = await import("../lib/artifacts/pages-map.ts")
 writePagesMap(next)
 
 console.log(summary.join("\n"))
-console.log(`  written → data/pages-map.json`)
+console.log(`  written → data/pages-map.json (prose) + .synclair/cache/pages-map.json (derived)`)
 if (undocumented.length) {
   console.log(
     `\n  ${undocumented.length} route(s) have no summary — facts are derived, but a sitemap`
