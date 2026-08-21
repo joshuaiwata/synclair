@@ -1,0 +1,42 @@
+# Publishes @synclair/core to npm when a core-v* tag is pushed, via npm
+# trusted publishing (GitHub Actions OIDC) — no token stored, no OTP typed.
+# The one-time counterpart lives on npmjs.com: the package's Trusted
+# Publisher settings name this repo and this exact workflow filename
+# (release.yml). Releasing = bump packages/core/package.json, push a
+# matching core-vX.Y.Z tag; this workflow does the rest.
+name: release
+
+on:
+  push:
+    tags: ["core-v*"]
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token npm exchanges for publish rights
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Trusted publishing needs npm >= 11.5.1; Node 22 bundles an older one.
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - name: Tag matches the package version
+        run: |
+          TAG="${GITHUB_REF_NAME#core-v}"
+          PKG="$(node -p "require('./packages/core/package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "Tag core-v$TAG does not match packages/core version $PKG" >&2
+            exit 1
+          fi
+      # The same gate the battery runs on every PR — a tag must not dodge it.
+      - run: npm run index
+      - run: npm run verify-ui
+      - name: Publish
+        working-directory: packages/core
+        run: npm publish
