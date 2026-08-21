@@ -8,7 +8,6 @@ import type { ComponentKind, ComponentStatus, RegistryComponent } from "./compon
 import type { ComponentDoc, DocProp, Preview } from "./doc-types"
 import { deriveHostProps } from "./host-docgen"
 import { type Provenance, toProvenance } from "./provenance"
-import { getSetupMode } from "./setup"
 import { defaultSurfaceId } from "./surfaces"
 
 /**
