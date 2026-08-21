@@ -12,10 +12,9 @@
  *   repo-relative path resolves for everyone. The config is COMMITTABLE and
  *   arrives on clone with no setup.
  *
- *   watcher — the clone sits beside the product, so the path crosses a repo
- *   boundary and differs per machine. It must be absolute, and the file must
- *   not be committed: a path that only resolves on one laptop is worse than no
- *   path at all.
+ *   The retired `watcher` topology (clone beside the product; removed by owner
+ *   ruling 2026-08-20) resolves to no host: a legacy marker gets a migrate
+ *   message, and the caller falls back to asking for --host explicitly.
  */
 
 import { existsSync, readFileSync } from "node:fs"
@@ -36,8 +35,8 @@ function readJson(p) {
  * @param hubRoot   absolute path to the Synclair clone
  * @param explicit  an explicit `--host` value, which always wins
  * @returns {{hostRoot: string|null, mode: string}} `hostRoot: null` means the
- *          topology is watcher but no host path is recorded — the caller must
- *          ask rather than guess.
+ *          topology cannot resolve a host (a legacy watcher marker) — the
+ *          caller must ask for --host rather than guess.
  */
 export function resolveTarget(hubRoot, explicit = null) {
   const setup = readJson(path.join(hubRoot, "data", "setup.json")) ?? {}
@@ -51,11 +50,14 @@ export function resolveTarget(hubRoot, explicit = null) {
     return { hostRoot: path.dirname(hubRoot), mode: "embedded" }
   }
 
-  // Watcher: the host path is recorded by intake; fall back to asking.
+  // The retired watcher topology: never resolve its cross-repo host path —
+  // surface the migration instead, and let the caller ask for --host.
   if (setup.mode === "watcher") {
-    const hostRel = setup.hostRoot ?? setup.host?.root
-    if (!hostRel) return { hostRoot: null, mode: "watcher" }
-    return { hostRoot: path.resolve(hubRoot, hostRel), mode: "watcher" }
+    console.error(
+      "data/setup.json records the retired `watcher` topology — migrate to embedded " +
+        "(co-locate-synclair). Pass --host explicitly to run against the legacy layout."
+    )
+    return { hostRoot: null, mode: "watcher" }
   }
 
   // No mode recorded — this clone IS the project (standalone / new-project).

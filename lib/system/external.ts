@@ -175,18 +175,14 @@ async function getExternalCatalogUncached(): Promise<ExternalCatalog> {
  * already exists. Drives mode-aware chrome (e.g. Foundations frames the host
  * palette as the project's, distinct from Synclair's own neutral tokens).
  *
- * Derives from the durable setup-mode marker (`lib/system/setup.ts`,
- * `docs/setup-modes.md`) rather than guessing purely from catalog contents:
- *
- * - `watcher` — a separate repo paired beside a host → always existing-project.
- * - `embedded` **or** unresolved — the topology marker alone can't say whether a
- *   host is being documented (a co-located embedded hub sitting OVER a host vs. a
- *   new-project clone that IS the product), so fall back to the catalog: true iff
- *   a host is declared. This is exactly the pre-marker behavior, so clones with
- *   no marker (and new-project embedded clones, which have no hosts) are unchanged.
+ * The topology marker alone can't say whether a host is being documented (a
+ * co-located embedded hub sitting OVER a host vs. a new-project clone that IS
+ * the product) — the catalog can: true iff a host is declared. (The retired
+ * `watcher` mode used to short-circuit this; since its removal the catalog is
+ * the one signal, and legacy watcher clones still resolve correctly through it
+ * because intake always declared their host.)
  */
 export async function isExistingProjectMode(): Promise<boolean> {
-  if ((await getSetupMode()) === "watcher") return true
   return (await getExternalCatalog()).hosts.length > 0
 }
 

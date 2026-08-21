@@ -70,7 +70,7 @@ const { hostRoot, mode } = resolveTarget(HUB_ROOT, flag("--host"))
 
 if (!hostRoot) {
   console.error(
-    `Topology is "watcher" but data/setup.json records no host path.\n`
+    `No resolvable host repo (a legacy \`watcher\` marker resolves to none — migrate via co-locate-synclair).\n`
     + `Re-run with an explicit target:  node scripts/install-agent-hooks.mjs --host ../your-app`
   )
   process.exit(1)
