@@ -16,17 +16,23 @@
  *   rulings.json               design rulings register
  *   digest-freshness.json      the freshness board's artifact states
  *
+ * Also here since the prose/derived split: the DERIVED HALVES of the two maps
+ * (.synclair/cache/{system,pages}-map.json) — refreshed only for maps that
+ * have been GENERATED (a repo recorded in the committed prose file). A blank
+ * clone stays blank: index never invents a map the mapper skills haven't
+ * written. This is what retired the pre-commit reindex hook.
+ *
  * NOT here, deliberately:
  *   knowledge/freshness.json + redistill-queue + prd-sources — network probes
  *   (`npm run check:knowledge`, gh auth); their readers degrade on absence and
  *   an absent probe is honest ("unknown"), a stale one is not.
  *   agent-cost.json — a measured benchmark, run on demand.
- *   system-map / pages-map / external-catalog — MIXED artifacts carrying
- *   written judgment; they stay committed until Phase 2's artifact modules
- *   can split their derived rows from their prose.
+ *   external-catalog — agent-authored documentation whose derived facts
+ *   (source hashes) are ANCHORS of when it was written, not rows to evict;
+ *   check:host grades them against the live host.
  */
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -64,11 +70,33 @@ const run = (script, args = []) => {
 
 mkdirSync(CACHE, { recursive: true })
 
+/** A map counts as generated once its committed prose file records a repo. */
+const mapGenerated = (rel) => {
+  const p = path.join(ROOT, "data", rel)
+  if (!existsSync(p)) return false
+  try {
+    const m = JSON.parse(readFileSync(p, "utf8"))
+    return Boolean(m && m.repo)
+  } catch {
+    return false
+  }
+}
+
 const steps = [
   { label: "doc discovery", script: "check-discovery.ts", args: [] },
   { label: "contract links", script: "scan-contracts.mjs", args: ["--write"] },
   { label: "host hygiene", script: "scan-host-hygiene.mjs", args: [] },
   { label: "rulings register", script: "check-rulings.mjs", args: ["--write"] },
+  // The maps' derived halves — refresh, never create (see header).
+  ...(mapGenerated("system-map.json")
+    ? [{ label: "system map (derived rows)", script: "scan-system.mjs", args: ["--write"] }]
+    : []),
+  ...(mapGenerated("pages-map.json")
+    ? [
+        { label: "pages map (derived rows)", script: "scan-pages.mjs", args: [] },
+        { label: "pages map (composition)", script: "resolve-page-items.mjs", args: [] },
+      ]
+    : []),
 ]
 
 let failed = 0

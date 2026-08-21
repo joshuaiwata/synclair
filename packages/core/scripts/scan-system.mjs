@@ -39,7 +39,6 @@ import { endpointKeys, endpointsIn, patternConstants } from "./lib/api-surface.m
 import { emitJson } from "./lib/emit.mjs"
 
 const ROOT = process.cwd()
-const MAP_PATH = path.join(ROOT, "data", "system-map.json")
 
 const args = process.argv.slice(2)
 const flag = (n) => {
@@ -50,18 +49,24 @@ const check = args.includes("--check")
 const write = args.includes("--write")
 const asJson = args.includes("--json")
 
-/** Corrupt input reports itself rather than throwing a stack trace at the user. */
+/**
+ * Corrupt input reports itself rather than throwing a stack trace at the user.
+ * The artifact module merges the committed (authored) map with the derived
+ * cache, so `existing` is the full map wherever its halves live.
+ */
+const { readSystemMapFile, writeSystemMap } = await import("../lib/artifacts/system-map.ts")
+
 function readExisting() {
-  if (!existsSync(MAP_PATH)) return {}
-  try {
-    return JSON.parse(readFileSync(MAP_PATH, "utf8"))
-  } catch (e) {
+  const read = readSystemMapFile()
+  if (read.state === "absent") return {}
+  if (read.state === "unreadable") {
     console.error(
-      `data/system-map.json is not valid JSON (${e instanceof Error ? e.message : e}).\n`
+      `data/system-map.json is not readable (${read.error}).\n`
       + "  Fix the file (or restore it from git) and re-run."
     )
     process.exit(1)
   }
+  return read.value
 }
 
 const existing = readExisting()
@@ -554,9 +559,10 @@ if (write) {
       ...anchorOf(schemaFiles()),
     },
   }
-  const { writeSystemMap } = await import("../lib/artifacts/system-map.ts")
   writeSystemMap(merged)
-  console.log(`  areas merged into data/system-map.json (prose preserved)\n`)
+  console.log(
+    `  merged → data/system-map.json (authored rows) + .synclair/cache/system-map.json (inventory)\n`
+  )
 }
 
 /**

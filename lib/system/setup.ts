@@ -5,39 +5,37 @@ import path from "node:path"
 
 /**
  * The SETUP MODE marker — Synclair's one durable, agent-readable record of *how
- * this clone is wired to the product it serves*. There are exactly two operating
- * modes, defined by repo TOPOLOGY (not by which way sync flows):
+ * this clone is wired to the product it serves*. There is exactly ONE operating
+ * mode, defined by repo TOPOLOGY:
  *
  * - `embedded` — Synclair lives INSIDE the product repo (one repo). Either the
  *   clone IS the product (a "new project" built in the clone) or Synclair was
  *   dropped into an existing repo (`co-locate-synclair`). Same end state:
  *   skills/knowledge travel with the code, so agents building in the repo get
  *   them ambiently. Two-way.
- * - `watcher` — Synclair is a SEPARATE paired repo BESIDE the product (two
- *   repos). It observes and documents the host; nothing lands in the host repo.
- *   One-way. **DEPRECATED as a default (2026-07-31)** — every clone that has ever
- *   stuck is `embedded`, and watcher structurally cannot commit its own wiring
- *   (paths cross a repo boundary, so `.mcp.json` and hooks must be absolute and
- *   gitignored, and every developer re-runs setup by hand). Kept for the one case
- *   it genuinely serves: a host you cannot or should not commit into. Still
- *   supported, no longer recommended — see `docs/setup-modes.md`.
  *
- * A third value is the *absence* of a resolved mode: **blank / unresolved** — the
- * transient state of a fresh clone before setup records anything. "Standalone /
- * new-project" is NOT a third mode; it is `embedded` before the product files
- * have been added.
+ * The retired `watcher` mode (a separate paired repo BESIDE the product) was
+ * REMOVED by owner ruling (2026-08-20; banner in `docs/setup-modes.md`): every
+ * clone that ever stuck is embedded, and watcher structurally cannot commit its
+ * own wiring. A legacy `watcher` marker now reads as unresolved with a migrate
+ * note — the layout it describes should be co-located (`co-locate-synclair`).
  *
- * The full model, the two opposite syncs, and boot-time resolution are specced in
- * `docs/setup-modes.md`. Source of truth is `data/setup.json` (SEED — blanked on
- * reseed by `scripts/synclair-reset.sh`, written authoritatively by the install
- * paths). Absent/blank in the mother repo, which is the upstream foundation and
- * is never itself "set up" as embedded or watcher.
+ * The other value is the *absence* of a resolved mode: **blank / unresolved** —
+ * the transient state of a fresh clone before setup records anything.
+ * "Standalone / new-project" is NOT a second mode; it is `embedded` before the
+ * product files have been added.
+ *
+ * The full model and boot-time resolution are specced in `docs/setup-modes.md`.
+ * Source of truth is `data/setup.json` (SEED — blanked on reseed by
+ * `scripts/synclair-reset.sh`, written authoritatively by the install paths).
+ * Absent/blank in the mother repo, which is the upstream foundation and is
+ * never itself "set up".
  */
 
 const SETUP_PATH = path.join(process.cwd(), "data", "setup.json")
 const CATALOG_PATH = path.join(process.cwd(), "data", "external-catalog.json")
 
-export type SetupMode = "embedded" | "watcher"
+export type SetupMode = "embedded"
 
 /**
  * How the marker got its value:
@@ -65,10 +63,6 @@ export const SETUP_MODE_META: Record<SetupMode, { label: string; blurb: string }
     label: "Embedded",
     blurb: "Synclair lives inside the product repo — one repo, skills & knowledge travel with the code (two-way).",
   },
-  watcher: {
-    label: "Watcher",
-    blurb: "Synclair is a separate repo paired beside the product — it observes and documents the host (one-way).",
-  },
 }
 
 /**
@@ -86,8 +80,16 @@ async function getSetupRecordUncached(): Promise<SetupRecord | null> {
     const parsed = JSON.parse(raw) as Record<string, unknown>
     const mode = parsed.mode
     // Anything that isn't a known mode (including `null`, the committed blank in
-    // the mother repo) reads as unresolved.
-    if (mode !== "embedded" && mode !== "watcher") return null
+    // the mother repo) reads as unresolved. The retired `watcher` value gets its
+    // own migrate note so a legacy clone knows why its badge went blank.
+    if (mode === "watcher") {
+      console.warn(
+        "[setup] data/setup.json records the retired `watcher` topology — treating as unresolved. " +
+          "Migrate to embedded (co-locate-synclair), then re-record the mode."
+      )
+      return null
+    }
+    if (mode !== "embedded") return null
     const resolvedBy = parsed.resolvedBy
     return {
       mode,
@@ -111,7 +113,7 @@ async function getSetupRecordUncached(): Promise<SetupRecord | null> {
 /**
  * The resolved setup mode, or `null` when blank/unresolved. This is the primary
  * reader every consumer should reach for (chrome badge, `isExistingProjectMode`,
- * agents deciding embedded-vs-watcher behavior).
+ * agents checking whether the topology has been resolved).
  */
 export async function getSetupMode(): Promise<SetupMode | null> {
   return (await getSetupRecord())?.mode ?? null
@@ -203,10 +205,11 @@ async function nearestEnclosingRepo(cwd: string): Promise<string | null> {
  *
  * 1. A declared host whose root is an ANCESTOR of this repo → Synclair is nested
  *    inside the host (co-located) → `embedded`.
- * 2. A declared host that is a sibling/separate path → a paired repo → `watcher`.
+ * 2. A declared host that is a sibling/separate path → the RETIRED watcher
+ *    layout → `null` (unresolved) with a migrate signal; co-location is the fix.
  * 3. No declared host, but this repo sits inside a wrapping repo → `embedded`.
  * 4. Neither → `null` (blank): the clone IS the product once code lands
- *    (embedded, new-project) or becomes a watcher once a host is paired.
+ *    (embedded, new-project).
  */
 export async function detectSetupMode(): Promise<SetupDetection> {
   const cwd = process.cwd()
@@ -226,10 +229,12 @@ export async function detectSetupMode(): Promise<SetupDetection> {
 
   if (roots.length > 0) {
     return {
-      mode: "watcher",
+      mode: null,
       signal: `A separate host repo is declared beside this one (${roots
         .map((r) => `\`${r}\``)
-        .join(", ")}).`,
+        .join(
+          ", "
+        )}) — the retired watcher layout. Migrate by co-locating this clone inside the host repo (co-locate-synclair), then record \`embedded\`.`,
       confidence: "high",
     }
   }
@@ -246,7 +251,7 @@ export async function detectSetupMode(): Promise<SetupDetection> {
   return {
     mode: null,
     signal:
-      "No host declared and no wrapping repo — topology unresolved. The clone IS the product (embedded, new-project) once product code lands, or a watcher once a host is paired.",
+      "No host declared and no wrapping repo — topology unresolved. The clone IS the product (embedded, new-project) once product code lands.",
     confidence: "low",
   }
 }

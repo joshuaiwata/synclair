@@ -31,10 +31,14 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+// One owner per artifact (B3): reads merge the committed prose file with the
+// derived cache; the reanchor write goes back through the module's split.
+import { register as registerTsx } from "tsx/esm/api";
+registerTsx();
+
 import path from "node:path";
 
 const root = process.cwd();
-const mapPath = path.join(root, "data", "pages-map.json");
 const queuePath = path.join(root, "data", "pages", "queue.json");
 
 const args = process.argv.slice(2);
@@ -42,21 +46,20 @@ const strict = args.includes("--strict");
 const queue = args.includes("--queue");
 const reanchor = args.includes("--reanchor");
 
-if (!existsSync(mapPath)) {
+const { readPagesMapFile, writePagesMap } = await import("../lib/artifacts/pages-map.ts");
+const mapRead = readPagesMapFile();
+if (mapRead.state === "absent") {
   console.log("Pages map: data/pages-map.json not present — nothing to check.");
   process.exit(0);
 }
-
-let map;
-try {
-  map = JSON.parse(readFileSync(mapPath, "utf8"));
-} catch (e) {
+if (mapRead.state === "unreadable") {
   console.error(
-    `Pages map: data/pages-map.json is not valid JSON (${e.message}). ` +
+    `Pages map: data/pages-map.json is not readable (${mapRead.error}). ` +
       "Fix the file by hand or regenerate it via the pages-map skill — schema: lib/system/pages-map.ts."
   );
   process.exit(1);
 }
+const map = mapRead.value;
 
 const pages = Array.isArray(map.pages) ? map.pages : [];
 const repoList = Array.isArray(map.repos) ? map.repos : [];
@@ -146,7 +149,7 @@ if (reanchor) {
   const routerHash = routerSources.length ? hashPageSource(routerSources, defaultRoot) : null;
   if (routerHash) map.routerSourcesHash = routerHash;
   else delete map.routerSourcesHash;
-  writeFileSync(mapPath, JSON.stringify(map, null, 2) + "\n");
+  writePagesMap(map);
   console.log(
     `Pages map anchored: ${anchored} page(s) hashed → data/pages-map.json` +
       (routerHash ? ` + router source (${routerSources.length} file(s))` : "") +

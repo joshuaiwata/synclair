@@ -36,7 +36,7 @@ export function AppSidebar({
   enabledExtensions,
 }: {
   snapshot?: string
-  /** Resolved setup mode (embedded/watcher), or undefined when blank/unresolved. */
+  /** Resolved setup mode (embedded), or undefined when blank/unresolved. */
   mode?: { label: string; blurb: string }
   /** Companion-mode host freshness (lib/system/host-status.ts) — undefined when no host. */
   host?: { label: string; blurb: string; attention: boolean }

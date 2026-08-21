@@ -20,10 +20,15 @@ import type { z } from "zod"
  *           own path-level detail and nothing lands on disk.
  */
 
-export const CACHE_DIR = path.join(process.cwd(), ".synclair", "cache")
+// Resolved at CALL time, not import time — the hub root is the caller's cwd
+// (the one rule PR #74 exists to enforce), and binding it on import breaks any
+// caller that changes directory after loading the module (the selftest does).
+export function cacheDir(): string {
+  return path.join(process.cwd(), ".synclair", "cache")
+}
 
 export function cachePath(rel: string): string {
-  return path.join(CACHE_DIR, rel)
+  return path.join(cacheDir(), rel)
 }
 
 export function readArtifact<S extends z.ZodType>(abs: string, schema: S): z.infer<S> | null {

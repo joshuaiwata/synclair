@@ -17,7 +17,30 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 const HUB = process.cwd()
-const REPO = path.resolve(HUB, "..")
+// The audited repo comes from the MAP'S OWN root, never a hardcoded "..": an
+// embedded clone's parent is the host repo, but a standalone clone's parent is
+// whatever folder it happens to sit in — resolving blindly against it walked
+// every sibling repo on the machine and graded THEIR handlers against this
+// hub's map. Absent/blank map → the hub itself.
+const REPO = (() => {
+  try {
+    const m = JSON.parse(readFileSync(path.join(HUB, "data", "system-map.json"), "utf8"))
+    if (typeof m?.repo?.root === "string" && m.repo.root) return path.resolve(HUB, m.repo.root)
+  } catch {
+    /* absent or unreadable → fall through */
+  }
+  return HUB
+})()
+// Tripwire (embedded-only ruling): the audited repo is this hub or an ancestor
+// of it. Any other root means the audit is about to read foreign ground —
+// refuse rather than grade someone else's code against this map.
+if (REPO !== HUB && !HUB.startsWith(REPO + path.sep)) {
+  console.error(
+    `audit:mcp: system-map repo.root resolves outside this hub's ancestry (${REPO}) — ` +
+      `an embedded clone's root is itself or an ancestor. Fix data/system-map.json before auditing.`
+  )
+  process.exit(1)
+}
 const OUT = process.argv[2] ?? "/tmp/audit-results.json"
 
 const results = []
@@ -90,7 +113,25 @@ const call = async (name, args) => {
   return r
 }
 
-const readJson = (p) => JSON.parse(readFileSync(path.join(HUB, p), "utf8"))
+// The two maps live split across a committed prose file and a derived cache
+// (Phase 2's artifact modules) — read them MERGED, the way every page and tool
+// does, so the audit grades what consumers actually see.
+const { readPagesMapFile } = await import(
+  new URL("../lib/artifacts/pages-map.ts", import.meta.url).href
+)
+const { readSystemMapFile } = await import(
+  new URL("../lib/artifacts/system-map.ts", import.meta.url).href
+)
+const mergedMap = (read, label) => {
+  const r = read()
+  if (r.state === "ok") return r.value
+  throw new Error(`${label}: ${r.state === "absent" ? "absent" : r.error}`)
+}
+const readJson = (p) => {
+  if (p === "data/system-map.json") return mergedMap(readSystemMapFile, p)
+  if (p === "data/pages-map.json") return mergedMap(readPagesMapFile, p)
+  return JSON.parse(readFileSync(path.join(HUB, p), "utf8"))
+}
 
 /** Representative arguments for the tools whose schema requires input. */
 const PROBE = { get_component: { name: "status-badge" }, search_all: { query: "account" } }
@@ -384,11 +425,9 @@ T("every RPC entry's source really declares @MessagePattern", () => {
 
 T("every HTTP entry's source really declares that verb", () => {
   const m = readJson("data/system-map.json")
-  // Resolve against the MAP'S OWN repo root, not a hardcoded "..": a watcher
-  // clone's map points at "../<host>", and resolving blindly against the
-  // parent reported every source as "(no file)" (found auditing a freshly
-  // intaken open-source host).
-  const root = path.resolve(HUB, m.repo?.root ?? "..")
+  // REPO already resolves from the map's own root (with a safe hub fallback) —
+  // the "resolve against the map, not a hardcoded ..)" lesson lives up top now.
+  const root = REPO
   const bad = []
   for (const a of m.api) {
     if (a.method === "RPC") continue

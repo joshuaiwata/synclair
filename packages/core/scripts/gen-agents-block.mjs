@@ -40,7 +40,24 @@ const args = process.argv.slice(2)
 const check = args.includes("--check")
 const printOnly = args.includes("--print")
 
+// The two maps live split across a committed prose file and a derived cache —
+// read them MERGED via their artifact modules, the way every consumer does.
+const { register: registerTsx } = await import("tsx/esm/api")
+registerTsx()
+const { readPagesMapFile } = await import(
+  new URL("../lib/artifacts/pages-map.ts", import.meta.url).href
+)
+const { readSystemMapFile } = await import(
+  new URL("../lib/artifacts/system-map.ts", import.meta.url).href
+)
+const mergedMap = (read) => {
+  const r = read()
+  return r.state === "ok" ? r.value : null
+}
+
 function readJson(rel) {
+  if (rel === "data/pages-map.json") return mergedMap(readPagesMapFile)
+  if (rel === "data/system-map.json") return mergedMap(readSystemMapFile)
   const p = path.join(ROOT, rel)
   if (!existsSync(p)) return null
   try {

@@ -14,7 +14,7 @@ const doc: ComponentDoc = {
       {
         name: "Brand header",
         purpose:
-          "Project identity; links back to the Overview. Shows the resolved setup-mode badge (embedded/watcher) when `mode` is passed, and the host-freshness badge (companion mode) when `host` is passed.",
+          "Project identity; links back to the Overview. Shows the resolved setup-mode badge (Embedded) when `mode` is passed, and the host-freshness badge (companion mode) when `host` is passed.",
       },
       { name: "Search trigger", purpose: "Opens the global ⌘K command palette." },
       {
@@ -93,7 +93,7 @@ const doc: ComponentDoc = {
       name: "mode",
       type: "{ label: string; blurb: string }",
       description:
-        "Optional resolved setup mode (embedded/watcher, from `lib/system/setup.ts`). Renders a header badge; omitted when blank/unresolved.",
+        "Optional resolved setup mode (embedded, from `lib/system/setup.ts`). Renders a header badge; omitted when blank/unresolved.",
     },
     {
       name: "host",

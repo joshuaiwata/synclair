@@ -68,7 +68,6 @@ function reindex(reason) {
         ? `re-indexed in ${((Date.now() - started) / 1000).toFixed(1)}s (${reason})`
         : `index failed (${reason}) — ${err.split("\n").slice(-2).join(" ")}`
     )
-    if (code === 0) checkCommittedMaps()
     if (queued) {
       queued = false
       reindex("queued change")
@@ -80,38 +79,11 @@ safely("initial index", () => {
   if (!existsSync(path.join(CACHE, "digest-freshness.json"))) reindex("cold cache")
 })
 
-// The two maps still COMMITTED (system, pages — they carry authored prose;
-// Phase 2 splits them) drift silently between commits. Surface the drift in
-// the dev console the moment it happens; the pre-commit hook folds the
-// reindex into the next commit. Silent when clean; soft-fail always.
-let mapCheckRunning = false
-function checkCommittedMaps() {
-  if (mapCheckRunning) return
-  mapCheckRunning = true
-  const checks = [
-    { label: "system map", script: "scan-system.mjs", args: ["--check"] },
-    { label: "pages map", script: "check-pages.mjs", args: [] },
-  ]
-  let pending = checks.length
-  for (const c of checks) {
-    const run = spawn(process.execPath, [path.join(SCRIPTS_DIR, c.script), ...c.args], {
-      cwd: ROOT,
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-    let out = ""
-    run.stdout.on("data", (d) => (out += d))
-    run.on("exit", (code) => {
-      if (code !== 0) {
-        const firstLine = out.split("\n").find((l) => l.trim()) ?? "drifted"
-        log(`${c.label} drifted — ${firstLine.trim()} (your next commit folds the reindex in)`)
-      }
-      if (--pending === 0) mapCheckRunning = false
-    })
-    run.on("error", () => {
-      if (--pending === 0) mapCheckRunning = false
-    })
-  }
-}
+// The committed-map drift checker retired with the prose/derived split: the
+// maps' derived halves live in the cache and the reindex above refreshes them
+// on every change — there is no committed file left to drift. Judgment
+// staleness (routes without summaries) is the pages-map/codebase-map skills'
+// business and surfaces on the freshness board, not here.
 
 // ------------------------------------------------------------------ watch
 // Inputs that feed the derived layer: the hub's own sources + each declared

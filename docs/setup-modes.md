@@ -1,131 +1,56 @@
-# Setup modes — embedded vs watcher
+# Setup topology — embedded
 
-> How a Synclair clone is wired to the product it serves. There are exactly
-> **two** operating modes, defined by repo **topology**. This is the design
-> contract; the mechanism is `lib/system/setup.ts`, the marker is
-> `data/setup.json`, and the modes surface as a badge in the hub chrome.
+> How a Synclair clone is wired to the product it serves. There is exactly
+> **one** operating topology — `embedded` — recorded once in `data/setup.json`.
+> The mechanism is `lib/system/setup.ts`; the mode surfaces as a badge in the
+> hub chrome. The former second mode, `watcher`, is **retired and removed**
+> (owner ruling 2026-08-20; history below).
 
-Synclair is always *a foundation for a product*. The one structural question is
-**where the clone sits relative to that product** — inside its repo, or beside
-it. That single fact drives how updates flow, whether agents get Synclair's
-skills ambiently, and how the hub frames what it documents. Recording it once,
-explicitly, means every agent and every page reads the same answer instead of
-re-guessing it.
-
-## The two modes
-
-| | `embedded` | `watcher` |
-|---|---|---|
-| **Topology** | Synclair lives **inside** the product repo (one repo) | Synclair is a **separate** repo **beside** the product (two repos) |
-| **How you get here** | The clone **is** the product (new project built in it), **or** Synclair was dropped into an existing repo (`co-locate-synclair`) | The default sibling companion clone (`docs/existing-project.md`) |
-| **Direction** | **Two-way** — skills/knowledge travel with the code; agents building in the repo get them ambiently | **One-way** — observes and documents the host; nothing lands in the host repo |
-| **On disk** | `product/` (with Synclair at the root, or vendored at `product/synclair/`) | `product/` and `product-synclair/` as peers |
-| **Install path** | `docs/new-project.md` · `co-locate-synclair` skill | `docs/existing-project.md` |
+Synclair is always *a foundation for a product*, and the clone lives **inside
+that product's repo** — either the clone IS the repo (a new project built in
+it) or Synclair was co-located into an existing repo at `./synclair`
+(`co-locate-synclair`). One repo, so skills, digests, and the catalog travel
+with the code and agents get them ambiently. Two-way by construction.
 
 ```
-embedded (one repo)                 watcher (two repos)
-┌─────────────────────────┐         ┌──────────────┐   ┌──────────────────┐
-│ product repo            │         │ product repo │   │ synclair clone   │
-│  ├─ <the product app>   │         │  └─ app/…    │──▶│  └─ /synclair (:4100)│
-│  └─ synclair/ (+ .claude) │         └──────────────┘   └──────────────────┘
-└─────────────────────────┘          host, untouched     observes the host
-   skills travel with code                              (one-way documentation)
+embedded (one repo)
+┌───────────────────────────┐
+│ product repo              │
+│  ├─ <the product app>     │
+│  └─ synclair/ (+ .claude) │   hub serves /synclair on its own port (4100)
+└───────────────────────────┘
+   skills travel with code
 ```
 
-### Onboarding labels (the bootstrap skill's Mode A / B / C)
+### Onboarding labels (the bootstrap skill's Mode A / C)
 
-The interactive `project-bootstrap` flow presents **three** human-facing setup
-paths, but they are onboarding labels, not extra modes — each maps onto one of
-the two topologies above:
+The interactive `project-bootstrap` flow presents human-facing setup paths;
+they are onboarding labels, not modes — both map onto the one topology:
 
 | Bootstrap label | What it is | Topology marker |
 |---|---|---|
 | **Mode A** — new project | the clone **is** the new repo | `embedded` |
-| **Mode B** — beside an existing app | sibling companion clone (two repos) | `watcher` |
 | **Mode C** — inside an existing repo / monorepo | co-located at `./synclair` (one repo) | `embedded` |
 
-So A and C both resolve to `embedded`, B to `watcher`. The marker records the
-**topology** (`embedded` / `watcher`), never the onboarding label — a "Mode C
-install" is an `embedded` clone. Keep the two vocabularies bridged here so the
-setup UI and the persisted marker never read as two different systems.
+(The former **Mode B** — a sibling companion clone — was the watcher layout;
+it is no longer offered. An existing app gets Synclair via `co-locate-synclair`.)
 
-### Why "standalone / new-project" is not a third mode
+### Why "standalone / new-project" is not a second mode
 
 A brand-new project that clones Synclair and builds the product *in the clone*
 is **already `embedded`** — the product and Synclair share one repo from commit
 one. "Standalone" is just `embedded` **before the product files have been
-added**. Adding a third mode for the empty-but-will-be-embedded state would split
-one topology into two names and force every consumer to collapse them again.
-Instead, that pre-product state is the **blank / unresolved** marker (below), not
-a mode of its own.
-
-## Name by topology, never by "sync"
-
-Two *different* syncs pull in opposite directions, and naming the modes after
-either one would mislead:
-
-- **Code ↔ knowledge tightness** favors **embedded** — one repo means skills,
-  digests, and the catalog live with the code and version with it; agents get
-  them without being pointed anywhere.
-- **Foundation-update ease** favors **watcher** — a separate clone pulls upstream
-  Synclair changes as an ordinary `synclair-sync` merge, with no risk of
-  entangling the product repo's history or tooling.
-
-Because the two tugs point at different modes, "the sync mode" is ambiguous and
-would name the same clone two different things depending on which sync you meant.
-**Topology is the one unambiguous axis** — a clone is either inside the product
-repo or beside it — so the modes are named for that. The sync tradeoffs are a
-*consequence* of the topology, documented here, not the label.
-
-## Recommendation: embed. Watcher is a fallback, not a default.
-
-**Decided 2026-07-31, on evidence.** Every Synclair clone in existence is
-`embedded` — three separate clones — after
-months and several intakes (four of them). **Not one watcher clone was ever kept.** The mode documented as "the
-default for existing projects" has never been the thing anyone actually ran.
-
-That is not an accident, and the reasons compound:
-
-- **Watcher can't commit its own wiring.** A path that crosses a repo boundary
-  differs per machine, so `.mcp.json` and the session-start hook must be written
-  absolute and gitignored. Every developer re-runs setup by hand; in embedded
-  they arrive on clone. The one thing a foundation should do — show up already
-  working — is the thing watcher structurally cannot do.
-- **It doubles the path bases in every new mechanism.** The edge graph's whole
-  difficulty (M1) is that artifacts record paths against different roots, and
-  the local-source probe (M7) has to resolve a host root before it can read a
-  file. Each is a place where a wrong base yields an *empty* answer that reads
-  like a clean one.
-- **Skills don't travel.** The ambient bridge that gives agents Synclair's
-  know-how while they work in the product only exists in embedded.
-- **The comparison case agrees.** repowise, the closest analogue, writes its
-  index into the repo it indexes and reaches multi-repo through *workspaces* —
-  a parent directory of embedded indexes, not a detached observer.
-
-**What watcher still buys, and it is real:** documenting a repo you cannot or
-should not commit into — an open-source project you're evaluating, another
-team's monorepo, a client repo under restricted access. That case exists, so the
-mode stays.
-
-**So: `embedded` is the recommendation for every new setup, including existing
-projects** (via `co-locate-synclair`). Reach for `watcher` only when writing to
-the host repo is genuinely not an option, and expect per-machine setup.
-
-**Watcher is deprecated, not removed.** Deleting it would break any clone in the
-wild that this machine cannot see, which is exactly the failure the prime
-directive forbids. Deprecating is reversible; deleting is not. New mechanisms
-must keep working in watcher, but they are designed for embedded and may degrade
-to `unanchored` there rather than growing a second code path.
+added**. That pre-product state is the **blank / unresolved** marker (below),
+not a mode of its own.
 
 ## The marker
 
 `data/setup.json` — the durable, agent-readable record. Schema and readers live
-in `lib/system/setup.ts` (same pattern as `lib/system/external.ts` /
-`lib/system/system-map.ts`).
+in `lib/system/setup.ts`.
 
 ```jsonc
 {
-  "mode": "embedded" | "watcher",   // the resolved topology
+  "mode": "embedded",               // the resolved topology
   "resolvedAt": "2026-07-13T…Z",    // ISO date it was resolved
   "resolvedBy": "install" | "detected" | "user"
 }
@@ -133,15 +58,17 @@ in `lib/system/setup.ts` (same pattern as `lib/system/external.ts` /
 
 | Field | Meaning |
 |---|---|
-| `mode` | The resolved topology. `null` / absent / unreadable ⟹ **blank / unresolved**. |
+| `mode` | The resolved topology. `null` / absent / unreadable / a retired value ⟹ **blank / unresolved**. |
 | `resolvedAt` | When the mode was recorded. |
 | `resolvedBy` | `install` — written by an install/setup path (trusted); `detected` — inferred from topology and confirmed; `user` — an explicit human override. |
 
 **Blank is a first-class state, not an error.** The mother repo ships
-`{ "mode": null }` — it is the upstream foundation and is never itself "set up".
-`getSetupMode()` returns `null` for absent/blank/corrupt, and every consumer
-treats `null` as "unresolved" and falls back safely. `synclair-reset.sh` blanks
-the marker on reseed so each new project re-resolves its own mode.
+`{ "mode": null }` — it is the upstream foundation and is never itself "set
+up". `getSetupMode()` returns `null` for absent/blank/corrupt, and every
+consumer treats `null` as "unresolved" and falls back safely.
+`synclair-reset.sh` blanks the marker on reseed so each new project re-resolves
+its own mode. A legacy `watcher` marker also reads as unresolved, with a
+one-line migrate note (see the retirement section).
 
 Readers/writers (`lib/system/setup.ts`):
 
@@ -160,7 +87,7 @@ first two by writing the marker authoritatively.
    | Signal | Mode | Confidence |
    |---|---|---|
    | A declared host whose root is an **ancestor** of this repo (Synclair nested inside it) | `embedded` | high |
-   | A declared host on a **separate/sibling** path | `watcher` | high |
+   | A declared host on a **separate/sibling** path (the retired watcher layout) | `null` + migrate signal | high |
    | No host, but this repo sits inside a **wrapping repo** (`.git` + `package.json` above it) | `embedded` | medium |
    | Neither | `null` (blank) | low |
 2. **Confirm** — detection is **never silently trusted**. The setup skill shows
@@ -170,11 +97,6 @@ first two by writing the marker authoritatively.
 3. **Record** — `recordSetupMode(mode, resolvedBy)` writes `data/setup.json`.
    Install paths call this directly with `resolvedBy: "install"`; a confirmed
    detection uses `"detected"`; an explicit override uses `"user"`.
-
-**Install paths write it authoritatively; detection is the fallback** for clones
-that reach the hub without a marker. That ordering keeps the trusted source
-(install) primary and the heuristic (detection) as a safety net that still
-requires a human "yes".
 
 > **TODO (seam for the setup skill):** wire the interactive confirm. The
 > `project-bootstrap` / `existing-project-intake` / `co-locate-synclair` flows
@@ -186,40 +108,60 @@ requires a human "yes".
 
 ## How consumers use the mode
 
-- **`isExistingProjectMode()`** (`lib/system/external.ts`) now derives from the
-  marker: a `watcher` marker means Synclair is paired beside an existing host, so
-  it is always existing-project mode. For `embedded` or unresolved, the marker
-  alone can't say whether a host is being documented (a co-located embedded hub
-  *over* a host vs. a new-project clone that *is* the product), so it falls back
-  to the catalog — true iff a host is declared. That fallback is exactly the
-  pre-marker behavior, so clones with no marker (and new-project embedded clones,
-  which have no hosts) are unchanged.
-- **Hub chrome badge** — `app/synclair/(hub)/layout.tsx` resolves the mode and passes a
-  `SETUP_MODE_META` label to the sidebar, which renders a small outline badge
-  ("Embedded mode" / "Watcher mode") under the header. Blank/unresolved renders
-  no badge, so the mother repo's chrome is byte-for-byte unchanged.
+- **`isExistingProjectMode()`** (`lib/system/external.ts`) derives from the
+  external catalog: true iff a host is declared. (The topology marker alone
+  can't distinguish a co-located hub *over* a host from a new-project clone
+  that *is* the product.)
+- **Hub chrome badge** — `app/synclair/(hub)/layout.tsx` resolves the mode and
+  passes a `SETUP_MODE_META` label to the sidebar, which renders a small
+  outline badge ("Embedded mode") under the header. Blank/unresolved renders no
+  badge, so the mother repo's chrome is byte-for-byte unchanged.
+
+## The retired `watcher` mode (history and migration)
+
+`watcher` was the two-repo layout: a separate Synclair clone **beside** the
+product, observing it one-way. It was deprecated 2026-07-31 on evidence —
+every clone that ever stuck is embedded; not one watcher clone was ever kept —
+and **retired and removed by owner ruling 2026-08-20** after an embedded re-run
+of the intake drills confirmed nothing needs it. The reasons compound:
+
+- **Watcher can't commit its own wiring.** Paths cross a repo boundary, so
+  `.mcp.json` and hooks must be absolute and gitignored; every developer
+  re-runs setup by hand. The one thing a foundation should do — show up
+  already working — is the thing watcher structurally cannot do.
+- **It doubles the path bases in every mechanism** — each one a place where a
+  wrong base yields an *empty* answer that reads like a clean one.
+- **Skills don't travel.** The ambient bridge only exists in embedded.
+
+What happens to a legacy watcher clone now:
+
+- Its `data/setup.json` marker reads as **unresolved**; the hub logs a one-line
+  migrate note and renders no badge.
+- `detectSetupMode()` labels the sibling-host layout with a migrate signal
+  instead of proposing a mode.
+- Core scripts that need a host path (`mcp-install`, `install-agent-hooks`)
+  refuse to guess and ask for `--host` explicitly.
+- **The migration** is co-location: move the clone to `<host>/synclair`
+  (`co-locate-synclair`), then re-record the mode (`embedded`).
+
+The case watcher served — documenting a repo you cannot commit into — is
+served by co-locating into a fork or a copy; a detached observer is no longer a
+supported topology.
 
 ## Deferred / follow-ups
 
-Out of scope for this pass; captured so they're not re-discovered:
-
-- **CLI / upgrade mechanism** — a `synclair` CLI with an `upgrade` command,
-  codemods, and checksums to make foundation updates a first-class operation
-  (beyond today's `synclair-sync` git merge). Explicitly **not built here**; the
-  marker gives such a tool a reliable mode to branch on when it exists.
-- **In-product Synclair docs + built-in knowledgebase** — a surfaced need: a
-  booting hub should be able to explain *itself* (what Synclair is, the two
-  modes, how sync works) **in-product**, surfaced in the foundation/system UI,
-  rather than only in `docs/*.md` that a reader has to find in the repo. The
-  `/synclair/how-it-works` page is the seed of this; the follow-up is to ship
-  Synclair's own docs as a first-class, browsable knowledgebase in the hub. This
-  spec (and `docs/foundation-model.md`) is the source content such a surface
-  would render. **Described only — not built here.**
+- **CLI / upgrade mechanism** — a `synclair upgrade` with codemods and
+  checksums to make foundation updates a first-class operation (beyond today's
+  `synclair-sync` git merge). The marker gives such a tool a reliable mode to
+  branch on when it exists.
+- **In-product Synclair docs + built-in knowledgebase** — a booting hub should
+  explain *itself* in-product. The `/synclair/how-it-works` page is the seed;
+  the follow-up is Synclair's own docs as a browsable knowledgebase in the hub.
 
 ## Related
 
 - `docs/foundation-model.md` — the architecture (Brain / adapter / seed); §8 seed inventory lists `data/setup.json`.
-- `docs/new-project.md` — the embedded new-project install path.
-- `docs/existing-project.md` — the watcher (sibling companion) install path.
-- `.claude/skills/co-locate-synclair/SKILL.md` — the embedded co-located variant.
-- `.claude/skills/synclair-sync/` — the foundation-update sync (the tug that favors watcher).
+- `docs/new-project.md` — the new-project install path.
+- `docs/existing-project.md` — adding Synclair to an existing product (co-location + intake).
+- `.claude/skills/co-locate-synclair/SKILL.md` — the co-location mechanics.
+- `.claude/skills/synclair-sync/` — the foundation-update sync.

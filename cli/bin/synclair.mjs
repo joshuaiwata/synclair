@@ -26,7 +26,7 @@ After scaffolding:
   cd <dir>
   npm install && npm run dev          # hub at http://localhost:4100/synclair
   docs/new-project.md                 # the clone IS the project
-  docs/existing-project.md            # companion beside an existing app
+  docs/existing-project.md            # co-located inside an existing repo
 
 Updates are opt-in (nothing phones home): npm run call-home, synclair-sync skill.
 `
@@ -65,7 +65,7 @@ if (command === "new") {
   npm install && npm run dev          # hub at http://localhost:4100/synclair
 
   New project?      read docs/new-project.md   (reseed brand, identity, knowledge)
-  Existing app?     read docs/existing-project.md
+  Existing app?     read docs/existing-project.md   (co-locate at <host>/synclair)
   Foundation updates stay opt-in:     npm run call-home
 
   The mother repo is wired as the 'upstream' remote; add your own 'origin'
