@@ -16,7 +16,9 @@
 # Exit code is the smoke suite's. Never touches the source hub.
 set -euo pipefail
 
-HUB="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The hub root is the CALLER'S directory (the synclair CLI runs core
+# scripts from the hub root); the script itself now lives inside the package.
+HUB="$(pwd)"
 # The clone sits inside its own EMPTY parent dir: the hub's knowledge layer
 # references ../ paths (embedded mode), so Turbopack walks the project root's
 # parent at build time — in a shared temp dir that walk hits protected
@@ -68,7 +70,7 @@ else
 fi
 
 log "blanking the seed (synclair-reset.sh)"
-bash "$SCRATCH/scripts/synclair-reset.sh" "$SCRATCH" --yes
+bash "$SCRATCH/packages/core/scripts/synclair-reset.sh" "$SCRATCH" --yes
 
 # A spare port: 4100 is the real dev server, 4103/4104 were past sims that may
 # still be running — scan instead of assuming.

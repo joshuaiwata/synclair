@@ -1,7 +1,7 @@
 import {
   readFreshnessArtifact,
   readRedistillQueueArtifact,
-} from "@/lib/artifacts/knowledge-freshness"
+} from "@synclair/core/artifacts/knowledge-freshness"
 
 /**
  * KNOWLEDGE FRESHNESS — the read side of `check:knowledge` (scripts/check-knowledge.mjs).

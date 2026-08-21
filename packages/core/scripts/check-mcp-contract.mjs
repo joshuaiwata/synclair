@@ -29,7 +29,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const SERVER = path.join(ROOT, "scripts", "mcp-server.mjs")
+const SERVER = new URL("./mcp-server.mjs", import.meta.url).pathname
 const strict = process.argv.includes("--strict")
 
 /**

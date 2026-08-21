@@ -1,6 +1,8 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  // The machinery package ships TS sources; Next compiles them in-app.
+  transpilePackages: ["@synclair/core"],
   // Pin the workspace root: a stray lockfile in the home directory otherwise
   // makes Turbopack infer the home directory as the project root.
   //

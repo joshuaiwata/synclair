@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto"
 
-import { handle } from "@/scripts/mcp-tools.mjs"
+import { handle } from "@synclair/core/scripts/mcp-tools.mjs"
 
 /**
  * SYNCLAIR REMOTE MCP — the HTTP transport for the hub's MCP tools.

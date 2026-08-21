@@ -1,4 +1,4 @@
-import { readPagesMapFile } from "@/lib/artifacts/pages-map"
+import { readPagesMapFile } from "@synclair/core/artifacts/pages-map"
 
 import type { Provenance } from "./provenance"
 

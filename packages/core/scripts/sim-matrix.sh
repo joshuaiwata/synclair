@@ -17,7 +17,7 @@
 # a missing binary. Builds happen once per corpus; each cell is its own boot.
 set -uo pipefail
 
-HUB="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HUB="$(pwd)"
 PARENT="$(mktemp -d "${TMPDIR:-/tmp}/synclair-matrix.XXXXXX")"
 # The POPULATED corpus keeps its host imports (@host/… = ../apps/…), so its
 # scratch must sit at the same depth as synclair/ inside the real repo — an
@@ -135,7 +135,7 @@ for corpus in blank populated; do
   mkdir -p "$DIR"
   copy_hub "$DIR"
   if [[ "$corpus" == "blank" ]]; then
-    bash "$DIR/scripts/synclair-reset.sh" "$DIR" --yes
+    bash "$DIR/packages/core/scripts/synclair-reset.sh" "$DIR" --yes
   fi
   log "building $corpus corpus"
   if ! (cd "$DIR" && npm run build); then

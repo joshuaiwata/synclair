@@ -78,7 +78,7 @@ const assert = (cond, msg) => {
 // the audit keeps running as plain `node scripts/audit-mcp.mjs`.
 const { register: registerTsx } = await import("tsx/esm/api")
 registerTsx()
-const mod = await import(path.join(HUB, "scripts", "mcp-tools.mjs"))
+const mod = await import(new URL("./mcp-tools.mjs", import.meta.url).href)
 const TOOLS = mod.allTools()
 const NAMES = Object.keys(TOOLS)
 
@@ -875,7 +875,7 @@ await TA("the stdio transport answers a real request end to end", async () => {
     // and closes must still be answered, not left with its request in a buffer.
     JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_overview", arguments: {} } }),
   ].join("\n")
-  const out = execFileSync(process.execPath, [path.join(HUB, "scripts", "mcp-server.mjs")], {
+  const out = execFileSync(process.execPath, [new URL("./mcp-server.mjs", import.meta.url).pathname], {
     input: req, encoding: "utf8", timeout: 30000, maxBuffer: 8 * 1024 * 1024,
   })
   const lines = out.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l))

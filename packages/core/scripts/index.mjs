@@ -26,11 +26,22 @@
  *   can split their derived rows from their prose.
  */
 import { execFileSync } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = process.cwd()
+
+// tsx may live in the package's own node_modules or hoisted at the hub root.
+const resolveTsx = () => {
+  const candidates = [
+    path.join(SCRIPTS_DIR, "..", "node_modules", ".bin", "tsx"),
+    path.join(ROOT, "node_modules", ".bin", "tsx"),
+  ]
+  for (const c of candidates) if (existsSync(c)) return c
+  return "tsx"
+}
 const CACHE = path.join(ROOT, ".synclair", "cache")
 
 const run = (script, args = []) => {
@@ -39,8 +50,8 @@ const run = (script, args = []) => {
       ok: true,
       out: execFileSync(
         ...(script.endsWith(".ts")
-          ? [path.join(ROOT, "node_modules", ".bin", "tsx"), [path.join(ROOT, "scripts", script), ...args]]
-          : [process.execPath, [path.join(ROOT, "scripts", script), ...args]]),
+          ? [resolveTsx(), [path.join(SCRIPTS_DIR, script), ...args]]
+          : [process.execPath, [path.join(SCRIPTS_DIR, script), ...args]]),
         {
         cwd: ROOT,
         stdio: ["ignore", "pipe", "pipe"],

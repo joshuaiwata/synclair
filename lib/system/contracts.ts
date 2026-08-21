@@ -1,4 +1,4 @@
-import { readContractsArtifact } from "@/lib/artifacts/contracts"
+import { readContractsArtifact } from "@synclair/core/artifacts/contracts"
 
 /**
  * THE SEAM, read side — which screens call which endpoints.

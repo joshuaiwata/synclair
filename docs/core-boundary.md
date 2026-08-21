@@ -47,9 +47,17 @@ The mother sat at pre-Phase-0 (no battery) while the reference clone carried
 a month of hardened machinery. By the north star's own lesson — no
 refactoring without a harness — the split lands in three reviewed steps:
 
-1. **Promote the hardened machinery + battery here** (this branch): the
-   mother becomes CI-green under the same harness the clone runs.
-2. **Move the core column into `packages/core`** with the package named per
-   the owner's scope/registry decision (parked in the north star).
+1. **Promote the hardened machinery + battery here** — DONE (merged).
+2. **Move the core column into `packages/core`** — DONE (this branch):
+   `scripts/` + `lib/artifacts/` live in the package, consumed via the npm
+   workspace; the `synclair` CLI is the one entry point (`synclair index`,
+   `synclair smoke`, `synclair audit-mcp`, …) and every npm-script name
+   remains as an alias. One refinement to the table above: the
+   `lib/system/*` domain readers stay in the TEMPLATE as its normalization
+   layer over core's artifact `read()` API — the template owns how it
+   renders; core owns the files and their contracts.
 3. **This clone migrates first**: the reference clone consumes the package;
-   a machinery fix reaches it by version bump alone.
+   a machinery fix reaches it by version bump alone. Publishing to npm
+   (name: `@synclair/core`, public) is a one-liner once the npm account +
+   `synclair` org exist — until then consumers vendor the package directory
+   exactly as this repo does.

@@ -1,8 +1,18 @@
 {
   "name": "@synclair/core",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Synclair's machinery — scanners, artifact modules, checks, MCP server, lifecycle scripts — as a versioned package. SKELETON: contents move here per docs/core-boundary.md once the package name/registry decision lands (north-star owner decisions).",
+  "version": "0.1.0",
+  "description": "Synclair's machinery — the artifact modules (zod schemas, scan-on-write, read-on-read), scanners, checks, the running-app harness, the MCP server, and the clone lifecycle — behind one CLI. The template (hub UI, seed, judgment) stays vendored per repo; this package is the half that gets fixed by version bump. Boundary: docs/core-boundary.md.",
   "type": "module",
-  "license": "GPL-3.0-or-later"
+  "license": "GPL-3.0-or-later",
+  "bin": {
+    "synclair": "./bin/synclair.mjs"
+  },
+  "exports": {
+    "./artifacts/*": "./lib/artifacts/*.ts",
+    "./scripts/*": "./scripts/*"
+  },
+  "dependencies": {
+    "tsx": "^4.23.12",
+    "zod": "^4.4.3"
+  }
 }
