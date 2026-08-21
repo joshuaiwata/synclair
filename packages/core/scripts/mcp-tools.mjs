@@ -36,7 +36,6 @@ import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 import { extensionTools } from "./extension-tools.mjs"
 
@@ -56,10 +55,18 @@ const readMapArtifact = (readFn) => {
 const readPagesMapJson = () => readMapArtifact(readPagesMapFile)
 const readSystemMapJson = () => readMapArtifact(readSystemMapFile)
 
-/** <hubRoot>/scripts/mcp-tools.mjs → <hubRoot>. Never `process.cwd()`. */
-export const HUB_ROOT = path.dirname(
-  path.dirname(fileURLToPath(import.meta.url))
-)
+/**
+ * The HUB root is the CALLER'S working directory. Before the split this file
+ * lived at <hubRoot>/scripts/ and derived the root from its own location
+ * ("never process.cwd()") — inside the package that same derivation resolves
+ * to packages/core, and every hub-rooted read (data/, extensions state) lands
+ * inside the package instead of the hub. Found by the first clone migration:
+ * the Memories write tool served with the extension off, because its state
+ * was read from a data/ directory that doesn't exist. Every runtime that
+ * loads this module — next dev/start, the synclair CLI, the stdio server,
+ * the audit — runs with cwd = hub root, which is now the honest source.
+ */
+export const HUB_ROOT = process.cwd()
 
 export const SERVER_INFO = { name: "synclair", version: "0.1.0" }
 const DEFAULT_PROTOCOL = "2024-11-05"
