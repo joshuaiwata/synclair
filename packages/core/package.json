@@ -1,7 +1,7 @@
 {
   "name": "@synclair/core",
   "version": "0.1.0",
-  "description": "Synclair's machinery — the artifact modules (zod schemas, scan-on-write, read-on-read), scanners, checks, the running-app harness, the MCP server, and the clone lifecycle — behind one CLI. The template (hub UI, seed, judgment) stays vendored per repo; this package is the half that gets fixed by version bump. Boundary: docs/core-boundary.md.",
+  "description": "Synclair's machinery \u2014 the artifact modules (zod schemas, scan-on-write, read-on-read), scanners, checks, the running-app harness, the MCP server, and the clone lifecycle \u2014 behind one CLI. The template (hub UI, seed, judgment) stays vendored per repo; this package is the half that gets fixed by version bump. Boundary: docs/core-boundary.md.",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "bin": {
@@ -14,5 +14,11 @@
   "dependencies": {
     "tsx": "^4.23.12",
     "zod": "^4.4.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshuaiwata/synclair.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://synclair.dev"
 }
