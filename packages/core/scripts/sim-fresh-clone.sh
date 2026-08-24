@@ -19,6 +19,16 @@ set -euo pipefail
 # The hub root is the CALLER'S directory (the synclair CLI runs core
 # scripts from the hub root); the script itself now lives inside the package.
 HUB="$(pwd)"
+# Where core's scripts live RELATIVE to the hub — packages/core/scripts when
+# vendored as a workspace, node_modules/@synclair/core/scripts when installed
+# from the registry. The scratch copy carries the same layout, so the reset
+# script is addressed by this relative path, never a hardcoded one.
+CORE_SCRIPTS_ABS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "$CORE_SCRIPTS_ABS" != "$HUB"/* ]]; then
+  echo "[sim] @synclair/core is not installed inside this hub ($CORE_SCRIPTS_ABS) — run from the hub root with core as a workspace or dependency." >&2
+  exit 1
+fi
+CORE_SCRIPTS_REL="${CORE_SCRIPTS_ABS#"$HUB"/}"
 # The clone sits inside its own EMPTY parent dir: the hub's knowledge layer
 # references ../ paths (embedded mode), so Turbopack walks the project root's
 # parent at build time — in a shared temp dir that walk hits protected
@@ -70,7 +80,7 @@ else
 fi
 
 log "blanking the seed (synclair-reset.sh)"
-bash "$SCRATCH/packages/core/scripts/synclair-reset.sh" "$SCRATCH" --yes
+bash "$SCRATCH/$CORE_SCRIPTS_REL/synclair-reset.sh" "$SCRATCH" --yes
 
 # A spare port: 4100 is the real dev server, 4103/4104 were past sims that may
 # still be running — scan instead of assuming.

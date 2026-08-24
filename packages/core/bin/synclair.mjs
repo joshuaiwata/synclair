@@ -46,10 +46,17 @@ if (script.endsWith(".sh")) {
   runner = ["bash", [script, ...args]]
 } else if (script.endsWith(".ts")) {
   // tsx is a dependency of this package; resolve its bin relative to us so
-  // the caller needs nothing installed globally.
-  const tsx = path.join(CORE, "node_modules", ".bin", "tsx")
-  const fallback = path.join(CORE, "..", "..", "node_modules", ".bin", "tsx")
-  runner = [existsSync(tsx) ? tsx : fallback, [script, ...args]]
+  // the caller needs nothing installed globally. The candidates cover every
+  // layout core ships in: its own node_modules (isolated install), the hub
+  // root's when vendored as packages/core (hoisted two levels up), and the
+  // hub root's when installed from the registry (the caller's cwd IS the hub
+  // root — the one rule the CLI guarantees).
+  const candidates = [
+    path.join(CORE, "node_modules", ".bin", "tsx"),
+    path.join(CORE, "..", "..", "node_modules", ".bin", "tsx"),
+    path.join(process.cwd(), "node_modules", ".bin", "tsx"),
+  ]
+  runner = [candidates.find((p) => existsSync(p)) ?? "tsx", [script, ...args]]
 } else {
   runner = [process.execPath, [script, ...args]]
 }

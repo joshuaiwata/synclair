@@ -18,6 +18,16 @@
 set -uo pipefail
 
 HUB="$(pwd)"
+# Core's scripts relative to the hub — packages/core/scripts when vendored,
+# node_modules/@synclair/core/scripts when installed from the registry. The
+# scratch copies carry the same layout, so the reset script is addressed by
+# this relative path, never a hardcoded one.
+CORE_SCRIPTS_ABS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "$CORE_SCRIPTS_ABS" != "$HUB"/* ]]; then
+  echo "[matrix] @synclair/core is not installed inside this hub ($CORE_SCRIPTS_ABS) — run from the hub root with core as a workspace or dependency." >&2
+  exit 1
+fi
+CORE_SCRIPTS_REL="${CORE_SCRIPTS_ABS#"$HUB"/}"
 PARENT="$(mktemp -d "${TMPDIR:-/tmp}/synclair-matrix.XXXXXX")"
 # The POPULATED corpus keeps its host imports (@host/… = ../apps/…), so its
 # scratch must sit at the same depth as synclair/ inside the real repo — an
@@ -135,7 +145,7 @@ for corpus in blank populated; do
   mkdir -p "$DIR"
   copy_hub "$DIR"
   if [[ "$corpus" == "blank" ]]; then
-    bash "$DIR/packages/core/scripts/synclair-reset.sh" "$DIR" --yes
+    bash "$DIR/$CORE_SCRIPTS_REL/synclair-reset.sh" "$DIR" --yes
   fi
   log "building $corpus corpus"
   if ! (cd "$DIR" && npm run build); then
