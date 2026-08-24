@@ -18,6 +18,17 @@
 // running the server as plain `node scripts/mcp-server.mjs`.
 import { register as registerTsx } from "tsx/esm/api"
 registerTsx()
+
+// An MCP client launches this from ITS OWN directory — for the project-scoped
+// `.mcp.json` that is the REPO root, not the hub — and the tools capture the
+// hub root from cwd at import time. Anchoring here is what stops every tool
+// answering from the wrong root: it read as a hub that simply knew nothing
+// (zero components, zero pages, "unanchored"), which is indistinguishable from
+// a blank clone and so never looked like a failure. No-op when the caller was
+// already in the hub.
+import { hubRoot } from "./lib/hub-root.mjs"
+process.chdir(hubRoot())
+
 const { HUB_ROOT, allTools, callTool, handle } = await import("./mcp-tools.mjs")
 
 function serve() {

@@ -27,7 +27,6 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const DEFAULT_BRIDGE_SKILLS = ["product-spec", "project-identity"];
 const DOORWAYS = [".claude/skills", ".agents/skills", ".cursor/skills"];
@@ -65,7 +64,6 @@ const MARK_END = "<!-- synclair:bridge:end -->";
 // replaces the old block instead of appending a duplicate.
 const BLOCK_RE = /<!-- synclair:bridge:start[\s\S]*?<!-- synclair:bridge:end -->/;
 
-const scriptDir = dirname(fileURLToPath(import.meta.url));
 const synclairRoot = process.cwd(); // hub root = caller's cwd, never the package dir
 const skillsDir = join(synclairRoot, ".claude", "skills");
 const agentsDir = join(synclairRoot, ".claude", "agents");

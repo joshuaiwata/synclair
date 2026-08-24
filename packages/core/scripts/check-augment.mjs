@@ -57,6 +57,10 @@ try {
   // An embedded clone: hub inside the product repo.
   mkdirSync(path.join(hub, "scripts", "lib"), { recursive: true })
   cpSync(path.join(SELF, "scripts", "agent-augment.mjs"), path.join(hub, "scripts", "agent-augment.mjs"))
+  // The bare copy still needs the shared hub-root helper it imports; with no
+  // package layout around it, that helper falls back to cwd — which the spawn
+  // sets to the fixture hub.
+  cpSync(path.join(SELF, "scripts", "lib", "hub-root.mjs"), path.join(hub, "scripts", "lib", "hub-root.mjs"))
   write("synclair/data/setup.json", { mode: "embedded" })
   write("apps/web/src/theme.ts", "export const x = 1\n")
   write("apps/web/src/other.ts", "export const y = 2\n")

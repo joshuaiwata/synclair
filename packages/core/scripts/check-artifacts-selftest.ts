@@ -300,6 +300,30 @@ ok(
   )
   const strayAfter = existsSync(strayPath) ? statSync(strayPath).mtimeMs : null
   ok("cwd rule: nothing lands beside the script", strayAfter === strayBefore)
+
+  // The OTHER half of the rule: the MCP server is launched by an agent client
+  // from ITS cwd — the REPO root for a project-scoped .mcp.json — so it must
+  // anchor itself to the hub that installed it. When it didn't, every tool
+  // answered from the wrong root with zero of everything: a hub that knows
+  // nothing looks exactly like a blank clone, so it never read as broken.
+  const foreign = path.join(tmp, "foreign-cwd")
+  mkdirSync(foreign, { recursive: true })
+  let probe = ""
+  try {
+    probe = execFileSync(process.execPath, [path.join(scriptsDir, "mcp-server.mjs"), "--probe"], {
+      cwd: foreign,
+      encoding: "utf8",
+      timeout: 60000,
+    })
+  } catch (e) {
+    probe = String((e as { stdout?: string }).stdout ?? "")
+  }
+  const reported = /hub root: (.*)/.exec(probe)?.[1]?.trim()
+  ok(
+    "cwd rule: the MCP server anchors to its own hub, not the caller's cwd",
+    Boolean(reported) && reported !== foreign,
+    `reported ${reported ?? "nothing"}`
+  )
 }
 
 rmSync(tmp, { recursive: true, force: true })
