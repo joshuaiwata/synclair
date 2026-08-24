@@ -31,7 +31,7 @@ import { execFileSync } from "node:child_process"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 const START = "# >>> synclair freshness >>>"
 const END = "# <<< synclair freshness <<<"
 

@@ -37,7 +37,22 @@ import { existsSync, readFileSync, realpathSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+/**
+ * This script is invoked by an agent HOOK from the HOST repo (cwd = host root,
+ * not the hub), so the hub root comes from the script's own installed location:
+ * <hub>/node_modules/@synclair/core/scripts (registry) or
+ * <hub>/packages/core/scripts (vendored workspace). Anything else (a test
+ * fixture running a bare copy) falls back to the caller's cwd.
+ */
+function hubRootFromScript() {
+  const pkgRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+  const parts = pkgRoot.split(path.sep)
+  const nm = parts.lastIndexOf("node_modules")
+  if (nm > 0) return parts.slice(0, nm).join(path.sep)
+  if (parts[parts.length - 2] === "packages") return parts.slice(0, -2).join(path.sep)
+  return process.cwd()
+}
+const HUB_ROOT = hubRootFromScript()
 
 /** Read stdin fully, but never hang if nothing is piped. */
 function readStdin() {

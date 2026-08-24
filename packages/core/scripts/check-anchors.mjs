@@ -31,7 +31,7 @@ import { parseAnchors, reanchor, verifyAnchor } from "./lib/anchors.mjs"
 import { emitJson } from "./lib/emit.mjs"
 import { resolveTarget } from "./lib/topology.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 const hostRoot = resolveTarget(HUB_ROOT).hostRoot ?? HUB_ROOT
 
 const args = process.argv.slice(2)

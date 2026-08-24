@@ -97,7 +97,7 @@ const baseDirFor = (repoRoot) => (repoRoot ? path.join(ROOT, repoRoot) : ROOT)
  * PRODUCT repo. Normalise once here rather than letting each caller guess — a
  * wrong base yields an empty cascade that looks exactly like a clean one.
  */
-const HUB = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HUB = ROOT
 const HOST = resolveTarget(HUB).hostRoot ?? HUB
 const toProductRel = (rel, repoRoot) =>
   path.relative(HOST, path.resolve(ROOT, repoRoot ?? ".", rel)).split(path.sep).join("/")

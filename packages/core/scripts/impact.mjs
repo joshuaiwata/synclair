@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url"
 import { emitJson } from "./lib/emit.mjs"
 import { buildGraph, impactOf } from "./lib/edges.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 
 const args = process.argv.slice(2)
 const has = (n) => args.includes(n)

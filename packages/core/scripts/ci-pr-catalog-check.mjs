@@ -46,7 +46,7 @@ import {
   patternConstants,
 } from "./lib/api-surface.mjs";
 
-const synclairRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const synclairRoot = process.cwd(); // hub root = caller's cwd, never the package dir
 // Repo root = where the PR diff paths are rooted. In CI that's $GITHUB_WORKSPACE;
 // locally, ask git; if neither is available, assume Synclair IS the repo.
 function detectRepoRoot() {

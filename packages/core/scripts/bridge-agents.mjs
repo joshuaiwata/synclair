@@ -66,7 +66,7 @@ const MARK_END = "<!-- synclair:bridge:end -->";
 const BLOCK_RE = /<!-- synclair:bridge:start[\s\S]*?<!-- synclair:bridge:end -->/;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const synclairRoot = dirname(scriptDir);
+const synclairRoot = process.cwd(); // hub root = caller's cwd, never the package dir
 const skillsDir = join(synclairRoot, ".claude", "skills");
 const agentsDir = join(synclairRoot, ".claude", "agents");
 const check = process.argv.includes("--check");

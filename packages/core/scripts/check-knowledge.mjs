@@ -62,7 +62,7 @@ const root = process.cwd();
  * clone's parent and in watcher topology a sibling. Resolve it the same way
  * every other host-facing script does rather than assuming `root`.
  */
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package;
 const hostRepoRoot = resolveTarget(HUB_ROOT).hostRoot ?? HUB_ROOT;
 const originRepoSlug = originSlugs(hostRepoRoot);
 const SOURCES_TS = path.join(root, "lib", "system", "knowledge", "sources.ts");

@@ -25,14 +25,15 @@ import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const HUB = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
+const HUB = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 const OUT = process.argv[2] ?? "/tmp/regression-matrix.json"
 const MAP = path.join(HUB, "data/system-map.json")
 const CONTRACTS = path.join(HUB, ".synclair/cache/contracts.json")
 
 const run = (script, args = []) => {
   try {
-    return execFileSync(process.execPath, [path.join(HUB, "scripts", script), ...args], {
+    return execFileSync(process.execPath, [path.join(SCRIPTS_DIR, script), ...args], {
       cwd: HUB, encoding: "utf8", timeout: 120000, maxBuffer: 16e6,
     })
   } catch (e) {
@@ -176,7 +177,7 @@ inject(
 
 // ────────────────────────────────────────────────────── code-level behaviours
 
-const mod = await import(path.join(HUB, "scripts", "mcp-tools.mjs"))
+const mod = await import(path.join(SCRIPTS_DIR, "mcp-tools.mjs"))
 const call = async (name, args) => {
   const r = await mod.callTool(name, args)
   const text = typeof r === "string" ? r : r?.content?.[0]?.text

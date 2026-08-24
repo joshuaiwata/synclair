@@ -45,8 +45,8 @@ import { fileURLToPath } from "node:url"
 
 import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const BRIEF_REL = path.join("scripts", "agent-brief.mjs")
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
+const BRIEF_REL = path.join("node_modules", "@synclair", "core", "scripts", "agent-brief.mjs")
 const AUGMENT_REL = path.join("scripts", "agent-augment.mjs")
 
 /** Identifies OUR hook so removal is exact. A shell comment: inert when run. */

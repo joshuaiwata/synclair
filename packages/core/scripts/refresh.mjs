@@ -33,7 +33,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 const checkOnly = process.argv.includes("--check")
 
 const readJson = (rel) => {

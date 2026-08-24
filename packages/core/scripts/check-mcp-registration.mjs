@@ -39,8 +39,8 @@ import { fileURLToPath } from "node:url"
 
 import { clientsFor, launchDirs, resolveTarget, userScopeFile } from "./lib/topology.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const SERVER_REL = path.join("scripts", "mcp-server.mjs")
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
+const SERVER_REL = path.join("node_modules", "@synclair", "core", "scripts", "mcp-server.mjs")
 const SERVER_ABS = path.join(HUB_ROOT, SERVER_REL)
 
 const args = process.argv.slice(2)

@@ -44,6 +44,9 @@ function run(payload) {
       input: typeof payload === "string" ? payload : JSON.stringify(payload),
       encoding: "utf8",
       timeout: 10_000,
+      // The bare fixture copy has no package layout to detect, so the script
+      // falls back to its caller's cwd — which must be the fixture's HUB.
+      cwd: hub, // the fixture var hub IS the fixture synclair dir
     })
   } catch (e) {
     return `EXIT:${e.status} ${e.stdout ?? ""}${e.stderr ?? ""}`

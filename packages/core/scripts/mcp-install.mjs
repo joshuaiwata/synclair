@@ -32,7 +32,7 @@ import { fileURLToPath } from "node:url"
 
 import { isEmbeddedish, resolveTarget, scriptPathFor } from "./lib/topology.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const HUB_ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 // The server ships inside the core package now (Phase 3 split).
 const SERVER_REL = path.join("node_modules", "@synclair", "core", "scripts", "mcp-server.mjs")
 

@@ -75,7 +75,7 @@ jobs:
 
       - name: Diff-aware sync scan
         id: gate
-        run: node scripts/ci-pr-catalog-check.mjs /tmp/changed.txt
+        run: node packages/core/scripts/ci-pr-catalog-check.mjs /tmp/changed.txt
 
       # Dormant in blank / new-project clones: only comment where a host catalog
       # exists (so the foundation's own PRs stay quiet).

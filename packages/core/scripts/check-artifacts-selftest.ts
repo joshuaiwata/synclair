@@ -266,6 +266,42 @@ ok(
   process.chdir(prevCwd)
 }
 
+// 7. THE CWD RULE, exercised end to end (PR #74's rule, script edition). Every
+// core script takes the hub root from the CALLER'S cwd — never from
+// import.meta.url, which points into the package. This spawns a real scanner
+// from a bare temp hub and asserts its output lands THERE, not beside the
+// script. The regression it pins: after the split, a dozen scripts kept the
+// old derivation and quietly read/wrote inside packages/core (found as a stray
+// cache file committed into the package, and an MCP registration pointing at
+// a path that no longer existed).
+{
+  const { execFileSync } = await import("node:child_process")
+  const { mkdirSync, existsSync, statSync } = await import("node:fs")
+  const { fileURLToPath } = await import("node:url")
+  const hub2 = path.join(tmp, "cwd-hub")
+  mkdirSync(hub2, { recursive: true })
+  const scriptsDir = path.dirname(fileURLToPath(import.meta.url))
+  // A stray from the pre-fix era may already sit beside the script on a dev
+  // machine — the assertion is that the SPAWN doesn't create or touch one.
+  const strayPath = path.join(scriptsDir, "..", ".synclair", "cache", "rulings.json")
+  const strayBefore = existsSync(strayPath) ? statSync(strayPath).mtimeMs : null
+  try {
+    execFileSync(process.execPath, [path.join(scriptsDir, "check-rulings.mjs"), "--write"], {
+      cwd: hub2,
+      stdio: "ignore",
+      timeout: 30000,
+    })
+  } catch {
+    /* findings may exit non-zero — the assertion is WHERE the file landed */
+  }
+  ok(
+    "cwd rule: a spawned scanner writes under the caller's cwd",
+    existsSync(path.join(hub2, ".synclair", "cache", "rulings.json"))
+  )
+  const strayAfter = existsSync(strayPath) ? statSync(strayPath).mtimeMs : null
+  ok("cwd rule: nothing lands beside the script", strayAfter === strayBefore)
+}
+
 rmSync(tmp, { recursive: true, force: true })
 
 if (failures.length) {

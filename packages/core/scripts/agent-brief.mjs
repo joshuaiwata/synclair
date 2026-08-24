@@ -46,7 +46,23 @@ import { advanceCursor, changesSince, fingerprint } from "./lib/brief-cursor.mjs
 import { emitJson } from "./lib/emit.mjs"
 import { rulingsFor } from "./lib/rulings.mjs"
 
-const HUB_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
+/**
+ * This script is invoked by an agent HOOK from the HOST repo (cwd = host root,
+ * not the hub), so the hub root comes from the script's own installed location:
+ * <hub>/node_modules/@synclair/core/scripts (registry) or
+ * <hub>/packages/core/scripts (vendored workspace). Anything else (a test
+ * fixture running a bare copy) falls back to the caller's cwd.
+ */
+function hubRootFromScript() {
+  const pkgRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+  const parts = pkgRoot.split(path.sep)
+  const nm = parts.lastIndexOf("node_modules")
+  if (nm > 0) return parts.slice(0, nm).join(path.sep)
+  if (parts[parts.length - 2] === "packages") return parts.slice(0, -2).join(path.sep)
+  return process.cwd()
+}
+const HUB_ROOT = hubRootFromScript()
 
 const args = process.argv.slice(2)
 const has = (n) => args.includes(n)
@@ -80,7 +96,7 @@ function readJson(rel) {
  * to signal findings), so stdout is parsed regardless of exit code.
  */
 function runJson(script, extra = []) {
-  const p = path.join(HUB_ROOT, "scripts", script)
+  const p = path.join(SCRIPTS_DIR, script)
   if (!existsSync(p)) return null
   try {
     const out = execFileSync(process.execPath, [p, "--json", ...extra], {
