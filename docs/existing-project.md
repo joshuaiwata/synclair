@@ -1,11 +1,10 @@
-# Using Synclair alongside an EXISTING project
+# Using Synclair with an EXISTING project
 
-> **Where this sits in the two axes** ([`setup-modes.md`](setup-modes.md)): this doc is
-> the **intake** path — you populate the hub from code that already exists rather than
-> seeding a fresh brand. It describes the common **watcher** bundle (a *separate* sibling
-> clone beside the product, two repos). If you'd rather keep one repo, the same intake
-> applies to a **co-located embedded** clone (`co-locate-synclair`) — topology is a
-> separate choice from the intake below.
+> **Where this sits** ([`setup-modes.md`](setup-modes.md)): this doc is the
+> **intake** path — you populate the hub from code that already exists rather
+> than seeding a fresh brand. Topology is always **embedded**: the clone is
+> co-located INSIDE the product repo at `./synclair` (`co-locate-synclair`).
+> The former sibling/watcher layout is retired — see `setup-modes.md`.
 
 [`new-project.md`](new-project.md) covers the fresh-seed flow. This doc covers the other
 case — you already have a product repo (its own framework, router, and dev server) and
@@ -24,34 +23,33 @@ Visiting `<your-app>/synclair` will NOT show Synclair — it hits your app's rou
 (which may swallow it as a slug/org path and render something confusing).
 Synclair lives at **`localhost:4100/synclair`**, always.
 
-## 1. Clone as a sibling (not a subdirectory)
+## 1. Co-locate inside the product repo
 
 ```bash
-cd <parent-of-your-project>
-npx synclair new <project>-synclair      # clones + wires the mother repo as `upstream`
-cd <project>-synclair
-git remote add origin <the-hub's-own-repo-url>   # optional, for backup
+cd <your-project>
+npx synclair new synclair        # clones the foundation into ./synclair
+rm -rf synclair/.git             # the host repo owns the history now
 ```
 
-(`npx synclair new` is shorthand for `git clone https://github.com/joshuaiwata/synclair.git`
-followed by `git remote rename origin upstream` — same result either way.)
-
-A sibling keeps the two git histories, lockfiles, and `node_modules` apart —
-nesting a second repo inside the host confuses agents and tooling. Keeping the
-foundation's history (don't `rm -rf .git`) is what lets `synclair-sync` pull
-future foundation updates as an ordinary merge.
+Then follow the **`co-locate-synclair`** skill to isolate the two apps (so the
+product's build/lint/typecheck/deploy don't trip over Synclair's) and commit
+the tree. One repo means skills and knowledge travel with the code, every
+developer gets a working hub on clone, and future foundation updates arrive
+via `synclair-sync` (a subtree merge from the mother repo — no nested `.git`
+needed).
 
 **Preflight — verify the clone is current.** It must contain
 `docs/new-project.md`, `docs/existing-project.md`, and
-`scripts/synclair-reset.sh`. If any are missing, you cloned a stale or wrong
-repo (a pre-Synclair prototype shape) — the source of record is
+`packages/core/scripts/synclair-reset.sh`. If any are missing, you cloned a
+stale or wrong repo — the source of record is
 `https://github.com/joshuaiwata/synclair`, default branch.
 
 ## 2. Blank and reseed
 
 ```bash
-scripts/synclair-reset.sh . --yes
+cd synclair
 npm install
+npx synclair synclair-reset . --yes
 ```
 
 Then reseed per [`new-project.md`](new-project.md) §4, with the host project as
@@ -73,9 +71,9 @@ Synclair: `http://localhost:4100/synclair`. The host app keeps its own port and 
 Add a short pointer to the host repo's `AGENTS.md`/`CLAUDE.md` so agents
 working there know where Synclair lives, e.g.:
 
-> Synclair for this project: `../<project>-synclair` (dev server
-> `localhost:4100`, at `/synclair`). Knowledge manifest and references live
-> there, not in this repo.
+> Synclair for this project: `./synclair` (dev server `localhost:4100`, at
+> `/synclair`). Knowledge manifest and references live there, not in the app
+> code.
 
 ## 5. Populate Synclair from the host codebase
 

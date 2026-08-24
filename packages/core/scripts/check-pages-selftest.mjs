@@ -16,7 +16,7 @@
  */
 
 import { execFileSync } from "node:child_process"
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -25,9 +25,12 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const parent = mkdtempSync(path.join(os.tmpdir(), "check-pages-selftest."))
 let failures = []
 
+// The real script runs IN PLACE (it imports the artifact modules relative to
+// its own location, which a bare fixture hub can't satisfy); only the hub —
+// the cwd, where the map lives — is the fixture.
 const run = (hub) => {
   try {
-    return execFileSync(process.execPath, [path.join(hub, "scripts/check-pages.mjs")], {
+    return execFileSync(process.execPath, [path.join(here, "check-pages.mjs")], {
       cwd: hub,
       stdio: ["ignore", "pipe", "pipe"],
     }).toString()
@@ -38,9 +41,7 @@ const run = (hub) => {
 
 const makeHub = (name, map, withHost) => {
   const hub = path.join(parent, name)
-  mkdirSync(path.join(hub, "scripts"), { recursive: true })
   mkdirSync(path.join(hub, "data"), { recursive: true })
-  cpSync(path.join(here, "check-pages.mjs"), path.join(hub, "scripts/check-pages.mjs"))
   writeFileSync(path.join(hub, "data/pages-map.json"), JSON.stringify(map))
   if (withHost) {
     mkdirSync(path.join(parent, name + "-host", "app"), { recursive: true })
