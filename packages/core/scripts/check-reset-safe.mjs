@@ -100,6 +100,48 @@ if (!middlewareSrc.includes("Deliberate no-op")) {
   )
 }
 
+/**
+ * THE BLANKING ACTUALLY BLANKS — run reset's own references regex over a
+ * fixture whose entry mentions another entry in [brackets]. The original
+ * pattern stopped at the first `]` inside the array, so the seed file kept
+ * every entry after the first and no longer parsed: a blank clone that could
+ * not build. Read the expression out of the script so this can never drift
+ * from what reset actually runs.
+ */
+{
+  const resetPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "synclair-reset.sh")
+  const line = readFileSync(resetPath, "utf8")
+    .split("\n")
+    .find((l) => l.includes("perl") && l.includes("REFERENCES: Reference"))
+  const body = /-e\s+'s\/(.+?)\/(.*?)\/s'/.exec(line ?? "")
+  if (!body) {
+    failures.push("check:reset-safe cannot find reset's REFERENCES blanking expression — the tripwire below is blind.")
+  } else {
+    const pattern = new RegExp(body[1].replace(/\\\//g, "/"), "s")
+    const fixture = [
+      "export const REFERENCES: Reference[] = [",
+      "  {",
+      '    id: "a",',
+      '    note: "blocked by the same thing as [other-entry].",',
+      "  },",
+      "  {",
+      '    id: "b",',
+      "  },",
+      "]",
+      "",
+      "export function getReferences(): Reference[] {",
+      "  return REFERENCES",
+      "}",
+    ].join("\n")
+    const blanked = fixture.replace(pattern, body[2].replace(/\\\//g, "/"))
+    if (/id:\s*"/.test(blanked)) {
+      failures.push(
+        "synclair-reset.sh leaves reference entries behind when one of them contains `]` — the blanked seed will not compile. Anchor the match to the array's closing bracket at start-of-line."
+      )
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`check:reset-safe — ${failures.length} import(s) a blank clone cannot resolve:\n`)
   for (const f of failures) console.error(`  ${f}\n`)

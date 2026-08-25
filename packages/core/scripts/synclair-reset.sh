@@ -205,7 +205,11 @@ TS
 echo "› Emptying the references library…"
 if [[ -f lib/system/references.ts ]]; then
   # Blank just the seed array; keep the type + getter + append convention intact.
-  perl -0pi -e 's/export const REFERENCES: Reference\[\] = \[[^\]]*\]/export const REFERENCES: Reference[] = []/s' lib/system/references.ts
+  # Match to the array's OWN closing bracket (start of line), not the first `]`
+  # anywhere inside it: a reference note that mentions another entry in brackets
+  # ends the old [^\]]* class early, blanking the first entry and leaving every
+  # later one orphaned — a clone that does not compile. Found by the sim.
+  perl -0pi -e 's/export const REFERENCES: Reference\[\] = \[.*?\n\]/export const REFERENCES: Reference[] = []/s' lib/system/references.ts
 fi
 
 echo "› Clearing Figma manifest data…"
