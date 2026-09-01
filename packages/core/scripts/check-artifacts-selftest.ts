@@ -123,6 +123,10 @@ ok(
   const hub = path.join(tmp, "hub")
   const prevCwd = process.cwd()
   const fresh = async () => {
+    // Step out of `hub` BEFORE removing it. POSIX will happily unlink a
+    // directory that is a process's cwd; Windows refuses with EPERM, so the
+    // second call to fresh() killed the whole self-test there.
+    process.chdir(prevCwd)
     rmSync(hub, { recursive: true, force: true })
     const { mkdirSync } = await import("node:fs")
     mkdirSync(hub, { recursive: true })

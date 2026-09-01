@@ -22,12 +22,14 @@
 
 import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
 const HUB = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
-const OUT = process.argv[2] ?? "/tmp/regression-matrix.json"
+// The OS temp directory, not a hardcoded /tmp — Windows has no /tmp.
+const OUT = process.argv[2] ?? path.join(tmpdir(), "regression-matrix.json")
 const MAP = path.join(HUB, "data/system-map.json")
 const CONTRACTS = path.join(HUB, ".synclair/cache/contracts.json")
 

@@ -14,7 +14,9 @@
  */
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const HUB = process.cwd()
 // The audited repo comes from the MAP'S OWN root, never a hardcoded "..": an
@@ -41,7 +43,9 @@ if (REPO !== HUB && !HUB.startsWith(REPO + path.sep)) {
   )
   process.exit(1)
 }
-const OUT = process.argv[2] ?? "/tmp/audit-results.json"
+// The OS temp directory, not a hardcoded /tmp — Windows has no /tmp, so the
+// audit ran to completion and then died writing its own results.
+const OUT = process.argv[2] ?? path.join(tmpdir(), "audit-results.json")
 
 const results = []
 let suite = ""
@@ -914,7 +918,11 @@ await TA("the stdio transport answers a real request end to end", async () => {
     // and closes must still be answered, not left with its request in a buffer.
     JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_overview", arguments: {} } }),
   ].join("\n")
-  const out = execFileSync(process.execPath, [new URL("./mcp-server.mjs", import.meta.url).pathname], {
+  // fileURLToPath, never `.pathname`: on Windows the latter yields
+  // "/C:/…/mcp-server.mjs", which node then resolves against the cwd's drive
+  // into "C:\C:\…" and cannot find.
+  const server = fileURLToPath(new URL("./mcp-server.mjs", import.meta.url))
+  const out = execFileSync(process.execPath, [server], {
     input: req, encoding: "utf8", timeout: 30000, maxBuffer: 8 * 1024 * 1024,
   })
   const lines = out.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l))

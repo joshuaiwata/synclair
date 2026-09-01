@@ -75,7 +75,10 @@ function* walk(dir) {
       if (path.relative(root, full) === path.join("components", "ui") || entry === "node_modules") continue; // vendored / deps
       yield* walk(full);
     } else if (entry.endsWith(".docs.tsx")) {
-      yield path.relative(root, full);
+      // POSIX separators, always. registry.json's `docs` fields are
+      // forward-slash, so a raw path.relative matched NOTHING on Windows and
+      // reported every colocated docs file in the repo as unregistered.
+      yield path.relative(root, full).split(path.sep).join("/");
     }
   }
 }

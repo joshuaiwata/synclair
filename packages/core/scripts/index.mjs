@@ -36,29 +36,20 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { runner } from "./lib/runner.mjs"
+
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = process.cwd()
 
 // tsx may live in the package's own node_modules or hoisted at the hub root.
-const resolveTsx = () => {
-  const candidates = [
-    path.join(SCRIPTS_DIR, "..", "node_modules", ".bin", "tsx"),
-    path.join(ROOT, "node_modules", ".bin", "tsx"),
-  ]
-  for (const c of candidates) if (existsSync(c)) return c
-  return "tsx"
-}
+const TSX_DIRS = [path.join(SCRIPTS_DIR, ".."), ROOT]
 const CACHE = path.join(ROOT, ".synclair", "cache")
 
 const run = (script, args = []) => {
   try {
     return {
       ok: true,
-      out: execFileSync(
-        ...(script.endsWith(".ts")
-          ? [resolveTsx(), [path.join(SCRIPTS_DIR, script), ...args]]
-          : [process.execPath, [path.join(SCRIPTS_DIR, script), ...args]]),
-        {
+      out: execFileSync(...runner(path.join(SCRIPTS_DIR, script), args, TSX_DIRS), {
         cwd: ROOT,
         stdio: ["ignore", "pipe", "pipe"],
       }).toString(),

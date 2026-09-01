@@ -42,6 +42,9 @@ export function readDiscovery(): DiscoveryReport | null {
 /** Files that read as documents — deliberately includes generated artifacts
  *  (.puml/.mmd diagrams, schema exports), the exact class intake used to skip. */
 const DOC_EXT = new Set([".md", ".mdx", ".puml", ".mmd", ".adoc", ".rst", ".txt"])
+/** Repo-relative paths are POSIX everywhere — the ignore globs and the
+ *  committed report must read the same on Windows as on a CI runner. */
+const posix = (p: string) => p.split(path.sep).join("/")
 const IGNORE_DIRS = new Set(["node_modules", ".git", ".next", "dist", "build", "out"])
 const IGNORE_FILES = /^(license|notice|changelog|code_of_conduct)/i
 
@@ -110,7 +113,11 @@ export function scanDiscovery(opts: { write?: boolean } = {}): DiscoveryReport {
       if (!DOC_EXT.has(path.extname(e.name).toLowerCase())) continue
       const abs = path.join(dir, e.name)
       if (coveredAbs.has(abs)) continue
-      const rel = path.relative(host, abs)
+      // POSIX separators, always. `path.relative` yields backslashes on
+      // Windows, which never match the forward-slash globs in
+      // data/knowledge/discovery-ignore.json and would write
+      // platform-dependent paths into the committed report.
+      const rel = posix(path.relative(host, abs))
       if (ignored.some((re) => re.test(rel))) continue
       let mtime: string | null = null
       try {
@@ -118,7 +125,7 @@ export function scanDiscovery(opts: { write?: boolean } = {}): DiscoveryReport {
       } catch {
         /* keep null */
       }
-      uncovered.push({ path: rel, dir: path.relative(host, dir), mtime })
+      uncovered.push({ path: rel, dir: posix(path.relative(host, dir)), mtime })
     }
   }
 
