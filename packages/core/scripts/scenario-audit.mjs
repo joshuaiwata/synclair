@@ -19,10 +19,12 @@
 
 import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
 
 const ROOT = process.argv[2]
-const OUT = process.argv[3] ?? "/tmp/scenario-results.json"
+// The OS temp directory, not a hardcoded /tmp — Windows has no /tmp.
+const OUT = process.argv[3] ?? path.join(tmpdir(), "scenario-results.json")
 if (!ROOT || !existsSync(path.join(ROOT, "synclair"))) {
   console.error("usage: scenario-audit.mjs <worktree-root> [out.json]")
   process.exit(1)

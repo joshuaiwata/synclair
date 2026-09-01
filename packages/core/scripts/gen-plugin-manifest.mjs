@@ -72,7 +72,11 @@ function collect(dir, listing, kind) {
         // the hub defaults them — the manifest must not disagree with the UI.
         category: fm.category ?? "other",
         layer: fm.layer ?? "project",
-        source: path.relative(ROOT, file),
+        // POSIX separators, always. `path.relative` yields backslashes on
+        // Windows, which silently rewrites every `source` in the committed
+        // manifest and makes `--check` fail for whoever runs it on the other
+        // platform.
+        source: path.relative(ROOT, file).split(path.sep).join("/"),
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name))

@@ -25,8 +25,12 @@
  */
 
 import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 
-const SERVER = new URL("./mcp-server.mjs", import.meta.url).pathname
+// fileURLToPath, never `.pathname`: on Windows the latter yields
+// "/C:/…/mcp-server.mjs", which node resolves against the cwd's drive into
+// "C:\C:\…" and cannot find.
+const SERVER = fileURLToPath(new URL("./mcp-server.mjs", import.meta.url))
 const strict = process.argv.includes("--strict")
 
 /**

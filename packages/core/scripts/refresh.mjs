@@ -33,6 +33,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { runner } from "./lib/runner.mjs"
+
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = process.cwd() // the hub root is the CALLER'S cwd (the CLI guarantees it) — never derived from import.meta.url, which points into the core package
 const checkOnly = process.argv.includes("--check")
@@ -47,12 +49,13 @@ const readJson = (rel) => {
   }
 }
 
+// TS CLIs (artifact-module wrappers, battery B3) run under tsx, which may live
+// in the package's own node_modules or hoisted at the hub root.
+const TSX_DIRS = [path.join(SCRIPTS_DIR, ".."), ROOT]
+
 function run(script, args = []) {
-  // TS CLIs (artifact-module wrappers, battery B3) run under tsx.
-  const tsxCandidates = [path.join(SCRIPTS_DIR, "..", "node_modules", ".bin", "tsx"), path.join(ROOT, "node_modules", ".bin", "tsx")]
-  const bin = script.endsWith(".ts") ? (tsxCandidates.find((c) => existsSync(c)) ?? "tsx") : process.execPath
   try {
-    const out = execFileSync(bin, [path.join(SCRIPTS_DIR, script), ...args], {
+    const out = execFileSync(...runner(path.join(SCRIPTS_DIR, script), args, TSX_DIRS), {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],

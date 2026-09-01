@@ -16,8 +16,11 @@ import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const REPO = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
+// fileURLToPath, never `.pathname`: on Windows the latter yields a
+// "/C:/…"-shaped string that git -C cannot use.
+const REPO = fileURLToPath(new URL("../..", import.meta.url)).replace(/[\\/]$/, "");
 const base = process.env.SYNCLAIR_GATE_BASE || "origin/staging";
 
 const git = (...args) =>

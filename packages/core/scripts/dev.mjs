@@ -26,8 +26,12 @@ const CACHE = path.join(ROOT, ".synclair", "cache")
 const log = (msg) => console.log(`[synclair-dev] ${msg}`)
 
 // ---------------------------------------------------------------- next dev
-const nextBin = path.join(ROOT, "node_modules", ".bin", "next")
-const child = spawn(nextBin, ["dev", ...process.argv.slice(2)], {
+// next's real JS entry, run through node — never `node_modules/.bin/next`.
+// The extensionless shim is a sh script Windows cannot exec (ENOENT), and
+// spawning the .cmd twin without a shell throws EINVAL on current Node. One
+// spawn form that works on every platform.
+const nextBin = path.join(ROOT, "node_modules", "next", "dist", "bin", "next")
+const child = spawn(process.execPath, [nextBin, "dev", ...process.argv.slice(2)], {
   cwd: ROOT,
   stdio: "inherit",
 })
