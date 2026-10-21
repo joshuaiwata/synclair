@@ -19,6 +19,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: node --test packages/core/scripts/mcp-install.test.mjs
       # The derived cache is gitignored — rebuild it so the checks grade the
       # derived layer instead of skipping an absent one.
       - run: npm run index

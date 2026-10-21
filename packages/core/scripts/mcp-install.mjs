@@ -137,7 +137,8 @@ function codexBlock() {
     CODEX_START,
     "[mcp_servers.synclair]",
     'command = "node"',
-    `args = ["${absServer}"]`,
+    // Escape Windows backslashes and quotes for a TOML basic string.
+    `args = [${JSON.stringify(absServer)}]`,
     CODEX_END,
   ].join("\n")
 }
